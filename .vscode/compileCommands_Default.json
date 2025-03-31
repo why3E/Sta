@@ -1,57 +1,105 @@
 [
 	{
-		"file": "C:\\Users\\jkkks\\Desktop\\UEP\\Sta\\Statistic\\Source\\Statistic\\Statistic.Build.cs",
+		"file": "C:\\Users\\jkkks\\Desktop\\sta\\Sta\\Source\\Statistic\\MyCharacterBase.cpp",
 		"arguments": [
 			"C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.43.34808\\bin\\Hostx64\\x64\\cl.exe",
-			"@C:\\Users\\jkkks\\Desktop\\UEP\\Sta\\Statistic\\.vscode\\compileCommands_Default\\Statistic.1.rsp"
+			"@C:\\Users\\jkkks\\Desktop\\sta\\Sta\\.vscode\\compileCommands_Default\\Statistic.1.rsp"
 		],
 		"directory": "C:\\Program Files\\Epic Games\\UE_5.5\\Engine\\Source"
 	},
 	{
-		"file": "C:\\Users\\jkkks\\Desktop\\UEP\\Sta\\Statistic\\Source\\Statistic\\Statistic.cpp",
+		"file": "C:\\Users\\jkkks\\Desktop\\sta\\Sta\\Source\\Statistic\\MyCharacterBase.h",
 		"arguments": [
 			"C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.43.34808\\bin\\Hostx64\\x64\\cl.exe",
-			"@C:\\Users\\jkkks\\Desktop\\UEP\\Sta\\Statistic\\.vscode\\compileCommands_Default\\Statistic.1.rsp"
+			"@C:\\Users\\jkkks\\Desktop\\sta\\Sta\\.vscode\\compileCommands_Default\\Statistic.1.rsp"
 		],
 		"directory": "C:\\Program Files\\Epic Games\\UE_5.5\\Engine\\Source"
 	},
 	{
-		"file": "C:\\Users\\jkkks\\Desktop\\UEP\\Sta\\Statistic\\Source\\Statistic\\Statistic.h",
+		"file": "C:\\Users\\jkkks\\Desktop\\sta\\Sta\\Source\\Statistic\\MyGameMode.cpp",
 		"arguments": [
 			"C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.43.34808\\bin\\Hostx64\\x64\\cl.exe",
-			"@C:\\Users\\jkkks\\Desktop\\UEP\\Sta\\Statistic\\.vscode\\compileCommands_Default\\Statistic.1.rsp"
+			"@C:\\Users\\jkkks\\Desktop\\sta\\Sta\\.vscode\\compileCommands_Default\\Statistic.1.rsp"
 		],
 		"directory": "C:\\Program Files\\Epic Games\\UE_5.5\\Engine\\Source"
 	},
 	{
-		"file": "C:\\Users\\jkkks\\Desktop\\UEP\\Sta\\Statistic\\Source\\Statistic\\StatisticCharacter.cpp",
+		"file": "C:\\Users\\jkkks\\Desktop\\sta\\Sta\\Source\\Statistic\\MyGameMode.h",
 		"arguments": [
 			"C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.43.34808\\bin\\Hostx64\\x64\\cl.exe",
-			"@C:\\Users\\jkkks\\Desktop\\UEP\\Sta\\Statistic\\.vscode\\compileCommands_Default\\Statistic.1.rsp"
+			"@C:\\Users\\jkkks\\Desktop\\sta\\Sta\\.vscode\\compileCommands_Default\\Statistic.1.rsp"
 		],
 		"directory": "C:\\Program Files\\Epic Games\\UE_5.5\\Engine\\Source"
 	},
 	{
-		"file": "C:\\Users\\jkkks\\Desktop\\UEP\\Sta\\Statistic\\Source\\Statistic\\StatisticCharacter.h",
+		"file": "C:\\Users\\jkkks\\Desktop\\sta\\Sta\\Source\\Statistic\\PlayerCharacter.cpp",
 		"arguments": [
 			"C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.43.34808\\bin\\Hostx64\\x64\\cl.exe",
-			"@C:\\Users\\jkkks\\Desktop\\UEP\\Sta\\Statistic\\.vscode\\compileCommands_Default\\Statistic.1.rsp"
+			"@C:\\Users\\jkkks\\Desktop\\sta\\Sta\\.vscode\\compileCommands_Default\\Statistic.1.rsp"
 		],
 		"directory": "C:\\Program Files\\Epic Games\\UE_5.5\\Engine\\Source"
 	},
 	{
-		"file": "C:\\Users\\jkkks\\Desktop\\UEP\\Sta\\Statistic\\Source\\Statistic\\StatisticGameMode.cpp",
+		"file": "C:\\Users\\jkkks\\Desktop\\sta\\Sta\\Source\\Statistic\\PlayerCharacter.h",
 		"arguments": [
 			"C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.43.34808\\bin\\Hostx64\\x64\\cl.exe",
-			"@C:\\Users\\jkkks\\Desktop\\UEP\\Sta\\Statistic\\.vscode\\compileCommands_Default\\Statistic.1.rsp"
+			"@C:\\Users\\jkkks\\Desktop\\sta\\Sta\\.vscode\\compileCommands_Default\\Statistic.1.rsp"
 		],
 		"directory": "C:\\Program Files\\Epic Games\\UE_5.5\\Engine\\Source"
 	},
 	{
-		"file": "C:\\Users\\jkkks\\Desktop\\UEP\\Sta\\Statistic\\Source\\Statistic\\StatisticGameMode.h",
+		"file": "C:\\Users\\jkkks\\Desktop\\sta\\Sta\\Source\\Statistic\\Statistic.Build.cs",
 		"arguments": [
 			"C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.43.34808\\bin\\Hostx64\\x64\\cl.exe",
-			"@C:\\Users\\jkkks\\Desktop\\UEP\\Sta\\Statistic\\.vscode\\compileCommands_Default\\Statistic.1.rsp"
+			"@C:\\Users\\jkkks\\Desktop\\sta\\Sta\\.vscode\\compileCommands_Default\\Statistic.1.rsp"
+		],
+		"directory": "C:\\Program Files\\Epic Games\\UE_5.5\\Engine\\Source"
+	},
+	{
+		"file": "C:\\Users\\jkkks\\Desktop\\sta\\Sta\\Source\\Statistic\\Statistic.cpp",
+		"arguments": [
+			"C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.43.34808\\bin\\Hostx64\\x64\\cl.exe",
+			"@C:\\Users\\jkkks\\Desktop\\sta\\Sta\\.vscode\\compileCommands_Default\\Statistic.1.rsp"
+		],
+		"directory": "C:\\Program Files\\Epic Games\\UE_5.5\\Engine\\Source"
+	},
+	{
+		"file": "C:\\Users\\jkkks\\Desktop\\sta\\Sta\\Source\\Statistic\\Statistic.h",
+		"arguments": [
+			"C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.43.34808\\bin\\Hostx64\\x64\\cl.exe",
+			"@C:\\Users\\jkkks\\Desktop\\sta\\Sta\\.vscode\\compileCommands_Default\\Statistic.1.rsp"
+		],
+		"directory": "C:\\Program Files\\Epic Games\\UE_5.5\\Engine\\Source"
+	},
+	{
+		"file": "C:\\Users\\jkkks\\Desktop\\sta\\Sta\\Source\\Statistic\\StatisticCharacter.cpp",
+		"arguments": [
+			"C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.43.34808\\bin\\Hostx64\\x64\\cl.exe",
+			"@C:\\Users\\jkkks\\Desktop\\sta\\Sta\\.vscode\\compileCommands_Default\\Statistic.1.rsp"
+		],
+		"directory": "C:\\Program Files\\Epic Games\\UE_5.5\\Engine\\Source"
+	},
+	{
+		"file": "C:\\Users\\jkkks\\Desktop\\sta\\Sta\\Source\\Statistic\\StatisticCharacter.h",
+		"arguments": [
+			"C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.43.34808\\bin\\Hostx64\\x64\\cl.exe",
+			"@C:\\Users\\jkkks\\Desktop\\sta\\Sta\\.vscode\\compileCommands_Default\\Statistic.1.rsp"
+		],
+		"directory": "C:\\Program Files\\Epic Games\\UE_5.5\\Engine\\Source"
+	},
+	{
+		"file": "C:\\Users\\jkkks\\Desktop\\sta\\Sta\\Source\\Statistic\\StatisticGameMode.cpp",
+		"arguments": [
+			"C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.43.34808\\bin\\Hostx64\\x64\\cl.exe",
+			"@C:\\Users\\jkkks\\Desktop\\sta\\Sta\\.vscode\\compileCommands_Default\\Statistic.1.rsp"
+		],
+		"directory": "C:\\Program Files\\Epic Games\\UE_5.5\\Engine\\Source"
+	},
+	{
+		"file": "C:\\Users\\jkkks\\Desktop\\sta\\Sta\\Source\\Statistic\\StatisticGameMode.h",
+		"arguments": [
+			"C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.43.34808\\bin\\Hostx64\\x64\\cl.exe",
+			"@C:\\Users\\jkkks\\Desktop\\sta\\Sta\\.vscode\\compileCommands_Default\\Statistic.1.rsp"
 		],
 		"directory": "C:\\Program Files\\Epic Games\\UE_5.5\\Engine\\Source"
 	}

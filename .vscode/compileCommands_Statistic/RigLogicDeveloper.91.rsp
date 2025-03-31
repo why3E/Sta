@@ -1,5 +1,5 @@
 /FI "C:\Program Files\Epic Games\UE_5.5\Engine\Plugins\Animation\RigLogic\Intermediate\Build\Win64\x64\UnrealEditor\Development\RigLogicDeveloper\Definitions.RigLogicDeveloper.h" 
-/FI "C:\Users\jkkks\Desktop\UEP\Sta\Statistic\Intermediate\Build\Win64\x64\StatisticEditor\Development\UnrealEd\SharedPCH.UnrealEd.Cpp20.h" 
+/FI "C:\Users\jkkks\Desktop\sta\Sta\Intermediate\Build\Win64\x64\StatisticEditor\Development\UnrealEd\SharedPCH.UnrealEd.Cpp20.h" 
 /I "C:\Program Files\Epic Games\UE_5.5\Engine\Source" 
 /I "C:\Program Files\Epic Games\UE_5.5\Engine\Plugins\Animation\RigLogic\Source\RigLogicDeveloper\Private" 
 /I "C:\Program Files\Epic Games\UE_5.5\Engine\Intermediate\Build\Win64\UnrealEditor\Inc\Core\UHT" 

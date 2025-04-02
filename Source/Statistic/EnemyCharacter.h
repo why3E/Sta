@@ -14,6 +14,8 @@ class STATISTIC_API AEnemyCharacter : public ACharacter
 public:
 	// Sets default values for this character's properties
 	AEnemyCharacter();
+private:
+	bool bIsAttacking;
 
 protected:
 	// Called when the game starts or when spawned
@@ -22,10 +24,25 @@ protected:
 	void Move(const FVector& MoveVector);
 
 public:	
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnAttackEnded);
+
+	UPROPERTY(BlueprintAssignable, Category = "Combat")
+	FOnAttackEnded OnAttackEnded;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
+	UAnimMontage* AttackMontage;
+
+	UFUNCTION(BlueprintPure, Category = "Combat")
+	bool GetIsAttacking() const { return bIsAttacking; }
+
+	UFUNCTION()
+	void OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);
+
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
+	void MeleeAttack();
 };

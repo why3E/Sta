@@ -47,3 +47,12 @@ void UBTTask_Attack::OnAttackEnded()
         FinishLatentTask(*CachedOwnerComp, EBTNodeResult::Succeeded);
     }
 }
+
+void UBTTask_Attack::OnTaskFinished(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, EBTNodeResult::Type TaskResult)
+{
+    if (EnemyCharacter)
+    {
+        EnemyCharacter->OnAttackEnded.RemoveDynamic(this, &UBTTask_Attack::OnAttackEnded);
+    }
+    Super::OnTaskFinished(OwnerComp, NodeMemory, TaskResult);
+}

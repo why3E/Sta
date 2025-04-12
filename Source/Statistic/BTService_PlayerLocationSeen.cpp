@@ -12,28 +12,28 @@ UBTService_PlayerLocationSeen::UBTService_PlayerLocationSeen()
     NodeName = "Update Player Location If Seen";
 }
 void UBTService_PlayerLocationSeen::TickNode(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds)
-{    
+{
     Super::TickNode(OwnerComp, NodeMemory, DeltaSeconds);
 
     APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(GetWorld(), 0);
-    if (PlayerPawn == nullptr)
-    {
-        return;
-    }
-    
-    if(OwnerComp.GetAIOwner() == nullptr)
-    {
-        return;
-    }
+    if (!PlayerPawn || !OwnerComp.GetAIOwner()) return;
 
-    if(OwnerComp.GetAIOwner()->LineOfSightTo(PlayerPawn))
+    UBlackboardComponent* BlackboardComp = OwnerComp.GetBlackboardComponent();
+    if (!BlackboardComp) return;
+
+    if (OwnerComp.GetAIOwner()->LineOfSightTo(PlayerPawn))
     {
-        OwnerComp.GetBlackboardComponent()->SetValueAsVector(GetSelectedBlackboardKey(), PlayerPawn->GetActorLocation());
+        FVector CurrentLocation = BlackboardComp->GetValueAsVector(GetSelectedBlackboardKey());
+        FVector PlayerLocation = PlayerPawn->GetActorLocation();
+
+        // ✅ 100cm 이상 변화가 있을 때만 갱신
+        if (FVector::DistSquared(CurrentLocation, PlayerLocation) > FMath::Square(100.f))
+        {
+            BlackboardComp->SetValueAsVector(GetSelectedBlackboardKey(), PlayerLocation);
+        }
     }
     else
     {
-        OwnerComp.GetBlackboardComponent()->ClearValue(GetSelectedBlackboardKey());
+        BlackboardComp->ClearValue(GetSelectedBlackboardKey());
     }
-    
-
 }

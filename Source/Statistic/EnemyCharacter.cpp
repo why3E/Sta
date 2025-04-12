@@ -11,7 +11,7 @@ AEnemyCharacter::AEnemyCharacter()
     GetCapsuleComponent()->InitCapsuleSize(42.f, 50.0f);
 
     GetCharacterMovement()->bOrientRotationToMovement = true; // Character moves in the direction of input...
-    GetCharacterMovement()->RotationRate = FRotator(0.0f, 360.0f, 0.0f); // ...at this rotation rate
+    GetCharacterMovement()->RotationRate = FRotator(0.0f, 720.0f, 0.0f); // ...at this rotation rate
 
     GetCharacterMovement()->JumpZVelocity = 700.f;
     GetCharacterMovement()->AirControl = 0.35f;
@@ -20,6 +20,7 @@ AEnemyCharacter::AEnemyCharacter()
     GetCharacterMovement()->BrakingDecelerationWalking = 2000.f;
     GetCharacterMovement()->BrakingDecelerationFalling = 1500.f;
     
+    GetCharacterMovement()->bOrientRotationToMovement = false;
     bUseControllerRotationYaw = false; // 컨트롤러의 Yaw 회전을 사용하지 않음
     GetCharacterMovement()->bUseControllerDesiredRotation = false; // 컨트롤러가 원하는 회전을 사용하지 않음
 }

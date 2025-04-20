@@ -68,6 +68,11 @@ APlayerCharacter::APlayerCharacter()
         {
             IA_BasicJump = IA_BasicJumpRef.Object;
         }
+		static ConstructorHelpers::FObjectFinder<UInputAction>IA_DashRef(TEXT("/Script/EnhancedInput.InputAction'/Game/input/IA_Dash.IA_Dash'"));
+		if (IA_DashRef.Object)
+		{
+			IA_Dash = IA_DashRef.Object;
+		}
     }
 
 	// Setting (기본적으로 원하는 기본 이동을 위한 캐릭터 설정)
@@ -79,12 +84,16 @@ APlayerCharacter::APlayerCharacter()
 
 		// 폰의 컨트롤 회전 사용
 		SpringArm->bUsePawnControlRotation = true;
-
 		// 움직임에 따른 회전 On
 		GetCharacterMovement()->bOrientRotationToMovement = true;
 
 		// 점프 높이 설정
         GetCharacterMovement()->JumpZVelocity = 400.0f; // 원하는 값으로 설정
+		GetCharacterMovement()->MaxWalkSpeed = 300.0f;
+		 // Member Variable 초기화
+	}
+	{
+		bIsDash = false;
 	}
 }
 
@@ -121,6 +130,8 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
     EnhancedInputComponent->BindAction(IA_BasicJump, ETriggerEvent::Triggered, this, &APlayerCharacter::StartJump);
     EnhancedInputComponent->BindAction(IA_BasicJump, ETriggerEvent::Completed, this, &APlayerCharacter::StopJump);
 	
+	EnhancedInputComponent->BindAction(IA_Dash, ETriggerEvent::Triggered, this, &APlayerCharacter::DashStart);
+	EnhancedInputComponent->BindAction(IA_Dash, ETriggerEvent::Completed, this, &APlayerCharacter::DashEnd);
 }
 
 void APlayerCharacter::BasicMove(const FInputActionValue& Value)
@@ -160,3 +171,15 @@ void APlayerCharacter::StopJump()
 {
     bPressedJump = false;
 }
+
+void APlayerCharacter::DashStart()
+{
+	bIsDash = true;
+	GetCharacterMovement()->MaxWalkSpeed = 600.0f;
+}
+
+void APlayerCharacter::DashEnd()
+{
+	bIsDash = false;
+	GetCharacterMovement()->MaxWalkSpeed = 300.0f;
+}	

@@ -30,6 +30,8 @@ protected:
 	void BasicLook(const FInputActionValue& Value);
 	void StartJump();
     void StopJump();
+	void DashStart();
+	void DashEnd();
 
 	UPROPERTY(VisibleAnywhere, Category = Input, Meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<class UInputMappingContext> IMC_Basic;
@@ -42,6 +44,12 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, Category = Input, Meta = (AllowPrivateAccess = "true"))
     TObjectPtr<class UInputAction> IA_BasicJump;
+
+	UPROPERTY(VisibleAnywhere, Category = Input, Meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<class UInputAction> IA_Dash;
+
+protected:
+	uint8 bIsDash : 1;
 public:
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;

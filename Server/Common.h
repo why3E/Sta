@@ -24,11 +24,11 @@ struct LOBBY {
 
 //////////////////////////////////////////////////
 // In-Game
-constexpr char H2C_PLAYER_PACKET = 7;
-constexpr char H2C_ITEM_PACKET = 8;
-constexpr char H2C_SKILL_PACKET = 9;
-constexpr char H2C_MONSTER_PACKET = 10;
-constexpr char C2H_KEY_PACKET = 11;
+constexpr char H2C_PLAYER_PACKET = 1;
+constexpr char H2C_ITEM_PACKET = 2;
+constexpr char H2C_SKILL_PACKET = 3;
+constexpr char H2C_MONSTER_PACKET = 4;
+constexpr char C2H_KEY_PACKET = 5;
 
 constexpr char ANIMATION_STATE_IDLE = 1;
 constexpr char ANIMATION_STATE_WALK = 2;
@@ -37,10 +37,7 @@ constexpr char ANIMATION_STATE_JUMP = 4;
 constexpr char ANIMATION_STATE_ATTACK = 5;
 constexpr char ANIMATION_STATE_HITTED = 6;
 
-constexpr char ELEMENT_FIRE = 1;
-constexpr char ELEMENT_ICE = 2;
-constexpr char ELEMENT_WIND = 3;
-constexpr char ELEMENT_EARTH = 4;
+constexpr char SKILL = 1;
 
 #pragma pack(push, 1)
 

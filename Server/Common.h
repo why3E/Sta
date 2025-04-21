@@ -1,7 +1,9 @@
 #pragma once
 
 #include <WS2tcpip.h>
-#include <stdio.h>
+#include <iostream>
+#include <mutex>
+#include <queue>
 
 //////////////////////////////////////////////////
 // Lobby
@@ -132,6 +134,6 @@ inline void err_display(const char* msg) {
 		NULL, WSAGetLastError(),
 		MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
 		(char*)&lpMsgBuf, 0, NULL);
-	printf("[%s] %s\n", msg, (char*)lpMsgBuf);
+	std::cout << "[" << msg << "] " << (char*)lpMsgBuf << std::endl;
 	LocalFree(lpMsgBuf);
 }

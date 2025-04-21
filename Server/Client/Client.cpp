@@ -1,10 +1,6 @@
-#include <iostream>
 #include <thread>
 #include <chrono>
-#include <mutex>
 #include <unordered_map>
-#include <queue>
-#include "..\Common.h"
 #include "SESSION.h"
 
 #pragma comment (lib, "WS2_32.LIB")
@@ -12,14 +8,16 @@
 constexpr short HOST_PORT = 3000;
 constexpr char HOST_ADDRESS[] = "127.0.0.1";
 
-volatile bool g_is_game_running = false;
+volatile bool g_is_game_running = true;
 std::mutex g_q_lock;
-std::unordered_map<int, SESSION> g_clients;
+std::unordered_map<long long, SESSION> g_clients;
 std::queue<ch_key_packet> g_input_queue;
 
 void server_thread();
 void accept_thread();
 void play_game();
+
+void CALLBACK h_recv_callback(DWORD err, DWORD num_bytes, LPWSAOVERLAPPED p_over, DWORD flags);
 
 // Use this code until Lobby code is implemented
 int main() {
@@ -37,6 +35,7 @@ int main() {
 	std::cout << "Host : 1, Client : 0" << std::endl;
 	std::cout << "Enter : ";
 	std::cin >> is_host;
+	std::cout << std::endl;
 
 	std::thread s_thread;
 	if (is_host) {
@@ -48,6 +47,7 @@ int main() {
 	addr.sin_family = AF_INET;
 	addr.sin_port = htons(HOST_PORT);
 	inet_pton(AF_INET, HOST_ADDRESS, &addr.sin_addr);
+
 	ret = WSAConnect(h_socket, reinterpret_cast<const sockaddr*>(&addr), sizeof(SOCKADDR_IN), NULL, NULL, NULL, NULL);
 	if (SOCKET_ERROR == ret) err_display("WSAConnect");
 	
@@ -64,6 +64,8 @@ int main() {
 	WSACleanup();
 }
 
+//////////////////////////////////////////////////
+// Server Thread
 void server_thread() {
 	// Create Accept Thread
 	std::thread a_thread(accept_thread);
@@ -91,7 +93,7 @@ void server_thread() {
 		}
 
 		// WSASend
-		auto exec_ms = std::chrono::duration_cast<std::chrono::milliseconds>(curr_t - last_packet_t).count();
+		exec_ms = std::chrono::duration_cast<std::chrono::milliseconds>(curr_t - last_packet_t).count();
 		if (50 <= exec_ms) {
 			for (auto& client : g_clients) {
 				/* WSASend */
@@ -100,12 +102,57 @@ void server_thread() {
 			}
 		}
 	}
+
+	a_thread.join();
 }
 
+//////////////////////////////////////////////////
+// Accept Thread
 void accept_thread() {
+	// WSASocket
+	SOCKET s_socket = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_OVERLAPPED);
+	if (INVALID_SOCKET == s_socket) err_display("WSASocket");
 
+	// Bind & Listen
+	SOCKADDR_IN addr;
+	addr.sin_family = AF_INET;
+	addr.sin_port = htons(HOST_PORT);
+	addr.sin_addr.s_addr = htonl(INADDR_ANY);
+	INT addr_size = sizeof(SOCKADDR_IN);
+
+	auto ret = bind(s_socket, reinterpret_cast<const sockaddr*>(&addr), sizeof(SOCKADDR_IN));
+	if (SOCKET_ERROR == ret) err_display("bind");
+
+	ret = listen(s_socket, SOMAXCONN);
+	if (SOCKET_ERROR == ret) err_display("listen");
+
+	// Accept Loop
+	long long client_id = 0;
+	while (g_is_game_running) {
+		// WSAAccept
+		auto c_socket = WSAAccept(s_socket, reinterpret_cast<sockaddr*>(&addr), &addr_size, NULL, NULL);
+		if (INVALID_SOCKET == c_socket) err_display("WSAAccept");
+
+		// Create SESSION
+		g_clients.try_emplace(client_id, client_id, c_socket, h_recv_callback);
+		std::cout << "Client " << client_id << " Joined" << std::endl;
+		++client_id;
+	}
 }
 
+//////////////////////////////////////////////////
+// Play Game
 void play_game() {
+	while (g_is_game_running) {
 
+	}
+}
+
+//////////////////////////////////////////////////
+// Host WSARecv CALLBACK
+void CALLBACK h_recv_callback(DWORD err, DWORD num_bytes, LPWSAOVERLAPPED p_over, DWORD flags) {
+	if ((0 != err) || (0 == num_bytes)) err_display("h_recv_callback");
+	
+	SESSION* o = reinterpret_cast<SESSION*>(p_over);
+	o->recv_callback(num_bytes, p_over, g_q_lock, g_input_queue);
 }

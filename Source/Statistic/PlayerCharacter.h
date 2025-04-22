@@ -57,4 +57,28 @@ protected:
 public:
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+
+// Combo
+// Montage
+protected:
+	UPROPERTY(EditAnywhere, Category = Montage, Meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<class UAnimMontage> BasicComboMontage;
+
+// Combo
+protected:
+	UPROPERTY(EditAnywhere, Category = ComboData, Meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<class UMMComboActionData> BasicComboData;
+
+protected:
+	void ComboStart();
+	void ComboEnd(class UAnimMontage* Montage, bool IsEnded);
+	void ComboCheck();
+	void SetComboTimer();
+
+	// 콤보에 사용될 타이머 변수
+	FTimerHandle ComboTimerHandle;
+	// 현재 콤보 진행 수
+	int32 CurrentComboCount = 0;
+	// 콤보 입력 판별
+	uint8 bHasComboInput : 1;
 };

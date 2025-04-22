@@ -11,6 +11,7 @@
 #include "InputMappingContext.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
+#include "MMComboActionData.h" // Include the header for UMMComboActionData
 
 APlayerCharacter::APlayerCharacter()
 {
@@ -195,4 +196,129 @@ void APlayerCharacter::DashEnd()
 void APlayerCharacter::BasicAttack()
 {
 	UE_LOG(LogTemp, Warning, TEXT("Basic Attack!"));
+
+	if (CurrentComboCount == 0)
+	{
+		ComboStart();
+		return;
+	}
+
+	// 중간 입력 체크
+	// * 콤보 타이머가 종료되지 않은 상태라면 콤보 입력 체크
+	if (ComboTimerHandle.IsValid())
+	{
+		bHasComboInput = true;
+	}
+	// * 콤보 타이머가 유효하지 않은(종료) 상태라면 콤보 입력 체크 해제
+	else
+	{
+		bHasComboInput = false;
+	}
+}
+
+void APlayerCharacter::ComboStart()
+{
+    CurrentComboCount = 1;
+    const float AttackSpeedRate = 2.0f;
+
+    UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+    if (!AnimInstance)
+    {
+        UE_LOG(LogTemp, Error, TEXT("AnimInstance is nullptr!"));
+        return;
+    }
+
+    if (!BasicComboMontage)
+    {
+        UE_LOG(LogTemp, Error, TEXT("BasicComboMontage is nullptr!"));
+        return;
+    }
+
+    // 몽타주 재생
+    float MontageLength = AnimInstance->Montage_Play(BasicComboMontage, AttackSpeedRate);
+    if (MontageLength > 0.0f)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("Montage_Play succeeded! Montage Length: %f"), MontageLength);
+
+        // 몽타주 재생 종료 바인딩
+        FOnMontageEnded EndDelegate;
+        EndDelegate.BindUObject(this, &APlayerCharacter::ComboEnd);
+
+        // BasicComboMontage가 종료되면 EndDelegate에 연동된 ComboEnd 함수 호출
+        AnimInstance->Montage_SetEndDelegate(EndDelegate, BasicComboMontage);
+
+        // 타이머 초기화
+        ComboTimerHandle.Invalidate();
+        // 타이머 설정
+        SetComboTimer();
+    }
+    else
+    {
+        UE_LOG(LogTemp, Error, TEXT("Montage_Play failed!"));
+    }
+}
+void APlayerCharacter::ComboEnd(UAnimMontage* Montage, bool IsEnded)
+{
+	UE_LOG(LogTemp, Warning, TEXT("ComboEnd"));
+	// 콤보 수 초기화
+	CurrentComboCount = 0;
+
+	// 콤보 입력 판별 초기화
+	bHasComboInput = false;
+}
+
+void APlayerCharacter::ComboCheck()
+{
+	UE_LOG(LogTemp, Warning, TEXT("ComboCheck"));
+
+	ComboTimerHandle.Invalidate();
+
+	if (bHasComboInput)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("ComboCheck ok "));
+
+		CurrentComboCount = FMath::Clamp(CurrentComboCount + 1, 1, BasicComboData->MaxComboCount);
+
+		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+		if (AnimInstance && BasicComboMontage)
+		{
+			// 현재 섹션 이름 얻기
+			FName CurrentSectionName = AnimInstance->Montage_GetCurrentSection(BasicComboMontage);
+
+			// 다음 섹션 이름 생성
+			FName NextSectionName = *FString::Printf(TEXT("%s%d"), *BasicComboData->SectionPrefix, CurrentComboCount);
+			UE_LOG(LogTemp, Warning, TEXT("Current: %s → Next: %s"), *CurrentSectionName.ToString(), *NextSectionName.ToString());
+
+			// 현재 섹션 끝나면 다음 섹션으로 자연스럽게 블렌드되도록 설정
+			AnimInstance->Montage_SetNextSection(CurrentSectionName, NextSectionName, BasicComboMontage);
+
+			// 다음 콤보를 위한 입력 초기화 및 타이머 재설정
+			SetComboTimer();
+			bHasComboInput = false;
+		}
+	}
+}
+
+void APlayerCharacter::SetComboTimer()
+{
+	
+	UE_LOG(LogTemp, Warning, TEXT("SetComboTimer"));
+	int32 ComboIndex = CurrentComboCount - 1;
+
+	// 인덱스가 유효한지 체크
+	if (BasicComboData->ComboFrame.IsValidIndex(ComboIndex))
+	{
+		// TODO : 공격 속도가 추가되면 값 가져와 지정하기
+		const float AttackSpeedRate = 2.0f;
+
+		// 실제 콤보가 입력될 수 있는 시간 구하기
+		float ComboAvailableTime = (BasicComboData->ComboFrame[ComboIndex] / BasicComboData->FrameRate) / AttackSpeedRate;
+
+		// 타이머 설정하기
+		if (ComboAvailableTime > 0.0f)
+		{
+			// ComboAvailableTime시간이 지나면 ComboCheck() 함수 호출
+			GetWorld()->GetTimerManager().SetTimer(ComboTimerHandle, this, &APlayerCharacter::ComboCheck, ComboAvailableTime, false);
+		}
+	}
 }

@@ -32,6 +32,7 @@ protected:
     void StopJump();
 	void DashStart();
 	void DashEnd();
+	void BasicAttack();
 
 	UPROPERTY(VisibleAnywhere, Category = Input, Meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<class UInputMappingContext> IMC_Basic;
@@ -47,6 +48,9 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, Category = Input, Meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<class UInputAction> IA_Dash;
+
+	UPROPERTY(VisibleAnywhere, Category = Input, Meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<class UInputAction> IA_BasicAttack;
 
 protected:
 	uint8 bIsDash : 1;

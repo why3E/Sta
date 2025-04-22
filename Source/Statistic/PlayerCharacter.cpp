@@ -73,6 +73,11 @@ APlayerCharacter::APlayerCharacter()
 		{
 			IA_Dash = IA_DashRef.Object;
 		}
+		static ConstructorHelpers::FObjectFinder<UInputAction>IA_BasicAttackRef(TEXT("/Script/EnhancedInput.InputAction'/Game/input/attack/IA_BaseAttack.IA_BaseAttack'"));
+		if (IA_BasicAttackRef.Object)
+		{
+			IA_BasicAttack = IA_BasicAttackRef.Object;
+		}
     }
 
 	// Setting (기본적으로 원하는 기본 이동을 위한 캐릭터 설정)
@@ -132,6 +137,8 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 	
 	EnhancedInputComponent->BindAction(IA_Dash, ETriggerEvent::Triggered, this, &APlayerCharacter::DashStart);
 	EnhancedInputComponent->BindAction(IA_Dash, ETriggerEvent::Completed, this, &APlayerCharacter::DashEnd);
+
+	EnhancedInputComponent->BindAction(IA_BasicAttack, ETriggerEvent::Triggered, this, &APlayerCharacter::BasicAttack);
 }
 
 void APlayerCharacter::BasicMove(const FInputActionValue& Value)
@@ -174,6 +181,7 @@ void APlayerCharacter::StopJump()
 
 void APlayerCharacter::DashStart()
 {
+	UE_LOG(LogTemp, Warning, TEXT("DashStart!"));
 	bIsDash = true;
 	GetCharacterMovement()->MaxWalkSpeed = 600.0f;
 }
@@ -183,3 +191,8 @@ void APlayerCharacter::DashEnd()
 	bIsDash = false;
 	GetCharacterMovement()->MaxWalkSpeed = 300.0f;
 }	
+
+void APlayerCharacter::BasicAttack()
+{
+	UE_LOG(LogTemp, Warning, TEXT("Basic Attack!"));
+}

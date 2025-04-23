@@ -126,24 +126,6 @@ void server_thread() {
 		// WSASend
 		exec_ms = std::chrono::duration_cast<std::chrono::milliseconds>(curr_t - last_packet_t).count();
 		if (50 <= exec_ms) {
-			//////////////////////////////////////////////////
-			// TEST
-			for (int i = 0; i < MAX_CLIENT; ++i) {
-				if (g_clients[i]) {
-					hc_player_packet p;
-					p.packet_size = sizeof(hc_player_packet);
-					p.packet_type = H2C_PLAYER_PACKET;
-					p.hp = 1;
-
-					EXP_OVER* send_over = new EXP_OVER();
-					memcpy(send_over->m_buffer, reinterpret_cast<char*>(&p), p.packet_size);
-					send_over->m_wsabuf[0].len = p.packet_size;
-					DWORD send_bytes;
-					WSASend(g_clients[i]->m_c_socket, send_over->m_wsabuf, 1, &send_bytes, 0, &send_over->m_over, h_send_callback);
-				}
-			}
-			//////////////////////////////////////////////////
-			
 			/* WSASend */
 
 			last_packet_t = std::chrono::system_clock::now();
@@ -212,25 +194,7 @@ void CALLBACK h_send_callback(DWORD err, DWORD num_bytes, LPWSAOVERLAPPED p_over
 // Game Loop
 void game_loop() {
 	while (g_is_game_running) {
-
 		SleepEx(0, TRUE);
-		//////////////////////////////////////////////////
-		// Test
-		for (char c = 'A'; c <= 'Z'; ++c) {
-			if (GetAsyncKeyState(c) & 0x8000) {
-				ch_key_packet p;
-				p.packet_size = sizeof(ch_key_packet);
-				p.packet_type = C2H_KEY_PACKET;
-				p.key = c;
-
-				EXP_OVER* send_over = new EXP_OVER();
-				memcpy(send_over->m_buffer, reinterpret_cast<char*>(&p), p.packet_size);
-				send_over->m_wsabuf[0].len = p.packet_size;
-				DWORD send_bytes;
-				WSASend(g_h_socket, send_over->m_wsabuf, 1, &send_bytes, 0, &send_over->m_over, c_send_callback);
-			}
-		}
-		//////////////////////////////////////////////////
 
 		/* Apply Data */
 		
@@ -242,13 +206,6 @@ void game_loop() {
 // Client CALLBACK
 void CALLBACK c_recv_callback(DWORD err, DWORD num_bytes, LPWSAOVERLAPPED p_over, DWORD flags) {
 	if ((0 != err) || (0 == num_bytes)) err_display("c_recv_callback");
-
-	//////////////////////////////////////////////////
-	// Test
-	EXP_OVER* exp_over = reinterpret_cast<EXP_OVER*>(p_over);
-	hc_player_packet* packet = reinterpret_cast<hc_player_packet*>(exp_over->m_buffer);
-	std::cout << static_cast<int>(packet->hp);
-	//////////////////////////////////////////////////
 
 	/* Enqueue */
 

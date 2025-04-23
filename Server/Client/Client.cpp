@@ -1,6 +1,6 @@
 #include <thread>
 #include <chrono>
-#include <unordered_map>
+#include <array>
 #include "SESSION.h"
 
 #pragma comment (lib, "WS2_32.LIB")
@@ -10,7 +10,7 @@ constexpr char HOST_ADDRESS[] = "127.0.0.1";
 
 volatile bool g_is_game_running = true;
 std::mutex g_q_lock;
-std::unordered_map<long long, SESSION> g_clients;
+std::array<std::unique_ptr<SESSION>, MAX_CLIENT> g_clients;
 std::queue<ch_key_packet> g_input_queue;
 
 void server_thread();
@@ -127,16 +127,19 @@ void accept_thread() {
 	if (SOCKET_ERROR == ret) err_display("listen");
 
 	// Accept Loop
-	long long client_id = 0;
 	while (g_is_game_running) {
 		// WSAAccept
 		auto c_socket = WSAAccept(s_socket, reinterpret_cast<sockaddr*>(&addr), &addr_size, NULL, NULL);
 		if (INVALID_SOCKET == c_socket) err_display("WSAAccept");
 
 		// Create SESSION
-		g_clients.try_emplace(client_id, client_id, c_socket, h_recv_callback);
-		std::cout << "Client " << client_id << " Joined" << std::endl;
-		++client_id;
+		for (int client_id = 0; client_id < MAX_CLIENT; ++client_id) {
+			if (!g_clients[client_id]) {
+				g_clients[client_id] = std::make_unique<SESSION>(client_id, c_socket, h_recv_callback);
+				std::cout << "Client " << client_id << " Joined" << std::endl;
+				break;
+			}
+		}
 	}
 }
 

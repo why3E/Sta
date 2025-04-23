@@ -39,7 +39,7 @@ constexpr char ANIMATION_STATE_JUMP = 4;
 constexpr char ANIMATION_STATE_ATTACK = 5;
 constexpr char ANIMATION_STATE_HITTED = 6;
 
-constexpr char SKILL = 1;
+constexpr int MAX_CLIENT = 4;
 
 #pragma pack(push, 1)
 

@@ -40,6 +40,13 @@ void SESSION::do_send() {
 }
 
 void SESSION::recv_callback(DWORD num_bytes, LPWSAOVERLAPPED p_over, std::mutex& q_lock, std::queue<ch_key_packet>& input_queue) {
+	//////////////////////////////////////////////////
+	// Test
+	EXP_OVER* exp_over = reinterpret_cast<EXP_OVER*>(p_over);
+	ch_key_packet* packet = reinterpret_cast<ch_key_packet*>(exp_over->m_wsabuf[0].buf);
+	std::cout << packet->key;
+	//////////////////////////////////////////////////
+
 	// Enqueue
 	{
 		std::lock_guard<std::mutex> lock(q_lock);

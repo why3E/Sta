@@ -21,7 +21,7 @@ public:
 //////////////////////////////////////////////////
 // SESSION
 class SESSION {
-private:
+public:
 	EXP_OVER m_recv_over;
 
 	SOCKET m_c_socket;

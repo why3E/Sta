@@ -85,14 +85,13 @@ APlayerCharacter::APlayerCharacter()
 	{
 		// 컨트롤러의 Rotation에 영향 X
 		bUseControllerRotationPitch = false;
-		bUseControllerRotationYaw = false;
+		bUseControllerRotationYaw = true;
 		bUseControllerRotationRoll = false;
 
 		// 폰의 컨트롤 회전 사용
 		SpringArm->bUsePawnControlRotation = true;
 		// 움직임에 따른 회전 On
-		GetCharacterMovement()->bOrientRotationToMovement = true;
-
+		GetCharacterMovement()->bOrientRotationToMovement = false;
 		// 점프 높이 설정
         GetCharacterMovement()->JumpZVelocity = 400.0f; // 원하는 값으로 설정
 		GetCharacterMovement()->MaxWalkSpeed = 300.0f;
@@ -144,30 +143,55 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 
 void APlayerCharacter::BasicMove(const FInputActionValue& Value)
 {
-	// 입력받은 Value로부터 MovementVector 가져오기
-	FVector2D MovementVector = Value.Get<FVector2D>();
+    // 입력받은 Value로부터 MovementVector 가져오기
+    FVector2D MovementVector = Value.Get<FVector2D>();
 
-	// 컨트롤러의 회전 중 Yaw(Z)를 가져와 저장
-	const FRotator Rotation = Controller->GetControlRotation();
-	const FRotator YawRotation(0, Rotation.Yaw, 0);
+    // 컨트롤러의 회전 중 Yaw(Z)를 가져와 저장
+    const FRotator Rotation = Controller->GetControlRotation();
+    const FRotator YawRotation(0, Rotation.Yaw, 0);
 
-	// 회전(Yaw)을 기반으로 전방 및 오른쪽 방향을 받아오기 (X : 전방, Y : 오른쪽)
-	const FVector ForwardDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
-	const FVector RightDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
+    // 회전(Yaw)을 기반으로 전방 및 오른쪽 방향을 받아오기 (X : 전방, Y : 오른쪽)
+    const FVector ForwardDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
+    const FVector RightDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
 
-	// Movement에 값 전달 (방향, 이동량)
-	AddMovementInput(ForwardDirection, MovementVector.X);
-	AddMovementInput(RightDirection, MovementVector.Y);
+    // 뒤로 이동할 때 최대 속도를 300으로 제한
+    if (MovementVector.X < 0)
+    {
+        CheckBackMove = true;
+        GetCharacterMovement()->MaxWalkSpeed = 300.0f;
+    }
+    else
+    {
+        CheckBackMove = false;
+
+        // 대시 상태에 따라 최대 속도 설정
+        if (bIsDash)
+        {
+            GetCharacterMovement()->MaxWalkSpeed = 600.0f;
+        }
+        else
+        {
+            GetCharacterMovement()->MaxWalkSpeed = 300.0f;
+        }
+    }
+
+    // Movement에 값 전달 (방향, 이동량)
+    AddMovementInput(ForwardDirection, MovementVector.X);
+    AddMovementInput(RightDirection, MovementVector.Y);
 }
 
 void APlayerCharacter::BasicLook(const FInputActionValue& Value)
 {
-	// 입력받은 Value로부터 LookVector 가져오기
-	FVector2D LookVector = Value.Get<FVector2D>();
-	
-	// Controller에 값 전달
-	AddControllerYawInput(LookVector.X);
-	AddControllerPitchInput(LookVector.Y);
+    // 입력받은 Value로부터 LookVector 가져오기
+    FVector2D LookVector = Value.Get<FVector2D>();
+    
+    // Controller에 값 전달
+    AddControllerYawInput(LookVector.X);
+    AddControllerPitchInput(LookVector.Y);
+
+    // 카메라 회전에 따라 캐릭터가 회전하도록 설정
+    bUseControllerRotationYaw = true;
+    GetCharacterMovement()->bOrientRotationToMovement = false;
 }
 
 void APlayerCharacter::StartJump()
@@ -182,15 +206,15 @@ void APlayerCharacter::StopJump()
 
 void APlayerCharacter::DashStart()
 {
-	UE_LOG(LogTemp, Warning, TEXT("DashStart!"));
-	bIsDash = true;
-	GetCharacterMovement()->MaxWalkSpeed = 600.0f;
+	if(!CheckBackMove)
+	{
+		bIsDash = true;
+	}
 }
 
 void APlayerCharacter::DashEnd()
 {
 	bIsDash = false;
-	GetCharacterMovement()->MaxWalkSpeed = 300.0f;
 }	
 
 void APlayerCharacter::BasicAttack()

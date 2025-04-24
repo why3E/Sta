@@ -81,4 +81,7 @@ protected:
 	int32 CurrentComboCount = 0;
 	// 콤보 입력 판별
 	uint8 bHasComboInput : 1;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Movement")
+	uint8 CheckBackMove = 0;
 };

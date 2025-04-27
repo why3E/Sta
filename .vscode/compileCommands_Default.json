@@ -128,6 +128,14 @@
 		"directory": "C:\\Program Files\\Epic Games\\UE_5.5\\Engine\\Source"
 	},
 	{
+		"file": "C:\\Users\\jkkks\\Desktop\\sta\\Sta\\Source\\Statistic\\Enums.h",
+		"arguments": [
+			"C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.43.34808\\bin\\Hostx64\\x64\\cl.exe",
+			"@C:\\Users\\jkkks\\Desktop\\sta\\Sta\\.vscode\\compileCommands_Default\\Statistic.1.rsp"
+		],
+		"directory": "C:\\Program Files\\Epic Games\\UE_5.5\\Engine\\Source"
+	},
+	{
 		"file": "C:\\Users\\jkkks\\Desktop\\sta\\Sta\\Source\\Statistic\\MMComboActionData.cpp",
 		"arguments": [
 			"C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.43.34808\\bin\\Hostx64\\x64\\cl.exe",

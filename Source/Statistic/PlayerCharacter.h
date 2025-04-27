@@ -6,6 +6,8 @@
 #include "CoreMinimal.h"
 #include "MyCharacterBase.h"
 #include "AnimationAttackInterface.h"
+#include "Enums.h" // EClassType 포함
+#include "MMComboActionData.h" // 데이터 에셋 헤더 포함
 #include "PlayerCharacter.generated.h"
 
 UCLASS()
@@ -63,12 +65,20 @@ public:
 // Montage
 protected:
 	UPROPERTY(EditAnywhere, Category = Montage, Meta = (AllowPrivateAccess = "true"))
-	TObjectPtr<class UAnimMontage> BasicComboMontage;
+	TObjectPtr<class UAnimMontage> StoneComboMontage;
+	UPROPERTY(EditAnywhere, Category = Montage, Meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<class UAnimMontage> WindComboMontage;
+	UPROPERTY(EditAnywhere, Category = Montage, Meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<class UAnimMontage> FireComboMontage;
 
 // Combo
 protected:
 	UPROPERTY(EditAnywhere, Category = ComboData, Meta = (AllowPrivateAccess = "true"))
-	TObjectPtr<class UMMComboActionData> BasicComboData;
+	TObjectPtr<class UMMComboActionData> StoneComboData;
+	UPROPERTY(EditAnywhere, Category = ComboData, Meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<class UMMComboActionData> WindComboData;
+	UPROPERTY(EditAnywhere, Category = ComboData, Meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<class UMMComboActionData> FireComboData;
 
 protected:
 	void ComboStart();
@@ -88,4 +98,22 @@ protected:
 
 protected:
 	virtual void BaseAttackCheck() override;
+
+	EClassType ClassType;
+
+	// 클래스 변경 함수
+	void ChangeClass(EClassType NewClassType);
+
+public:
+    // 블루프린트에서 접근 가능한 변수
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Custom")
+    uint8 CheckAnimBone : 1;
+
+private:
+	// 캐싱된 현재 몽타주와 데이터
+	UAnimMontage* CurrentMontage;
+	UMMComboActionData* CurrentComboData;
+
+	// 캐싱된 데이터를 업데이트하는 함수 
+	void UpdateCachedData();
 };

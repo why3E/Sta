@@ -12,6 +12,7 @@
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "MMComboActionData.h" // Include the header for UMMComboActionData
+#include "Enums.h"
 
 APlayerCharacter::APlayerCharacter()
 {
@@ -100,6 +101,13 @@ APlayerCharacter::APlayerCharacter()
 	{
 		bIsDash = false;
 	}
+
+    // 기본 클래스 타입 설정
+    ClassType = EClassType::CT_Fire;
+
+    // 초기 캐싱된 데이터 설정
+    CurrentMontage = nullptr;
+    CurrentComboData = nullptr;
 }
 
 void APlayerCharacter::BeginPlay()
@@ -118,6 +126,9 @@ void APlayerCharacter::BeginPlay()
 			EnableInput(PlayerController);
 		}
 	}
+
+    // 초기 캐싱된 데이터 업데이트
+    UpdateCachedData();
 }
 
 void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -246,20 +257,9 @@ void APlayerCharacter::ComboStart()
     const float AttackSpeedRate = 2.0f;
 
     UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-    if (!AnimInstance)
-    {
-        UE_LOG(LogTemp, Error, TEXT("AnimInstance is nullptr!"));
-        return;
-    }
-
-    if (!BasicComboMontage)
-    {
-        UE_LOG(LogTemp, Error, TEXT("BasicComboMontage is nullptr!"));
-        return;
-    }
 
     // 몽타주 재생
-    float MontageLength = AnimInstance->Montage_Play(BasicComboMontage, AttackSpeedRate);
+    float MontageLength = AnimInstance->Montage_Play(CurrentMontage, AttackSpeedRate);
     if (MontageLength > 0.0f)
     {
         UE_LOG(LogTemp, Warning, TEXT("Montage_Play succeeded! Montage Length: %f"), MontageLength);
@@ -269,7 +269,7 @@ void APlayerCharacter::ComboStart()
         EndDelegate.BindUObject(this, &APlayerCharacter::ComboEnd);
 
         // BasicComboMontage가 종료되면 EndDelegate에 연동된 ComboEnd 함수 호출
-        AnimInstance->Montage_SetEndDelegate(EndDelegate, BasicComboMontage);
+        AnimInstance->Montage_SetEndDelegate(EndDelegate, CurrentMontage);
 
         // 타이머 초기화
         ComboTimerHandle.Invalidate();
@@ -301,20 +301,20 @@ void APlayerCharacter::ComboCheck()
 	{
 		UE_LOG(LogTemp, Warning, TEXT("ComboCheck ok "));
 
-		CurrentComboCount = FMath::Clamp(CurrentComboCount + 1, 1, BasicComboData->MaxComboCount);
+		CurrentComboCount = FMath::Clamp(CurrentComboCount + 1, 1, CurrentComboData->MaxComboCount);
 
 		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-		if (AnimInstance && BasicComboMontage)
+		if (AnimInstance && CurrentMontage)
 		{
 			// 현재 섹션 이름 얻기
-			FName CurrentSectionName = AnimInstance->Montage_GetCurrentSection(BasicComboMontage);
+			FName CurrentSectionName = AnimInstance->Montage_GetCurrentSection(CurrentMontage);
 
 			// 다음 섹션 이름 생성
-			FName NextSectionName = *FString::Printf(TEXT("%s%d"), *BasicComboData->SectionPrefix, CurrentComboCount);
+			FName NextSectionName = *FString::Printf(TEXT("%s%d"), *CurrentComboData->SectionPrefix, CurrentComboCount);
 			UE_LOG(LogTemp, Warning, TEXT("Current: %s → Next: %s"), *CurrentSectionName.ToString(), *NextSectionName.ToString());
 
 			// 현재 섹션 끝나면 다음 섹션으로 자연스럽게 블렌드되도록 설정
-			AnimInstance->Montage_SetNextSection(CurrentSectionName, NextSectionName, BasicComboMontage);
+			AnimInstance->Montage_SetNextSection(CurrentSectionName, NextSectionName, CurrentMontage);
 
 			// 다음 콤보를 위한 입력 초기화 및 타이머 재설정
 			SetComboTimer();
@@ -323,29 +323,7 @@ void APlayerCharacter::ComboCheck()
 	}
 }
 
-void APlayerCharacter::SetComboTimer()
-{
-	
-	UE_LOG(LogTemp, Warning, TEXT("SetComboTimer"));
-	int32 ComboIndex = CurrentComboCount - 1;
 
-	// 인덱스가 유효한지 체크
-	if (BasicComboData->ComboFrame.IsValidIndex(ComboIndex))
-	{
-		// TODO : 공격 속도가 추가되면 값 가져와 지정하기
-		const float AttackSpeedRate = 2.0f;
-
-		// 실제 콤보가 입력될 수 있는 시간 구하기
-		float ComboAvailableTime = (BasicComboData->ComboFrame[ComboIndex] / BasicComboData->FrameRate) / AttackSpeedRate;
-
-		// 타이머 설정하기
-		if (ComboAvailableTime > 0.0f)
-		{
-			// ComboAvailableTime시간이 지나면 ComboCheck() 함수 호출
-			GetWorld()->GetTimerManager().SetTimer(ComboTimerHandle, this, &APlayerCharacter::ComboCheck, ComboAvailableTime, false);
-		}
-	}
-}
 
 void APlayerCharacter::BaseAttackCheck()
 {
@@ -385,4 +363,69 @@ void APlayerCharacter::BaseAttackCheck()
 	FColor DrawColor = bHasHit ? FColor::Green : FColor::Red;
 
 	DrawDebugCapsule(GetWorld(), CapsuleOrigin, CapsuleHalfHeight, AttackRadius, FRotationMatrix::MakeFromZ(GetActorForwardVector()).ToQuat(), DrawColor, false, 3.0f);
+}
+
+
+void APlayerCharacter::ChangeClass(EClassType NewClassType)
+{
+    if (ClassType != NewClassType)
+    {
+        ClassType = NewClassType;
+        UpdateCachedData(); // 클래스 변경 시 캐싱된 데이터 업데이트
+        UE_LOG(LogTemp, Warning, TEXT("Class Type Changed to: %d"), static_cast<int32>(ClassType));
+    }
+}
+
+void APlayerCharacter::UpdateCachedData()
+{
+    switch (ClassType)
+    {
+    case EClassType::CT_Wind:
+        CurrentMontage = WindComboMontage;
+        CurrentComboData = WindComboData;
+		CheckAnimBone = 1;
+        break;
+
+    case EClassType::CT_Stone:
+        CurrentMontage = StoneComboMontage;
+        CurrentComboData = StoneComboData;
+		CheckAnimBone = 0;
+        break;
+	case EClassType::CT_Fire:
+        CurrentMontage = FireComboMontage;
+        CurrentComboData = FireComboData;
+		CheckAnimBone = 1;
+        break;
+    default:
+        CurrentMontage = nullptr;
+        CurrentComboData = nullptr;
+        break;
+    }
+
+}
+
+void APlayerCharacter::SetComboTimer()
+{
+    if (!CurrentComboData)
+    {
+        UE_LOG(LogTemp, Error, TEXT("ComboData is missing for the current class type!"));
+        return;
+    }
+
+    int32 ComboIndex = CurrentComboCount - 1;
+
+    // 인덱스가 유효한지 체크
+    if (CurrentComboData->ComboFrame.IsValidIndex(ComboIndex))
+    {
+        const float AttackSpeedRate = 1.0f;
+
+        // 실제 콤보가 입력될 수 있는 시간 구하기
+        float ComboAvailableTime = (CurrentComboData->ComboFrame[ComboIndex] / CurrentComboData->FrameRate) / AttackSpeedRate;
+
+        // 타이머 설정하기
+        if (ComboAvailableTime > 0.0f)
+        {
+            GetWorld()->GetTimerManager().SetTimer(ComboTimerHandle, this, &APlayerCharacter::ComboCheck, ComboAvailableTime, false);
+        }
+    }
 }

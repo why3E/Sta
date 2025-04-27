@@ -96,6 +96,14 @@
 		"directory": "C:\\Program Files\\Epic Games\\UE_5.5\\Engine\\Source"
 	},
 	{
+		"file": "C:\\Users\\jkkks\\Desktop\\sta\\Sta\\Source\\Statistic\\CharacterStat.h",
+		"arguments": [
+			"C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.43.34808\\bin\\Hostx64\\x64\\cl.exe",
+			"@C:\\Users\\jkkks\\Desktop\\sta\\Sta\\.vscode\\compileCommands_Default\\Statistic.1.rsp"
+		],
+		"directory": "C:\\Program Files\\Epic Games\\UE_5.5\\Engine\\Source"
+	},
+	{
 		"file": "C:\\Users\\jkkks\\Desktop\\sta\\Sta\\Source\\Statistic\\EnemyAIController.cpp",
 		"arguments": [
 			"C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.43.34808\\bin\\Hostx64\\x64\\cl.exe",
@@ -232,6 +240,22 @@
 		"directory": "C:\\Program Files\\Epic Games\\UE_5.5\\Engine\\Source"
 	},
 	{
+		"file": "C:\\Users\\jkkks\\Desktop\\sta\\Sta\\Source\\Statistic\\MyWeapon.cpp",
+		"arguments": [
+			"C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.43.34808\\bin\\Hostx64\\x64\\cl.exe",
+			"@C:\\Users\\jkkks\\Desktop\\sta\\Sta\\.vscode\\compileCommands_Default\\Statistic.1.rsp"
+		],
+		"directory": "C:\\Program Files\\Epic Games\\UE_5.5\\Engine\\Source"
+	},
+	{
+		"file": "C:\\Users\\jkkks\\Desktop\\sta\\Sta\\Source\\Statistic\\MyWeapon.h",
+		"arguments": [
+			"C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.43.34808\\bin\\Hostx64\\x64\\cl.exe",
+			"@C:\\Users\\jkkks\\Desktop\\sta\\Sta\\.vscode\\compileCommands_Default\\Statistic.1.rsp"
+		],
+		"directory": "C:\\Program Files\\Epic Games\\UE_5.5\\Engine\\Source"
+	},
+	{
 		"file": "C:\\Users\\jkkks\\Desktop\\sta\\Sta\\Source\\Statistic\\PlayerAnim.cpp",
 		"arguments": [
 			"C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.43.34808\\bin\\Hostx64\\x64\\cl.exe",
@@ -313,6 +337,22 @@
 	},
 	{
 		"file": "C:\\Users\\jkkks\\Desktop\\sta\\Sta\\Source\\Statistic\\StatisticGameMode.h",
+		"arguments": [
+			"C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.43.34808\\bin\\Hostx64\\x64\\cl.exe",
+			"@C:\\Users\\jkkks\\Desktop\\sta\\Sta\\.vscode\\compileCommands_Default\\Statistic.1.rsp"
+		],
+		"directory": "C:\\Program Files\\Epic Games\\UE_5.5\\Engine\\Source"
+	},
+	{
+		"file": "C:\\Users\\jkkks\\Desktop\\sta\\Sta\\Source\\Statistic\\StoneActionData.cpp",
+		"arguments": [
+			"C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.43.34808\\bin\\Hostx64\\x64\\cl.exe",
+			"@C:\\Users\\jkkks\\Desktop\\sta\\Sta\\.vscode\\compileCommands_Default\\Statistic.1.rsp"
+		],
+		"directory": "C:\\Program Files\\Epic Games\\UE_5.5\\Engine\\Source"
+	},
+	{
+		"file": "C:\\Users\\jkkks\\Desktop\\sta\\Sta\\Source\\Statistic\\StoneActionData.h",
 		"arguments": [
 			"C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.43.34808\\bin\\Hostx64\\x64\\cl.exe",
 			"@C:\\Users\\jkkks\\Desktop\\sta\\Sta\\.vscode\\compileCommands_Default\\Statistic.1.rsp"

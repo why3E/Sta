@@ -4,7 +4,17 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "CharacterStat.h"
 #include "MyWeapon.generated.h"
+
+UENUM(BlueprintType)	
+enum class EWeaponType : uint8
+{
+	WT_Wind,
+	WT_Fire,
+	WT_Stone,
+	WT_Ice	
+};
 
 UCLASS()
 class STATISTIC_API AMyWeapon : public AActor
@@ -15,12 +25,26 @@ public:
 	// Sets default values for this actor's properties
 	AMyWeapon();
 
+	public:
+	FORCEINLINE EWeaponType GetWeaponType() { return WeaponType; }
+	
+public:
+	void EquipWeapon(ACharacter* Player);
+	void DrawWeapon(USkeletalMeshComponent* Mesh);
+	void SheatheWeapon(USkeletalMeshComponent* Mesh);
+
 protected:
-	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
-public:	
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
+protected:
+	UPROPERTY(VisibleAnywhere, Category = "Weapon", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<class UPoseableMeshComponent> WeaponMesh;
+
+	EWeaponType WeaponType;
+
+	FCharacterStat WeaponStat;
+
+	FName BaseSocketName;
+	FName DrawSocketName;
 
 };

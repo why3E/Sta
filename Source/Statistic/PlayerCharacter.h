@@ -5,10 +5,11 @@
 #include "InputActionValue.h"
 #include "CoreMinimal.h"
 #include "MyCharacterBase.h"
+#include "AnimationAttackInterface.h"
 #include "PlayerCharacter.generated.h"
 
 UCLASS()
-class STATISTIC_API APlayerCharacter : public AMyCharacterBase
+class STATISTIC_API APlayerCharacter : public AMyCharacterBase, public IAnimationAttackInterface
 {
 	GENERATED_BODY()
 
@@ -84,4 +85,7 @@ protected:
 
 	UPROPERTY(BlueprintReadOnly, Category = "Movement")
 	uint8 CheckBackMove = 0;
+
+protected:
+	virtual void BaseAttackCheck() override;
 };

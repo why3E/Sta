@@ -5,10 +5,13 @@
 #include "InputActionValue.h"
 #include "CoreMinimal.h"
 #include "MyCharacterBase.h"
+#include "AnimationAttackInterface.h"
+#include "Enums.h" // EClassType 포함
+#include "MMComboActionData.h" // 데이터 에셋 헤더 포함
 #include "PlayerCharacter.generated.h"
 
 UCLASS()
-class STATISTIC_API APlayerCharacter : public AMyCharacterBase
+class STATISTIC_API APlayerCharacter : public AMyCharacterBase, public IAnimationAttackInterface
 {
 	GENERATED_BODY()
 
@@ -32,6 +35,7 @@ protected:
     void StopJump();
 	void DashStart();
 	void DashEnd();
+	void BasicAttack();
 
 	UPROPERTY(VisibleAnywhere, Category = Input, Meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<class UInputMappingContext> IMC_Basic;
@@ -48,9 +52,68 @@ protected:
 	UPROPERTY(VisibleAnywhere, Category = Input, Meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<class UInputAction> IA_Dash;
 
+	UPROPERTY(VisibleAnywhere, Category = Input, Meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<class UInputAction> IA_BasicAttack;
+
 protected:
 	uint8 bIsDash : 1;
 public:
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+
+// Combo
+// Montage
+protected:
+	UPROPERTY(EditAnywhere, Category = Montage, Meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<class UAnimMontage> StoneComboMontage;
+	UPROPERTY(EditAnywhere, Category = Montage, Meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<class UAnimMontage> WindComboMontage;
+	UPROPERTY(EditAnywhere, Category = Montage, Meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<class UAnimMontage> FireComboMontage;
+
+// Combo
+protected:
+	UPROPERTY(EditAnywhere, Category = ComboData, Meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<class UMMComboActionData> StoneComboData;
+	UPROPERTY(EditAnywhere, Category = ComboData, Meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<class UMMComboActionData> WindComboData;
+	UPROPERTY(EditAnywhere, Category = ComboData, Meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<class UMMComboActionData> FireComboData;
+
+protected:
+	void ComboStart();
+	void ComboEnd(class UAnimMontage* Montage, bool IsEnded);
+	void ComboCheck();
+	void SetComboTimer();
+
+	// 콤보에 사용될 타이머 변수
+	FTimerHandle ComboTimerHandle;
+	// 현재 콤보 진행 수
+	int32 CurrentComboCount = 0;
+	// 콤보 입력 판별
+	uint8 bHasComboInput : 1;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Movement")
+	uint8 CheckBackMove = 0;
+
+protected:
+	virtual void BaseAttackCheck() override;
+
+	EClassType ClassType;
+
+	// 클래스 변경 함수
+	void ChangeClass(EClassType NewClassType);
+
+public:
+    // 블루프린트에서 접근 가능한 변수
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Custom")
+    uint8 CheckAnimBone : 1;
+
+private:
+	// 캐싱된 현재 몽타주와 데이터
+	UAnimMontage* CurrentMontage;
+	UMMComboActionData* CurrentComboData;
+
+	// 캐싱된 데이터를 업데이트하는 함수 
+	void UpdateCachedData();
 };

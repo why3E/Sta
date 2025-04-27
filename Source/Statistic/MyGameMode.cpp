@@ -7,7 +7,7 @@
 AMyGameMode::AMyGameMode()
 {
 	// 예: BP_Player를 기본 폰으로 설정
-	static ConstructorHelpers::FClassFinder<APawn> PawnClassRef(TEXT("/Game/MyPlayerCharacter.MyPlayerCharacter_C"));
+	static ConstructorHelpers::FClassFinder<APawn> PawnClassRef(TEXT("/Game/player_anim/MyPlayerCharacter.MyPlayerCharacter_C"));
     if (PawnClassRef.Succeeded())
     {
         DefaultPawnClass = PawnClassRef.Class;

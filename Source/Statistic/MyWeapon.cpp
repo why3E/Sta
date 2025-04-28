@@ -7,11 +7,17 @@
 // Sets default values
 AMyWeapon::AMyWeapon()
 {
-	{
-		WeaponMesh = CreateDefaultSubobject<UPoseableMeshComponent>(TEXT("WeaponMesh"));
-		RootComponent = WeaponMesh;
-		WeaponMesh->SetCollisionProfileName(TEXT("NoCollision"));
-	}
+	
+		{
+			WeaponEffect = CreateDefaultSubobject<UNiagaraComponent>(TEXT("WeaponEffect"));
+			WeaponEffect->SetupAttachment(RootComponent);
+	
+			WeaponCollision = CreateDefaultSubobject<USphereComponent>(TEXT("WeaponCollision"));
+			WeaponCollision->SetupAttachment(RootComponent);
+			WeaponCollision->SetCollisionProfileName(TEXT("NoCollision"));
+			WeaponCollision->bHiddenInGame = false;
+		}
+	
 
 }
 
@@ -19,31 +25,39 @@ AMyWeapon::AMyWeapon()
 void AMyWeapon::BeginPlay()
 {
 	Super::BeginPlay();
+	WeaponCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	
 }
 
+
 void AMyWeapon::EquipWeapon(ACharacter* Player)
 {
-	if (Player)
-	{
-		USkeletalMeshComponent* PlayerMesh = Player->GetMesh();
+    if (Player)
+    {
+        USkeletalMeshComponent* PlayerMesh = Player->GetMesh();
 
-		WeaponMesh->AttachToComponent(PlayerMesh, FAttachmentTransformRules::KeepRelativeTransform, BaseSocketName);
-	}
+        // 나이아가라 컴포넌트를 플레이어의 소켓에 부착
+        WeaponEffect->AttachToComponent(PlayerMesh, FAttachmentTransformRules::KeepRelativeTransform, BaseSocketName);
+        WeaponEffect->Activate(); // 나이아가라 효과 활성화
+    }
 }
 
 void AMyWeapon::DrawWeapon(USkeletalMeshComponent* Mesh)
 {
-	if (Mesh)
-	{
-		WeaponMesh->AttachToComponent(Mesh, FAttachmentTransformRules::KeepRelativeTransform, DrawSocketName);
-	}
+    if (Mesh)
+    {
+        // 나이아가라 컴포넌트를 Draw 소켓에 부착
+        WeaponEffect->AttachToComponent(Mesh, FAttachmentTransformRules::KeepRelativeTransform, DrawSocketName);
+        WeaponEffect->Activate(); // 나이아가라 효과 활성화
+    }
 }
 
 void AMyWeapon::SheatheWeapon(USkeletalMeshComponent* Mesh)
 {
-	if (Mesh)
-	{
-		WeaponMesh->AttachToComponent(Mesh, FAttachmentTransformRules::KeepRelativeTransform, BaseSocketName);
-	}
+    if (Mesh)
+    {
+        // 나이아가라 컴포넌트를 Base 소켓에 부착
+        WeaponEffect->AttachToComponent(Mesh, FAttachmentTransformRules::KeepRelativeTransform, BaseSocketName);
+        WeaponEffect->Activate(); // 나이아가라 효과 활성화
+    }
 }

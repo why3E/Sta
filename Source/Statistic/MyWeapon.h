@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "CharacterStat.h"
+#include "NiagaraComponent.h"
 #include "MyWeapon.generated.h"
 
 UENUM(BlueprintType)	
@@ -25,7 +26,7 @@ public:
 	// Sets default values for this actor's properties
 	AMyWeapon();
 
-	public:
+public:
 	FORCEINLINE EWeaponType GetWeaponType() { return WeaponType; }
 	
 public:
@@ -38,7 +39,11 @@ protected:
 
 protected:
 	UPROPERTY(VisibleAnywhere, Category = "Weapon", meta = (AllowPrivateAccess = "true"))
-	TObjectPtr<class UPoseableMeshComponent> WeaponMesh;
+	TObjectPtr<class UNiagaraComponent> WeaponEffect; // 나이아가라 컴포넌트로 변경
+
+
+	UPROPERTY(VisibleAnywhere, Category = "Weapon", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<class USphereComponent> WeaponCollision;
 
 	EWeaponType WeaponType;
 
@@ -46,5 +51,4 @@ protected:
 
 	FName BaseSocketName;
 	FName DrawSocketName;
-
 };

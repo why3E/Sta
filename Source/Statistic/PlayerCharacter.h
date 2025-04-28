@@ -116,4 +116,16 @@ private:
 
 	// 캐싱된 데이터를 업데이트하는 함수 
 	void UpdateCachedData();
+
+	// MMPlayerCharacter Header
+	void EquipWeapon(class AMyWeapon* Weapon);
+
+	// TEST
+	UPROPERTY(EditAnywhere, Category = Weapon, meta = (AllowPrivateAccess = "true"))
+	TSubclassOf<class AMyWeapon> WeaponClass;
+
+	UPROPERTY(VisibleAnywhere, Category = Weapon, meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<class AMyWeapon> CurrentWeapon;
 };
+
+

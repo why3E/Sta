@@ -2,7 +2,6 @@
 
 #include "MyPlayerController.h"
 #include "PlayerCharacter.h"
-
 #include <array>
 #include <thread>
 #include <chrono>
@@ -13,7 +12,7 @@ constexpr short HOST_PORT = 3000;
 constexpr char HOST_ADDRESS[] = "127.0.0.1";
 
 std::mutex g_q_lock;
-std::queue<ch_key_packet> g_input_queue;
+std::queue<player_vector_packet> g_input_queue;
 std::array<std::unique_ptr<SESSION>, MAX_CLIENTS> g_clients;
 
 std::thread g_s_thread;
@@ -24,10 +23,11 @@ std::array<std::unique_ptr<APlayerCharacter>, MAX_CLIENTS> g_players;
 
 void server_thread();
 void accept_thread();
+void h_process_packet(char* p);
 void CALLBACK h_recv_callback(DWORD err, DWORD num_bytes, LPWSAOVERLAPPED p_over, DWORD flags);
 void CALLBACK h_send_callback(DWORD err, DWORD num_bytes, LPWSAOVERLAPPED p_over, DWORD flags);
 
-void process_packet(char* p);
+void c_process_packet(char* p);
 void CALLBACK c_recv_callback(DWORD err, DWORD num_bytes, LPWSAOVERLAPPED p_over, DWORD flags);
 void CALLBACK c_send_callback(DWORD err, DWORD num_bytes, LPWSAOVERLAPPED p_over, DWORD flags);
 
@@ -166,11 +166,13 @@ void accept_thread() {
 	else { UE_LOG(LogTemp, Warning, TEXT("Listen Succeed")); }
 
 	// Accept Loop
-	while (g_running) {
+	while (true) {
 		// WSAAccept
 		auto c_socket = WSAAccept(s_socket, reinterpret_cast<sockaddr*>(&addr), &addr_size, NULL, NULL);
 		if (INVALID_SOCKET == c_socket) { UE_LOG(LogTemp, Warning, TEXT("WSAAccept Failed : %d"), WSAGetLastError()); }
 		else { UE_LOG(LogTemp, Warning, TEXT("WSAAccept Succeed")); }
+
+		if (!g_running) break;
 
 		// Create SESSION
 		for (char client_id = 0; client_id < MAX_CLIENTS; ++client_id) {
@@ -233,12 +235,33 @@ void accept_thread() {
 
 //////////////////////////////////////////////////
 // Host CALLBACK
+void h_process_packet(char* p) {
+	char packet_type = p[1];
+	switch (packet_type) {
+	case C2H_PLAYER_VECTOR_PACKET:
+		player_vector_packet* packet = reinterpret_cast<player_vector_packet*>(p);
+		packet->packet_type = H2C_PLAYER_VECTOR_PACKET;
+		for (char other_id = 0; other_id < MAX_CLIENTS; ++other_id) {
+			if (packet->id != other_id) {
+				g_clients[other_id]->do_send(&p);
+			}
+		}
+		break;
+	}
+}
+
 void CALLBACK h_recv_callback(DWORD err, DWORD num_bytes, LPWSAOVERLAPPED p_over, DWORD flags) {
 	if ((0 != err) || (0 == num_bytes)) UE_LOG(LogTemp, Warning, TEXT("h_recv_callback Failed : %d"), WSAGetLastError());
 
 	SESSION* o = reinterpret_cast<SESSION*>(p_over);
-	o->recv_callback(num_bytes, p_over, g_q_lock, g_input_queue);
+	//o->recv_callback(num_bytes, p_over, g_q_lock, g_input_queue);
+
+	char* p = o->m_recv_over.m_buffer;
+	h_process_packet(p);
+
+	o->do_recv();
 }
+
 
 void CALLBACK h_send_callback(DWORD err, DWORD num_bytes, LPWSAOVERLAPPED p_over, DWORD flags) {
 	EXP_OVER* p = reinterpret_cast<EXP_OVER*>(p_over);
@@ -247,17 +270,53 @@ void CALLBACK h_send_callback(DWORD err, DWORD num_bytes, LPWSAOVERLAPPED p_over
 
 //////////////////////////////////////////////////
 // Client CALLBACK
-void process_packet(char* p) {
+void c_process_packet(char* p) {
 	char packet_type = p[1];
 	switch (packet_type) {
 	case H2C_PLAYER_INFO_PACKET: {
 		hc_player_packet* packet = reinterpret_cast<hc_player_packet*>(p);
+		g_id = packet->id;
+		g_x = packet->x;
+		g_y = packet->y;
+		g_z = packet->z;
+		g_dx = packet->dx;
+		g_dy = packet->dy;
+		g_dz = packet->dz;
+		g_hp = packet->hp;
+		g_animation_state = packet->animation_state;
+		g_current_element = packet->current_element;
 		break;
 	}
 
 	case H2C_PLAYER_ENTER_PACKET: {
 		hc_player_packet* packet = reinterpret_cast<hc_player_packet*>(p);
 		UE_LOG(LogTemp, Warning, TEXT("Player %d has Entered the Game"), packet->id);
+
+		UWorld* World = GEngine->GetWorldFromContextObjectChecked(GEngine->GameViewport);
+		if (!World) return;
+
+		FVector SpawnLocation(0, 0, 100.0f);
+		FRotator SpawnRotation = FRotator::ZeroRotator;
+
+		FActorSpawnParameters Params;
+		Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+		APlayerCharacter* NewPlayer = World->SpawnActor<APlayerCharacter>(APlayerCharacter::StaticClass(), SpawnLocation, SpawnRotation, Params);
+
+		if (NewPlayer) {
+			NewPlayer->AutoPossessPlayer = EAutoReceiveInput::Disabled;
+			NewPlayer->DisableInput(nullptr);
+
+			g_players[packet->id] = std::unique_ptr<APlayerCharacter>(NewPlayer);
+
+			UE_LOG(LogTemp, Warning, TEXT("Spawned Player %d and Stored in g_players"), packet->id);
+		}
+		break;
+	}
+
+	case H2C_PLAYER_VECTOR_PACKET: {
+		player_vector_packet* packet = reinterpret_cast<player_vector_packet*>(p);
+		UE_LOG(LogTemp, Warning, TEXT("Player %d, dx : %.2f, dy : %.2f"), packet->id, packet->dx, packet->dy);
 		break;
 	}
 	}
@@ -267,7 +326,7 @@ void CALLBACK c_recv_callback(DWORD err, DWORD num_bytes, LPWSAOVERLAPPED p_over
 	if ((0 != err) || (0 == num_bytes)) UE_LOG(LogTemp, Warning, TEXT("c_recv_callback Failed : %d"), WSAGetLastError());
 
 	char* p = g_recv_over.m_buffer;
-	process_packet(p);
+	c_process_packet(p);
 
 	DWORD recv_bytes;
 	DWORD recv_flag = 0;

@@ -1,6 +1,12 @@
 #include "SESSION.h"
 
 SOCKET g_h_socket;
+char g_id;
+float g_x, g_y, g_z;
+float g_dx, g_dy, g_dz;
+char g_hp;
+char g_animation_state;
+char g_current_element;
 
 //////////////////////////////////////////////////
 // EXP_OVER
@@ -45,7 +51,7 @@ void SESSION::do_send(void* buff) {
 	WSASend(m_c_socket, o->m_wsabuf, 1, &send_bytes, 0, &(o->m_over), NULL);
 }
 
-void SESSION::recv_callback(DWORD num_bytes, LPWSAOVERLAPPED p_over, std::mutex& q_lock, std::queue<ch_key_packet>& input_queue) {
+void SESSION::recv_callback(DWORD num_bytes, LPWSAOVERLAPPED p_over, std::mutex& q_lock, std::queue<player_vector_packet>& input_queue) {
 	// Enqueue
 	{
 		std::lock_guard<std::mutex> lock(q_lock);

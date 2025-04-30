@@ -21,10 +21,11 @@ constexpr char H2C_PLAYER_INFO_PACKET = 1;
 constexpr char H2C_PLAYER_ENTER_PACKET = 2;
 constexpr char H2C_PLAYER_LEAVE_PACKET = 3;
 constexpr char H2C_PLAYER_PACKET = 4;
-constexpr char H2C_ITEM_PACKET = 5;
-constexpr char H2C_SKILL_PACKET = 6;
-constexpr char H2C_MONSTER_PACKET = 7;
-constexpr char C2H_KEY_PACKET = 8;
+constexpr char H2C_PLAYER_VECTOR_PACKET = 5;
+constexpr char H2C_ITEM_PACKET = 6;
+constexpr char H2C_SKILL_PACKET = 7;
+constexpr char H2C_MONSTER_PACKET = 8;
+constexpr char C2H_PLAYER_VECTOR_PACKET = 9;
 
 constexpr char ANIMATION_STATE_IDLE = 1;
 
@@ -73,7 +74,6 @@ struct cs_selected_lobby_packet {
 
 //////////////////////////////////////////////////
 // In-Game
-
 struct hc_player_packet {
 	unsigned char packet_size;
 	char packet_type;
@@ -111,11 +111,12 @@ struct hc_monster_packet {
 	char animation_state;
 };
 
-struct ch_key_packet {
+struct player_vector_packet {
 	unsigned char packet_size;
 	char packet_type;
 	char id;
-	char key;
+	float x, y, z;
+	float dx, dy;
 };
 
 #pragma pack(pop)

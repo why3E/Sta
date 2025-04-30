@@ -116,4 +116,7 @@ private:
 
 	// 캐싱된 데이터를 업데이트하는 함수 
 	void UpdateCachedData();
+
+public:
+	void do_send(void* buff);
 };

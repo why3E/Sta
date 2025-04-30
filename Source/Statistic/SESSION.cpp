@@ -39,10 +39,10 @@ void SESSION::do_recv() {
 void SESSION::do_send(void* buff) {
 	EXP_OVER* o = new EXP_OVER;
 	unsigned char packet_size = reinterpret_cast<unsigned char*>(buff)[0];
-	memcpy(o->_buffer, buff, packet_size);
-	o->_wsabuf[0].len = packet_size;
+	memcpy(o->m_buffer, buff, packet_size);
+	o->m_wsabuf[0].len = packet_size;
 	DWORD send_bytes;
-	WSASend(_c_socket, o->_wsabuf, 1, &send_bytes, 0, &(o->_over), NULL);
+	WSASend(m_c_socket, o->m_wsabuf, 1, &send_bytes, 0, &(o->m_over), NULL);
 }
 
 void SESSION::recv_callback(DWORD num_bytes, LPWSAOVERLAPPED p_over, std::mutex& q_lock, std::queue<ch_key_packet>& input_queue) {

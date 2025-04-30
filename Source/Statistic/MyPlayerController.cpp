@@ -1,6 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "MyPlayerController.h"
+#include "PlayerCharacter.h"
 
 #include <array>
 #include <thread>
@@ -12,19 +13,21 @@ constexpr short HOST_PORT = 3000;
 constexpr char HOST_ADDRESS[] = "127.0.0.1";
 
 std::mutex g_q_lock;
-std::array<std::unique_ptr<SESSION>, MAX_CLIENTS> g_clients;
 std::queue<ch_key_packet> g_input_queue;
+std::array<std::unique_ptr<SESSION>, MAX_CLIENTS> g_clients;
 
 std::thread g_s_thread;
-
-std::atomic<bool> g_running = true;
+std::atomic<bool> g_running;
 
 EXP_OVER g_recv_over;
+std::array<std::unique_ptr<APlayerCharacter>, MAX_CLIENTS> g_players;
 
 void server_thread();
 void accept_thread();
 void CALLBACK h_recv_callback(DWORD err, DWORD num_bytes, LPWSAOVERLAPPED p_over, DWORD flags);
 void CALLBACK h_send_callback(DWORD err, DWORD num_bytes, LPWSAOVERLAPPED p_over, DWORD flags);
+
+void process_packet(char* p);
 void CALLBACK c_recv_callback(DWORD err, DWORD num_bytes, LPWSAOVERLAPPED p_over, DWORD flags);
 void CALLBACK c_send_callback(DWORD err, DWORD num_bytes, LPWSAOVERLAPPED p_over, DWORD flags);
 
@@ -43,14 +46,18 @@ void AMyPlayerController::EndPlay(const EEndPlayReason::Type EndPlayReason)
 // Socket
 void AMyPlayerController::InitSocket()
 {
+	g_running = true;
+	for (auto& p : g_clients)
+		p = nullptr;
+
 	// WSAStartup
 	WSADATA WSAData;
 	auto ret = WSAStartup(MAKEWORD(2, 2), &WSAData);
-	if (0 != ret) { UE_LOG(LogTemp, Warning, TEXT("WSAStartup Failed")); }
+	if (0 != ret) { UE_LOG(LogTemp, Warning, TEXT("WSAStartup Failed : %d"), WSAGetLastError()); }
 	else { UE_LOG(LogTemp, Warning, TEXT("WSAStartup Succeed")); }
 
 	g_h_socket = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_OVERLAPPED);
-	if (INVALID_SOCKET == g_h_socket) { UE_LOG(LogTemp, Warning, TEXT("Client Socket Create Failed")); }
+	if (INVALID_SOCKET == g_h_socket) { UE_LOG(LogTemp, Warning, TEXT("Client Socket Create Failed : %d"), WSAGetLastError()); }
 	else { UE_LOG(LogTemp, Warning, TEXT("Client Socket Create Succeed")); }
 
 	g_s_thread = std::thread(server_thread);
@@ -62,13 +69,12 @@ void AMyPlayerController::InitSocket()
 	inet_pton(AF_INET, HOST_ADDRESS, &addr.sin_addr);
 
 	ret = WSAConnect(g_h_socket, reinterpret_cast<const sockaddr*>(&addr), sizeof(SOCKADDR_IN), NULL, NULL, NULL, NULL);
-	if (SOCKET_ERROR == ret) { UE_LOG(LogTemp, Warning, TEXT("WSAConnect Failed")); }
+	if (SOCKET_ERROR == ret) { UE_LOG(LogTemp, Warning, TEXT("WSAConnect Failed : %d"), WSAGetLastError()); }
 	else { UE_LOG(LogTemp, Warning, TEXT("WSAConnect Succeed")); }
 
 	DWORD recv_bytes;
 	DWORD recv_flag = 0;
 	ret = WSARecv(g_h_socket, g_recv_over.m_wsabuf, 1, &recv_bytes, &recv_flag, &g_recv_over.m_over, c_recv_callback);
-	if (ret == SOCKET_ERROR) if (WSAGetLastError() != WSA_IO_PENDING) UE_LOG(LogTemp, Warning, TEXT("WSARecv Failed"));
 }
 
 void AMyPlayerController::CleanupSocket()
@@ -141,7 +147,7 @@ void server_thread() {
 void accept_thread() {
 	// WSASocket
 	SOCKET s_socket = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_OVERLAPPED);
-	if (INVALID_SOCKET == s_socket) { UE_LOG(LogTemp, Warning, TEXT("Host Socket Create Failed")); }
+	if (INVALID_SOCKET == s_socket) { UE_LOG(LogTemp, Warning, TEXT("Host Socket Create Failed : %d"), WSAGetLastError()); }
 	else { UE_LOG(LogTemp, Warning, TEXT("Host Socket Created Succeed")); }
 
 	// Bind & Listen
@@ -152,18 +158,18 @@ void accept_thread() {
 	INT addr_size = sizeof(SOCKADDR_IN);
 
 	auto ret = bind(s_socket, reinterpret_cast<const sockaddr*>(&addr), sizeof(SOCKADDR_IN));
-	if (SOCKET_ERROR == ret) { UE_LOG(LogTemp, Warning, TEXT("Bind Failed")); }
+	if (SOCKET_ERROR == ret) { UE_LOG(LogTemp, Warning, TEXT("Bind Failed : %d"), WSAGetLastError()); }
 	else { UE_LOG(LogTemp, Warning, TEXT("Bind Succeed")); }
 
 	ret = listen(s_socket, SOMAXCONN);
-	if (SOCKET_ERROR == ret) { UE_LOG(LogTemp, Warning, TEXT("Listen Failed")); }
+	if (SOCKET_ERROR == ret) { UE_LOG(LogTemp, Warning, TEXT("Listen Failed : %d"), WSAGetLastError()); }
 	else { UE_LOG(LogTemp, Warning, TEXT("Listen Succeed")); }
 
 	// Accept Loop
 	while (g_running) {
 		// WSAAccept
 		auto c_socket = WSAAccept(s_socket, reinterpret_cast<sockaddr*>(&addr), &addr_size, NULL, NULL);
-		if (INVALID_SOCKET == c_socket) { UE_LOG(LogTemp, Warning, TEXT("WSAAccept Failed")); }
+		if (INVALID_SOCKET == c_socket) { UE_LOG(LogTemp, Warning, TEXT("WSAAccept Failed : %d"), WSAGetLastError()); }
 		else { UE_LOG(LogTemp, Warning, TEXT("WSAAccept Succeed")); }
 
 		// Create SESSION
@@ -173,7 +179,7 @@ void accept_thread() {
 				
 				// Send Player Info to Player
 				hc_player_packet p;
-				std::unique_ptr<SESSION> c = g_clients[other_id];
+				SESSION* c = g_clients[client_id].get();
 				p.packet_size = sizeof(hc_player_packet);
 				p.packet_type = H2C_PLAYER_INFO_PACKET;
 				p.id = c->m_id;
@@ -192,7 +198,7 @@ void accept_thread() {
 				p.packet_type = H2C_PLAYER_ENTER_PACKET;
 				for (char other_id = 0; other_id < MAX_CLIENTS; ++other_id) {
 					if (client_id != other_id) {
-						if (!g_clients[other_id]) {
+						if (g_clients[other_id]) {
 							g_clients[other_id]->do_send(&p);
 						}
 					}
@@ -201,8 +207,8 @@ void accept_thread() {
 				// Send Other Infos to Player
 				for (char other_id = 0; other_id < MAX_CLIENTS; ++other_id) {
 					if (client_id != other_id) {
-						if (!g_clients[other_id]) {
-							c = g_clients[other_id];
+						if (g_clients[other_id]) {
+							c = g_clients[other_id].get();
 							p.id = c->m_id;
 							p.x = c->m_x;
 							p.y = c->m_y;
@@ -228,7 +234,7 @@ void accept_thread() {
 //////////////////////////////////////////////////
 // Host CALLBACK
 void CALLBACK h_recv_callback(DWORD err, DWORD num_bytes, LPWSAOVERLAPPED p_over, DWORD flags) {
-	if ((0 != err) || (0 == num_bytes)) UE_LOG(LogTemp, Warning, TEXT("h_recv_callback"));
+	if ((0 != err) || (0 == num_bytes)) UE_LOG(LogTemp, Warning, TEXT("h_recv_callback Failed : %d"), WSAGetLastError());
 
 	SESSION* o = reinterpret_cast<SESSION*>(p_over);
 	o->recv_callback(num_bytes, p_over, g_q_lock, g_input_queue);
@@ -241,10 +247,27 @@ void CALLBACK h_send_callback(DWORD err, DWORD num_bytes, LPWSAOVERLAPPED p_over
 
 //////////////////////////////////////////////////
 // Client CALLBACK
-void CALLBACK c_recv_callback(DWORD err, DWORD num_bytes, LPWSAOVERLAPPED p_over, DWORD flags) {
-	if ((0 != err) || (0 == num_bytes)) err_display("c_recv_callback");
+void process_packet(char* p) {
+	char packet_type = p[1];
+	switch (packet_type) {
+	case H2C_PLAYER_INFO_PACKET: {
+		hc_player_packet* packet = reinterpret_cast<hc_player_packet*>(p);
+		break;
+	}
 
-	/* Enqueue */
+	case H2C_PLAYER_ENTER_PACKET: {
+		hc_player_packet* packet = reinterpret_cast<hc_player_packet*>(p);
+		UE_LOG(LogTemp, Warning, TEXT("Player %d has Entered the Game"), packet->id);
+		break;
+	}
+	}
+}
+
+void CALLBACK c_recv_callback(DWORD err, DWORD num_bytes, LPWSAOVERLAPPED p_over, DWORD flags) {
+	if ((0 != err) || (0 == num_bytes)) UE_LOG(LogTemp, Warning, TEXT("c_recv_callback Failed : %d"), WSAGetLastError());
+
+	char* p = g_recv_over.m_buffer;
+	process_packet(p);
 
 	DWORD recv_bytes;
 	DWORD recv_flag = 0;

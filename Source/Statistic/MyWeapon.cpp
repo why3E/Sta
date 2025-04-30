@@ -36,21 +36,11 @@ void AMyWeapon::EquipWeapon(ACharacter* Player)
     {
         USkeletalMeshComponent* PlayerMesh = Player->GetMesh();
 
-        // 나이아가라 컴포넌트를 플레이어의 소켓에 부착
-        WeaponEffect->AttachToComponent(PlayerMesh, FAttachmentTransformRules::KeepRelativeTransform, BaseSocketName);
+        WeaponEffect->AttachToComponent(PlayerMesh, FAttachmentTransformRules::SnapToTargetIncludingScale, BaseSocketName);
         WeaponEffect->Activate(); // 나이아가라 효과 활성화
     }
 }
 
-void AMyWeapon::DrawWeapon(USkeletalMeshComponent* Mesh)
-{
-    if (Mesh)
-    {
-        // 나이아가라 컴포넌트를 Draw 소켓에 부착
-        WeaponEffect->AttachToComponent(Mesh, FAttachmentTransformRules::KeepRelativeTransform, DrawSocketName);
-        WeaponEffect->Activate(); // 나이아가라 효과 활성화
-    }
-}
 
 void AMyWeapon::SheatheWeapon(USkeletalMeshComponent* Mesh)
 {

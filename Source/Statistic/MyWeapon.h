@@ -50,5 +50,4 @@ protected:
 	FCharacterStat WeaponStat;
 
 	FName BaseSocketName;
-	FName DrawSocketName;
 };

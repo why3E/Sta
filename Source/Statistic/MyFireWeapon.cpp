@@ -7,5 +7,4 @@ AMyFireWeapon::AMyFireWeapon()
 {
 	WeaponType = EWeaponType::WT_Fire;
 	BaseSocketName = TEXT("FirePosition");
-	DrawSocketName = TEXT("FireSocket");
 }

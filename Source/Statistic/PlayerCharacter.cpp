@@ -192,16 +192,15 @@ void APlayerCharacter::BasicMove(const FInputActionValue& Value)
     AddMovementInput(ForwardDirection, MovementVector.X);
     AddMovementInput(RightDirection, MovementVector.Y);
 
+	// Player Vector Packet Send
 	player_vector_packet p;
 	p.packet_size = sizeof(player_vector_packet);
 	p.packet_type = C2H_PLAYER_VECTOR_PACKET;
 	p.id = g_id;
-	p.x = g_x;
-	p.y = g_y;
-	p.z = g_z;
-	p.dx = MovementVector.X;
-	p.dy = MovementVector.Y;
+	p.x = g_x; p.y = g_y; p.z = g_z;
+	p.dx = MovementVector.X; p.dy = MovementVector.Y;
 	do_send(&p);
+	UE_LOG(LogTemp, Warning, TEXT("[Client] Send Packet to Host"));
 }
 
 void APlayerCharacter::BasicLook(const FInputActionValue& Value)

@@ -20,16 +20,18 @@ constexpr char C2S_SELECTED_LOBBY_PACKET = 7;
 constexpr char H2C_PLAYER_INFO_PACKET = 1;
 constexpr char H2C_PLAYER_ENTER_PACKET = 2;
 constexpr char H2C_PLAYER_LEAVE_PACKET = 3;
-constexpr char H2C_PLAYER_PACKET = 4;
-constexpr char H2C_PLAYER_VECTOR_PACKET = 5;
-constexpr char H2C_ITEM_PACKET = 6;
-constexpr char H2C_SKILL_PACKET = 7;
-constexpr char H2C_MONSTER_PACKET = 8;
-constexpr char C2H_PLAYER_VECTOR_PACKET = 9;
+
+constexpr char H2C_PLAYER_PACKET = 11;
+constexpr char H2C_ITEM_PACKET = 12;
+constexpr char H2C_SKILL_PACKET = 13;
+constexpr char H2C_MONSTER_PACKET = 14;
+
+constexpr char H2C_PLAYER_VECTOR_PACKET = 21;
+constexpr char C2H_PLAYER_VECTOR_PACKET = 22;
 
 constexpr char ANIMATION_STATE_IDLE = 1;
 
-constexpr char ELEMENT_WIND = 1;
+constexpr char ELEMENT_IDLE = 1;
 
 constexpr char MAX_CLIENTS = 4;
 
@@ -74,7 +76,7 @@ struct cs_selected_lobby_packet {
 
 //////////////////////////////////////////////////
 // In-Game
-struct hc_player_packet {
+struct hc_player_info_packet {
 	unsigned char packet_size;
 	char packet_type;
 	char id;
@@ -83,6 +85,12 @@ struct hc_player_packet {
 	char hp;
 	char animation_state;
 	char current_element;
+};
+
+struct hc_player_leave_packet {
+	unsigned char packet_size;
+	char packet_type;
+	char id;
 };
 
 struct hc_item_packet {

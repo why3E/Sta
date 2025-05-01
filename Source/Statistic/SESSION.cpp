@@ -50,15 +50,3 @@ void SESSION::do_send(void* buff) {
 	DWORD send_bytes;
 	WSASend(m_c_socket, o->m_wsabuf, 1, &send_bytes, 0, &(o->m_over), NULL);
 }
-
-void SESSION::recv_callback(DWORD num_bytes, LPWSAOVERLAPPED p_over, std::mutex& q_lock, std::queue<player_vector_packet>& input_queue) {
-	// Enqueue
-	{
-		std::lock_guard<std::mutex> lock(q_lock);
-		/* 
-			Enqueue 
-		*/
-	}
-
-	do_recv();
-}

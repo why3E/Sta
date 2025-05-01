@@ -8,10 +8,11 @@
 #include "AnimationAttackInterface.h"
 #include "Enums.h" // EClassType 포함
 #include "MMComboActionData.h" // 데이터 에셋 헤더 포함
+#include "AnimationUpdateInterface.h"
 #include "PlayerCharacter.generated.h"
 
 UCLASS()
-class STATISTIC_API APlayerCharacter : public AMyCharacterBase, public IAnimationAttackInterface
+class STATISTIC_API APlayerCharacter : public AMyCharacterBase, public IAnimationAttackInterface, public IAnimationUpdateInterface
 {
 	GENERATED_BODY()
 
@@ -126,6 +127,15 @@ private:
 
 	UPROPERTY(VisibleAnywhere, Category = Weapon, meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<class AMyWeapon> CurrentWeapon;
+
+protected:
+	FORCEINLINE virtual EClassType GetClassType() override { return ClassType; };
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
+    TSubclassOf<AMyWeapon> FireWeaponBP;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
+    TSubclassOf<AMyWeapon> WindWeaponBP;
 };
 
 

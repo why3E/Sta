@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "UObject/Interface.h"
+#include "Enums.h" // EClassType 포함
 #include "AnimationUpdateInterface.generated.h"
 
 // This class does not need to be modified.
@@ -22,5 +23,5 @@ class STATISTIC_API IAnimationUpdateInterface
 
 	// Add interface functions to this class. This is the class that will be inherited to implement this interface.
 public:
-	
+	virtual EClassType GetClassType() = 0;
 };

@@ -106,15 +106,21 @@ APlayerCharacter::APlayerCharacter()
 
     // 기본 클래스 타입 설정
     ClassType = EClassType::CT_Wind;
-
     // 초기 캐싱된 데이터 설정
     CurrentMontage = nullptr;
     CurrentComboData = nullptr;
 
-	static ConstructorHelpers::FClassFinder<AMyWeapon> FireWeaponBP(TEXT("/Game/Weapon/BP_FIreWeapon.BP_FIreWeapon_C"));
-    if (FireWeaponBP.Succeeded())
+	static ConstructorHelpers::FClassFinder<AMyWeapon> FireWeaponBPRef(TEXT("/Game/Weapon/BP_FIreWeapon.BP_FIreWeapon_C"));
+    if (FireWeaponBPRef.Succeeded())
     {
-        WeaponClass = FireWeaponBP.Class;
+        FireWeaponBP = FireWeaponBPRef.Class;
+    }
+
+    // WindWeaponBP 초기화
+    static ConstructorHelpers::FClassFinder<AMyWeapon> WindWeaponBPRef(TEXT("/Game/Weapon/BP_WindWeapon.BP_WindWeapon_C"));
+    if (WindWeaponBPRef.Succeeded())
+    {
+        WindWeaponBP = WindWeaponBPRef.Class;
     }
 }
 
@@ -136,20 +142,7 @@ void APlayerCharacter::BeginPlay()
 	}
 
 	{
-		ChangeClass(EClassType::CT_Fire);
-		if (GetWorld())
-		{
-			CurrentWeapon = Cast<AMyWeapon>(GetWorld()->SpawnActor<AMyWeapon>(WeaponClass));
-
-			
-			UE_LOG(LogTemp, Warning, TEXT("WeaponClass Load: %s"), CurrentWeapon ? TEXT("Success") : TEXT("Fail"));
-
-			if (CurrentWeapon)
-			{
-				UE_LOG(LogTemp, Warning, TEXT("Weapon Spawned"));
-				EquipWeapon(CurrentWeapon);
-			}
-		}
+	ChangeClass(EClassType::CT_Wind);
 	}
 
     // 초기 캐싱된 데이터 업데이트
@@ -408,6 +401,7 @@ void APlayerCharacter::UpdateCachedData()
     case EClassType::CT_Wind:
         CurrentMontage = WindComboMontage;
         CurrentComboData = WindComboData;
+		WeaponClass = WindWeaponBP;
 		CheckAnimBone = 1;
         break;
 
@@ -419,6 +413,7 @@ void APlayerCharacter::UpdateCachedData()
 	case EClassType::CT_Fire:
         CurrentMontage = FireComboMontage;
         CurrentComboData = FireComboData;
+		WeaponClass = FireWeaponBP;
 		CheckAnimBone = 1;
         break;
     default:
@@ -426,6 +421,19 @@ void APlayerCharacter::UpdateCachedData()
         CurrentComboData = nullptr;
         break;
     }
+	if (GetWorld())
+		{
+			CurrentWeapon = Cast<AMyWeapon>(GetWorld()->SpawnActor<AMyWeapon>(WeaponClass));
+
+			
+			UE_LOG(LogTemp, Warning, TEXT("WeaponClass Load: %s"), CurrentWeapon ? TEXT("Success") : TEXT("Fail"));
+
+			if (CurrentWeapon)
+			{
+				UE_LOG(LogTemp, Warning, TEXT("Weapon Spawned"));
+				EquipWeapon(CurrentWeapon);
+			}
+		}
 
 }
 

@@ -4,7 +4,9 @@
 
 #include "CoreMinimal.h"
 #include "Animation/AnimInstance.h"
+#include "Enums.h"
 #include "PlayerAnim.generated.h"
+
 
 UCLASS()
 class STATISTIC_API UPlayerAnim : public UAnimInstance
@@ -20,5 +22,7 @@ public:
 		bool isInAir;
 protected:
 	virtual void NativeUpdateAnimation(float DeltaSeconds) override;
-
+protected:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Player)
+	EClassType ClassType;
 };

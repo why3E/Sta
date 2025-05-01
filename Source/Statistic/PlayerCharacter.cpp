@@ -12,6 +12,8 @@
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "MMComboActionData.h" // Include the header for UMMComboActionData
+#include "MyWeapon.h"
+#include "MyFireWeapon.h"
 #include "Enums.h"
 
 APlayerCharacter::APlayerCharacter()
@@ -103,11 +105,17 @@ APlayerCharacter::APlayerCharacter()
 	}
 
     // 기본 클래스 타입 설정
-    ClassType = EClassType::CT_Fire;
+    ClassType = EClassType::CT_Wind;
 
     // 초기 캐싱된 데이터 설정
     CurrentMontage = nullptr;
     CurrentComboData = nullptr;
+
+	static ConstructorHelpers::FClassFinder<AMyWeapon> FireWeaponBP(TEXT("/Game/Weapon/BP_FIreWeapon.BP_FIreWeapon_C"));
+    if (FireWeaponBP.Succeeded())
+    {
+        WeaponClass = FireWeaponBP.Class;
+    }
 }
 
 void APlayerCharacter::BeginPlay()
@@ -124,6 +132,23 @@ void APlayerCharacter::BeginPlay()
 			SubSystem->AddMappingContext(IMC_Basic, 0);
 			// 입력 시작
 			EnableInput(PlayerController);
+		}
+	}
+
+	{
+		ChangeClass(EClassType::CT_Fire);
+		if (GetWorld())
+		{
+			CurrentWeapon = Cast<AMyWeapon>(GetWorld()->SpawnActor<AMyWeapon>(WeaponClass));
+
+			
+			UE_LOG(LogTemp, Warning, TEXT("WeaponClass Load: %s"), CurrentWeapon ? TEXT("Success") : TEXT("Fail"));
+
+			if (CurrentWeapon)
+			{
+				UE_LOG(LogTemp, Warning, TEXT("Weapon Spawned"));
+				EquipWeapon(CurrentWeapon);
+			}
 		}
 	}
 
@@ -428,4 +453,9 @@ void APlayerCharacter::SetComboTimer()
             GetWorld()->GetTimerManager().SetTimer(ComboTimerHandle, this, &APlayerCharacter::ComboCheck, ComboAvailableTime, false);
         }
     }
+}
+
+void APlayerCharacter::EquipWeapon(AMyWeapon* Weapon)
+{
+	Weapon->EquipWeapon(this);
 }

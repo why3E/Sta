@@ -105,7 +105,7 @@ APlayerCharacter::APlayerCharacter()
 	}
 
     // 기본 클래스 타입 설정
-    ClassType = EClassType::CT_Wind;
+    ClassType = EClassType::CT_Fire;
     // 초기 캐싱된 데이터 설정
     CurrentMontage = nullptr;
     CurrentComboData = nullptr;
@@ -142,7 +142,7 @@ void APlayerCharacter::BeginPlay()
 	}
 
 	{
-	ChangeClass(EClassType::CT_Wind);
+	ChangeClass(EClassType::CT_Fire);
 	}
 
     // 초기 캐싱된 데이터 업데이트
@@ -173,7 +173,7 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 void APlayerCharacter::BasicMove(const FInputActionValue& Value)
 {
     // 입력받은 Value로부터 MovementVector 가져오기
-    FVector2D MovementVector = Value.Get<FVector2D>();
+    MovementVector = Value.Get<FVector2D>();
 
     // 컨트롤러의 회전 중 Yaw(Z)를 가져와 저장
     const FRotator Rotation = Controller->GetControlRotation();
@@ -292,7 +292,7 @@ void APlayerCharacter::ComboStart()
         // 타이머 초기화
         ComboTimerHandle.Invalidate();
         // 타이머 설정
-        SetComboTimer();
+        SetComboTimer(); 
     }
     else
     {
@@ -450,7 +450,7 @@ void APlayerCharacter::SetComboTimer()
     // 인덱스가 유효한지 체크
     if (CurrentComboData->ComboFrame.IsValidIndex(ComboIndex))
     {
-        const float AttackSpeedRate = 1.0f;
+        const float AttackSpeedRate = 2.0f;
 
         // 실제 콤보가 입력될 수 있는 시간 구하기
         float ComboAvailableTime = (CurrentComboData->ComboFrame[ComboIndex] / CurrentComboData->FrameRate) / AttackSpeedRate;

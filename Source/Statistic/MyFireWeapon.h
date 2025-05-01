@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "MyWeapon.h"
+#include "MyFireBall.h"
 #include "MyFireWeapon.generated.h"
 
 /**
@@ -33,8 +34,8 @@ public:
 	TSubclassOf<AActor> FireBallClass;
 
 	// 현재 스폰된 에너지볼 객체
-	//UPROPERTY()
-	//TObjectPtr<class AMyFireBall> TempFireBall;
+	UPROPERTY()
+	TObjectPtr<class AMyFireBall> TempFireBall;
 
 	// 에너지 볼을 스폰하기 위한 소켓
 	FName FireBallSocket;

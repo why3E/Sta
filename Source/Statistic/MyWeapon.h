@@ -50,4 +50,7 @@ protected:
 	FCharacterStat WeaponStat;
 
 	FName BaseSocketName;
+
+	UPROPERTY()
+    ACharacter* OwnerCharacter;
 };

@@ -13,9 +13,6 @@ class UAnimationAttackInterface : public UInterface
 	GENERATED_BODY()
 };
 
-/**
- * 
- */
 class STATISTIC_API IAnimationAttackInterface
 {
 	GENERATED_BODY()

@@ -8,10 +8,13 @@
 #include "AnimationAttackInterface.h"
 #include "Enums.h" // EClassType 포함
 #include "MMComboActionData.h" // 데이터 에셋 헤더 포함
+#include "AnimationUpdateInterface.h"
+#include "MyPlayerVisualInterface.h"
+#include "AnimationWeaponInterface.h"
 #include "PlayerCharacter.generated.h"
 
 UCLASS()
-class STATISTIC_API APlayerCharacter : public AMyCharacterBase, public IAnimationAttackInterface
+class STATISTIC_API APlayerCharacter : public AMyCharacterBase, public IAnimationAttackInterface, public IAnimationUpdateInterface, public IMyPlayerVisualInterface, public IAnimationWeaponInterface
 {
 	GENERATED_BODY()
 
@@ -20,6 +23,12 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
+
+protected:
+	FORCEINLINE virtual class UCameraComponent* GetPlayerCamera() override { return Camera; }
+	FORCEINLINE virtual class USpringArmComponent* GetSpringArm() override { return SpringArm; }
+	FORCEINLINE virtual FVector2D GetMovementVector() override { return MovementVector; }
+
 	// 셀카봉 역할을 해줄 컴포넌트
 	UPROPERTY(VisibleAnywhere, Category = Camera, Meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<class USpringArmComponent> SpringArm;
@@ -28,6 +37,10 @@ protected:
 	UPROPERTY(VisibleAnywhere, Category = Camera, Meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<class UCameraComponent> Camera;
 
+	FVector2D MovementVector;
+
+	FORCEINLINE virtual class AMyWeapon* GetWeapon() override { return CurrentWeapon; }
+	
 protected:
 	void BasicMove(const FInputActionValue& Value);
 	void BasicLook(const FInputActionValue& Value);
@@ -126,6 +139,15 @@ private:
 
 	UPROPERTY(VisibleAnywhere, Category = Weapon, meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<class AMyWeapon> CurrentWeapon;
+
+protected:
+	FORCEINLINE virtual EClassType GetClassType() override { return ClassType; };
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
+    TSubclassOf<AMyWeapon> FireWeaponBP;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
+    TSubclassOf<AMyWeapon> WindWeaponBP;
 };
 
 

@@ -26,7 +26,7 @@ void UBTService_PlayerLocationSeen::TickNode(UBehaviorTreeComponent& OwnerComp, 
         FVector CurrentLocation = BlackboardComp->GetValueAsVector(GetSelectedBlackboardKey());
         FVector PlayerLocation = PlayerPawn->GetActorLocation();
 
-        // ✅ 100cm 이상 변화가 있을 때만 갱신
+
         if (FVector::DistSquared(CurrentLocation, PlayerLocation) > FMath::Square(100.f))
         {
             BlackboardComp->SetValueAsVector(GetSelectedBlackboardKey(), PlayerLocation);

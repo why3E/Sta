@@ -35,7 +35,7 @@ void AMyWeapon::EquipWeapon(ACharacter* Player)
     if (Player)
     {
         USkeletalMeshComponent* PlayerMesh = Player->GetMesh();
-
+        OwnerCharacter = Player; // 소유자 캐릭터 설정
         WeaponEffect->AttachToComponent(PlayerMesh, FAttachmentTransformRules::SnapToTargetIncludingScale, BaseSocketName);
         WeaponEffect->Activate(); // 나이아가라 효과 활성화
     }

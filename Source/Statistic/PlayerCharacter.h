@@ -148,6 +148,9 @@ protected:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
     TSubclassOf<AMyWeapon> WindWeaponBP;
+	
+public:
+	void do_send(void* buff);
 };
 
 

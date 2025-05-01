@@ -7,11 +7,17 @@
 #include "MyPlayerController.generated.h"
 
 /**
- * 
+ *
  */
 UCLASS()
 class STATISTIC_API AMyPlayerController : public APlayerController
 {
 	GENERATED_BODY()
-	
+
+public:
+	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+
+	void InitSocket();
+	void CleanupSocket();
 };

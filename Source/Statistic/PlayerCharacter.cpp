@@ -16,6 +16,8 @@
 #include "MyFireWeapon.h"
 #include "Enums.h"
 
+#include "SESSION.h"
+
 APlayerCharacter::APlayerCharacter()
 {
 	// Collision 설정
@@ -207,6 +209,16 @@ void APlayerCharacter::BasicMove(const FInputActionValue& Value)
     // Movement에 값 전달 (방향, 이동량)
     AddMovementInput(ForwardDirection, MovementVector.X);
     AddMovementInput(RightDirection, MovementVector.Y);
+
+	// Player Vector Packet Send
+	player_vector_packet p;
+	p.packet_size = sizeof(player_vector_packet);
+	p.packet_type = C2H_PLAYER_VECTOR_PACKET;
+	p.id = g_id;
+	p.x = g_x; p.y = g_y; p.z = g_z;
+	p.dx = MovementVector.X; p.dy = MovementVector.Y;
+	do_send(&p);
+	UE_LOG(LogTemp, Warning, TEXT("[Client] Send Packet to Host"));
 }
 
 void APlayerCharacter::BasicLook(const FInputActionValue& Value)
@@ -341,8 +353,6 @@ void APlayerCharacter::ComboCheck()
 	}
 }
 
-
-
 void APlayerCharacter::BaseAttackCheck()
 {
 	// 충돌 결과를 반환하기 위한 배열
@@ -382,7 +392,6 @@ void APlayerCharacter::BaseAttackCheck()
 
 	DrawDebugCapsule(GetWorld(), CapsuleOrigin, CapsuleHalfHeight, AttackRadius, FRotationMatrix::MakeFromZ(GetActorForwardVector()).ToQuat(), DrawColor, false, 3.0f);
 }
-
 
 void APlayerCharacter::ChangeClass(EClassType NewClassType)
 {
@@ -466,4 +475,13 @@ void APlayerCharacter::SetComboTimer()
 void APlayerCharacter::EquipWeapon(AMyWeapon* Weapon)
 {
 	Weapon->EquipWeapon(this);
+}
+
+void APlayerCharacter::do_send(void* buff) {
+	EXP_OVER* o = new EXP_OVER;
+	unsigned char packet_size = reinterpret_cast<unsigned char*>(buff)[0];
+	memcpy(o->m_buffer, buff, packet_size);
+	o->m_wsabuf[0].len = packet_size;
+	DWORD send_bytes;
+	WSASend(g_h_socket, o->m_wsabuf, 1, &send_bytes, 0, &(o->m_over), NULL);
 }

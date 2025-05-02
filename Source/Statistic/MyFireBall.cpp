@@ -21,8 +21,7 @@ AMyFireBall::AMyFireBall()
     FireBallNiagaraComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("FireBallNiagaraComponent"));
     FireBallNiagaraComponent->SetupAttachment(CollisionComponent);
 	FireBallNiagaraComponent->SetVisibility(true);
-    // 히트 효과 나이아가라 시스템 초기화
-    HitEffectNiagaraSystem = nullptr; // 히트 효과는 런타임에 설정
+
 
     // Projectile Movement 컴포넌트 초기화
     MovementComponent = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("MovementComponent"));
@@ -30,6 +29,8 @@ AMyFireBall::AMyFireBall()
     MovementComponent->InitialSpeed = Speed; // 초기 속도 설정
     MovementComponent->MaxSpeed = Speed;     // 최대 속도 설정
     MovementComponent->bShouldBounce = false; // 바운스 여부 설정
+
+    MovementComponent->ProjectileGravityScale = 0.0f;
 
     // 초기 상태 설정
     bIsHit = false;
@@ -41,6 +42,8 @@ void AMyFireBall::BeginPlay()
 	Super::BeginPlay();
 	MovementComponent->SetActive(false);
 	FireBallNiagaraComponent->Activate(); // 나이아가라 효과 활성화
+
+
 }
 
 // Called every frame

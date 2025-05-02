@@ -60,13 +60,22 @@ void AMyFireWeapon::SpawnFireBall()
 
 void AMyFireWeapon::ShootFireBall()
 {
+	if (TempFireBall)
+	{
+		// 부모 액터로부터 부착 해제
+		TempFireBall->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
 
+		TempFireBall->Fire(FireLocation);
+		TempFireBall = nullptr;
+	}
 }
 
 void AMyFireWeapon::SetFireLocation()
 {
 	// 플레이어의 카메라에서 화면의 중앙으로 LineTrace를 진행합니다.
 	IMyPlayerVisualInterface* PlayerCharacter = Cast<IMyPlayerVisualInterface>(GetOwner());
+
+	UE_LOG(LogTemp, Warning, TEXT("PlayerCharacter: %s"), PlayerCharacter ? TEXT("Valid") : TEXT("Invalid"));
 	if (PlayerCharacter)
 	{
 		// 충돌 결과 반환용
@@ -96,8 +105,8 @@ void AMyFireWeapon::SetFireLocation()
 		{
 			FireLocation = End;
 		}
-
-		// 플레이어를 회전시켜줍니다.
+		UE_LOG(LogTemp, Warning, TEXT("FireLocation: %s"), *FireLocation.ToString());
+\
 		ACharacter* Character = Cast<ACharacter>(GetOwner());
 		if (Character)
 		{

@@ -32,6 +32,22 @@
 		"directory": "C:\\Program Files\\Epic Games\\UE_5.5\\Engine\\Source"
 	},
 	{
+		"file": "C:\\Users\\jkkks\\Desktop\\sta\\Sta\\Source\\Statistic\\AnimationWeaponInterface.cpp",
+		"arguments": [
+			"C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.43.34808\\bin\\Hostx64\\x64\\cl.exe",
+			"@C:\\Users\\jkkks\\Desktop\\sta\\Sta\\.vscode\\compileCommands_Default\\Statistic.1.rsp"
+		],
+		"directory": "C:\\Program Files\\Epic Games\\UE_5.5\\Engine\\Source"
+	},
+	{
+		"file": "C:\\Users\\jkkks\\Desktop\\sta\\Sta\\Source\\Statistic\\AnimationWeaponInterface.h",
+		"arguments": [
+			"C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.43.34808\\bin\\Hostx64\\x64\\cl.exe",
+			"@C:\\Users\\jkkks\\Desktop\\sta\\Sta\\.vscode\\compileCommands_Default\\Statistic.1.rsp"
+		],
+		"directory": "C:\\Program Files\\Epic Games\\UE_5.5\\Engine\\Source"
+	},
+	{
 		"file": "C:\\Users\\jkkks\\Desktop\\sta\\Sta\\Source\\Statistic\\BTService_PlayerLocation.cpp",
 		"arguments": [
 			"C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.43.34808\\bin\\Hostx64\\x64\\cl.exe",
@@ -176,6 +192,22 @@
 		"directory": "C:\\Program Files\\Epic Games\\UE_5.5\\Engine\\Source"
 	},
 	{
+		"file": "C:\\Users\\jkkks\\Desktop\\sta\\Sta\\Source\\Statistic\\MMSpawnFireBall.cpp",
+		"arguments": [
+			"C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.43.34808\\bin\\Hostx64\\x64\\cl.exe",
+			"@C:\\Users\\jkkks\\Desktop\\sta\\Sta\\.vscode\\compileCommands_Default\\Statistic.1.rsp"
+		],
+		"directory": "C:\\Program Files\\Epic Games\\UE_5.5\\Engine\\Source"
+	},
+	{
+		"file": "C:\\Users\\jkkks\\Desktop\\sta\\Sta\\Source\\Statistic\\MMSpawnFireBall.h",
+		"arguments": [
+			"C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.43.34808\\bin\\Hostx64\\x64\\cl.exe",
+			"@C:\\Users\\jkkks\\Desktop\\sta\\Sta\\.vscode\\compileCommands_Default\\Statistic.1.rsp"
+		],
+		"directory": "C:\\Program Files\\Epic Games\\UE_5.5\\Engine\\Source"
+	},
+	{
 		"file": "C:\\Users\\jkkks\\Desktop\\sta\\Sta\\Source\\Statistic\\MyAnimInstance.cpp",
 		"arguments": [
 			"C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.43.34808\\bin\\Hostx64\\x64\\cl.exe",
@@ -224,6 +256,22 @@
 		"directory": "C:\\Program Files\\Epic Games\\UE_5.5\\Engine\\Source"
 	},
 	{
+		"file": "C:\\Users\\jkkks\\Desktop\\sta\\Sta\\Source\\Statistic\\MyFireBall.cpp",
+		"arguments": [
+			"C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.43.34808\\bin\\Hostx64\\x64\\cl.exe",
+			"@C:\\Users\\jkkks\\Desktop\\sta\\Sta\\.vscode\\compileCommands_Default\\Statistic.1.rsp"
+		],
+		"directory": "C:\\Program Files\\Epic Games\\UE_5.5\\Engine\\Source"
+	},
+	{
+		"file": "C:\\Users\\jkkks\\Desktop\\sta\\Sta\\Source\\Statistic\\MyFireBall.h",
+		"arguments": [
+			"C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.43.34808\\bin\\Hostx64\\x64\\cl.exe",
+			"@C:\\Users\\jkkks\\Desktop\\sta\\Sta\\.vscode\\compileCommands_Default\\Statistic.1.rsp"
+		],
+		"directory": "C:\\Program Files\\Epic Games\\UE_5.5\\Engine\\Source"
+	},
+	{
 		"file": "C:\\Users\\jkkks\\Desktop\\sta\\Sta\\Source\\Statistic\\MyFireWeapon.cpp",
 		"arguments": [
 			"C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.43.34808\\bin\\Hostx64\\x64\\cl.exe",
@@ -265,6 +313,22 @@
 	},
 	{
 		"file": "C:\\Users\\jkkks\\Desktop\\sta\\Sta\\Source\\Statistic\\MyPlayerController.h",
+		"arguments": [
+			"C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.43.34808\\bin\\Hostx64\\x64\\cl.exe",
+			"@C:\\Users\\jkkks\\Desktop\\sta\\Sta\\.vscode\\compileCommands_Default\\Statistic.1.rsp"
+		],
+		"directory": "C:\\Program Files\\Epic Games\\UE_5.5\\Engine\\Source"
+	},
+	{
+		"file": "C:\\Users\\jkkks\\Desktop\\sta\\Sta\\Source\\Statistic\\MyPlayerVisualInterface.cpp",
+		"arguments": [
+			"C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.43.34808\\bin\\Hostx64\\x64\\cl.exe",
+			"@C:\\Users\\jkkks\\Desktop\\sta\\Sta\\.vscode\\compileCommands_Default\\Statistic.1.rsp"
+		],
+		"directory": "C:\\Program Files\\Epic Games\\UE_5.5\\Engine\\Source"
+	},
+	{
+		"file": "C:\\Users\\jkkks\\Desktop\\sta\\Sta\\Source\\Statistic\\MyPlayerVisualInterface.h",
 		"arguments": [
 			"C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.43.34808\\bin\\Hostx64\\x64\\cl.exe",
 			"@C:\\Users\\jkkks\\Desktop\\sta\\Sta\\.vscode\\compileCommands_Default\\Statistic.1.rsp"

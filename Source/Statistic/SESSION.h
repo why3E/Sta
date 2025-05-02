@@ -3,12 +3,6 @@
 #include "Common.h"
 
 extern SOCKET	g_h_socket;
-extern char		g_id;
-extern float	g_x, g_y, g_z;
-extern float	g_dx, g_dy, g_dz;
-extern char		g_hp;
-extern char		g_animation_state;
-extern char		g_current_element;
 
 //////////////////////////////////////////////////
 // EXP_OVER

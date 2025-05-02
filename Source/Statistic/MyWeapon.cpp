@@ -34,6 +34,7 @@ void AMyWeapon::EquipWeapon(ACharacter* Player)
 {
     if (Player)
     {
+        SetOwner(Player);
         USkeletalMeshComponent* PlayerMesh = Player->GetMesh();
         OwnerCharacter = Player; // 소유자 캐릭터 설정
         WeaponEffect->AttachToComponent(PlayerMesh, FAttachmentTransformRules::SnapToTargetIncludingScale, BaseSocketName);

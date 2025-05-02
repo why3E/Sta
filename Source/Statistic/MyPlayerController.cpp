@@ -13,8 +13,10 @@ constexpr char HOST_ADDRESS[] = "127.0.0.1";
 
 //////////////////////////////////////////////////
 // Server
+SOCKET g_s_socket;
 std::array<std::unique_ptr<SESSION>, MAX_CLIENTS> g_clients;
 std::thread g_s_thread;
+std::atomic<bool> g_is_host;
 std::atomic<bool> g_running;
 
 void server_thread();
@@ -51,7 +53,7 @@ void AMyPlayerController::InitSocket()
 {
 	g_running = true;
 
-	// WSAStartup
+	// [Client] : WSAStartup
 	WSADATA WSAData;
 	auto ret = WSAStartup(MAKEWORD(2, 2), &WSAData);
 	if (0 != ret) { UE_LOG(LogTemp, Warning, TEXT("WSAStartup Failed : %d"), WSAGetLastError()); }
@@ -61,12 +63,33 @@ void AMyPlayerController::InitSocket()
 	if (INVALID_SOCKET == g_h_socket) { UE_LOG(LogTemp, Warning, TEXT("Client Socket Create Failed : %d"), WSAGetLastError()); }
 	else { UE_LOG(LogTemp, Warning, TEXT("Client Socket Create Succeed")); }
 
-	//g_s_thread = std::thread(server_thread);
+	// [Host] : WSASocket
+	g_s_socket = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_OVERLAPPED);
+	if (INVALID_SOCKET == g_s_socket) { UE_LOG(LogTemp, Warning, TEXT("Host Socket Create Failed : %d"), WSAGetLastError()); }
+	else { UE_LOG(LogTemp, Warning, TEXT("Host Socket Created Succeed")); }
 
-	// Connect to host
+	// Bind & Listen
 	SOCKADDR_IN addr;
 	addr.sin_family = AF_INET;
 	addr.sin_port = htons(HOST_PORT);
+	addr.sin_addr.s_addr = htonl(INADDR_ANY);
+
+	ret = bind(g_s_socket, reinterpret_cast<const sockaddr*>(&addr), sizeof(SOCKADDR_IN));
+	if (SOCKET_ERROR == ret) { 
+		UE_LOG(LogTemp, Warning, TEXT("Bind Failed : %d"), WSAGetLastError()); 
+		g_is_host = false;
+		closesocket(g_s_socket);
+	}
+	else { 
+		UE_LOG(LogTemp, Warning, TEXT("Bind Succeed")); 
+		g_is_host = true;
+	}
+
+	if (g_is_host) {
+		g_s_thread = std::thread(server_thread);
+	}
+
+	// Connect to host
 	inet_pton(AF_INET, HOST_ADDRESS, &addr.sin_addr);
 
 	ret = WSAConnect(g_h_socket, reinterpret_cast<const sockaddr*>(&addr), sizeof(SOCKADDR_IN), NULL, NULL, NULL, NULL);
@@ -82,38 +105,41 @@ void AMyPlayerController::CleanupSocket()
 {
 	g_running = false;
 
-	//// Dummy Socket
-	//SOCKET d_socket = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, 0);
-	//SOCKADDR_IN addr;
-	//addr.sin_family = AF_INET;
-	//addr.sin_port = htons(HOST_PORT);
-	//inet_pton(AF_INET, HOST_ADDRESS, &addr.sin_addr);
-	//WSAConnect(d_socket, reinterpret_cast<const sockaddr*>(&addr), sizeof(SOCKADDR_IN), NULL, NULL, NULL, NULL);
-	//closesocket(d_socket);
+	if (g_is_host) {
+		// Dummy Socket
+		SOCKET d_socket = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, 0);
+		SOCKADDR_IN addr;
+		addr.sin_family = AF_INET;
+		addr.sin_port = htons(HOST_PORT);
+		inet_pton(AF_INET, HOST_ADDRESS, &addr.sin_addr);
+		WSAConnect(d_socket, reinterpret_cast<const sockaddr*>(&addr), sizeof(SOCKADDR_IN), NULL, NULL, NULL, NULL);
+		closesocket(d_socket);
 
-	//// Join Server Thread
-	//if (g_s_thread.joinable())
-	//	g_s_thread.join();
+		// Join Server Thread
+		g_s_thread.join();
 
-	// Shutdown Socket
-	shutdown(g_h_socket, SD_BOTH);
-	for (char client_id = 0; client_id < MAX_CLIENTS; ++client_id) {
-		if (g_clients[client_id]) {
-			// Graceful shutdown to cancel pending I/O
-			shutdown(g_clients[client_id]->m_c_socket, SD_BOTH);
+		// Delete SESSION
+		for (char client_id = 0; client_id < MAX_CLIENTS; ++client_id) {
+			if (g_clients[client_id]) {
+				g_clients[client_id] = nullptr;
+			}
 		}
 	}
 
-	// Sleep to Give Time for I/O Callbacks to Complete
-	std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+	//// Shutdown Socket
+	//shutdown(g_h_socket, SD_BOTH);
+	//for (char client_id = 0; client_id < MAX_CLIENTS; ++client_id) {
+	//	if (g_clients[client_id]) {
+	//		// Graceful shutdown to cancel pending I/O
+	//		shutdown(g_clients[client_id]->m_c_socket, SD_BOTH);
+	//	}
+	//}
 
-	// Delete SESSION
+	//// Sleep to Give Time for I/O Callbacks to Complete
+	//std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
+	// Delete Player
 	for (char client_id = 0; client_id < MAX_CLIENTS; ++client_id) {
-		if (g_clients[client_id]) {
-			closesocket(g_clients[client_id]->m_c_socket);
-			g_clients[client_id] = nullptr;
-		}
-
 		if (g_players[client_id]) {
 			g_players[client_id]->Destroy();
 			g_players[client_id] = nullptr;
@@ -163,30 +189,17 @@ void server_thread() {
 //////////////////////////////////////////////////
 // Accept Thread
 void accept_thread() {
-	// WSASocket
-	SOCKET s_socket = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_OVERLAPPED);
-	if (INVALID_SOCKET == s_socket) { UE_LOG(LogTemp, Warning, TEXT("Host Socket Create Failed : %d"), WSAGetLastError()); }
-	else { UE_LOG(LogTemp, Warning, TEXT("Host Socket Created Succeed")); }
-
-	// Bind & Listen
-	SOCKADDR_IN addr;
-	addr.sin_family = AF_INET;
-	addr.sin_port = htons(HOST_PORT);
-	addr.sin_addr.s_addr = htonl(INADDR_ANY);
-	INT addr_size = sizeof(SOCKADDR_IN);
-
-	auto ret = bind(s_socket, reinterpret_cast<const sockaddr*>(&addr), sizeof(SOCKADDR_IN));
-	if (SOCKET_ERROR == ret) { UE_LOG(LogTemp, Warning, TEXT("Bind Failed : %d"), WSAGetLastError()); }
-	else { UE_LOG(LogTemp, Warning, TEXT("Bind Succeed")); }
-
-	ret = listen(s_socket, SOMAXCONN);
+	auto ret = listen(g_s_socket, SOMAXCONN);
 	if (SOCKET_ERROR == ret) { UE_LOG(LogTemp, Warning, TEXT("Listen Failed : %d"), WSAGetLastError()); }
 	else { UE_LOG(LogTemp, Warning, TEXT("Listen Succeed")); }
+
+	SOCKADDR_IN addr;
+	INT addr_size = sizeof(SOCKADDR_IN);
 
 	// Accept Loop
 	while (true) {
 		// WSAAccept
-		auto c_socket = WSAAccept(s_socket, reinterpret_cast<sockaddr*>(&addr), &addr_size, NULL, NULL);
+		auto c_socket = WSAAccept(g_s_socket, reinterpret_cast<sockaddr*>(&addr), &addr_size, NULL, NULL);
 		if (INVALID_SOCKET == c_socket) { UE_LOG(LogTemp, Warning, TEXT("WSAAccept Failed")); }
 		else { UE_LOG(LogTemp, Warning, TEXT("WSAAccept Succeed")); }
 
@@ -243,7 +256,7 @@ void accept_thread() {
 		}
 	}
 
-	closesocket(s_socket);
+	closesocket(g_s_socket);
 }
 
 //////////////////////////////////////////////////
@@ -269,6 +282,7 @@ void h_process_packet(char* packet) {
 
 void CALLBACK h_recv_callback(DWORD err, DWORD num_bytes, LPWSAOVERLAPPED p_over, DWORD flags) {
 	SESSION* o = reinterpret_cast<SESSION*>(p_over);
+	if (!o) { return; }
 	UE_LOG(LogTemp, Warning, TEXT("[Server] Received Packet from Player %d"), o->m_id);
 
 	if ((0 != err) || (0 == num_bytes)) {
@@ -285,6 +299,8 @@ void CALLBACK h_recv_callback(DWORD err, DWORD num_bytes, LPWSAOVERLAPPED p_over
 				g_clients[other_id]->do_send(&p);
 			}
 		}
+
+		return;
 	}
 
 	char* p = o->m_recv_over.m_buffer;
@@ -360,7 +376,10 @@ void c_process_packet(char* packet) {
 }
 
 void CALLBACK c_recv_callback(DWORD err, DWORD num_bytes, LPWSAOVERLAPPED p_over, DWORD flags) {
-	if ((0 != err) || (0 == num_bytes)) UE_LOG(LogTemp, Warning, TEXT("[Client] Server Disconnected"));
+	if ((0 != err) || (0 == num_bytes)) {
+		UE_LOG(LogTemp, Warning, TEXT("[Client] Server Disconnected"));
+		return;
+	}
 
 	char* p = g_recv_over.m_buffer;
 	c_process_packet(p);

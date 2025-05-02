@@ -1,12 +1,6 @@
 #include "SESSION.h"
 
 SOCKET g_h_socket;
-char g_id;
-float g_x, g_y, g_z;
-float g_dx, g_dy, g_dz;
-char g_hp;
-char g_animation_state;
-char g_current_element;
 
 //////////////////////////////////////////////////
 // EXP_OVER

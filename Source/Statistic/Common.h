@@ -124,7 +124,7 @@ struct player_vector_packet {
 	char packet_type;
 	char id;
 	float x, y, z;
-	float dx, dy;
+	float dx, dy, dz;
 };
 
 #pragma pack(pop)

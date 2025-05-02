@@ -2,6 +2,7 @@
 
 #include "MyPlayerController.h"
 #include "PlayerCharacter.h"
+#include "Kismet/GameplayStatics.h"
 #include <array>
 #include <thread>
 #include <chrono>
@@ -126,18 +127,6 @@ void AMyPlayerController::CleanupSocket()
 		}
 	}
 
-	//// Shutdown Socket
-	//shutdown(g_h_socket, SD_BOTH);
-	//for (char client_id = 0; client_id < MAX_CLIENTS; ++client_id) {
-	//	if (g_clients[client_id]) {
-	//		// Graceful shutdown to cancel pending I/O
-	//		shutdown(g_clients[client_id]->m_c_socket, SD_BOTH);
-	//	}
-	//}
-
-	//// Sleep to Give Time for I/O Callbacks to Complete
-	//std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-
 	// Delete Player
 	for (char client_id = 0; client_id < MAX_CLIENTS; ++client_id) {
 		if (g_players[client_id]) {
@@ -212,6 +201,7 @@ void accept_thread() {
 		for (char client_id = 0; client_id < MAX_CLIENTS; ++client_id) {
 			if (!g_clients[client_id]) {
 				g_clients[client_id] = std::make_unique<SESSION>(client_id, c_socket, h_recv_callback);
+				UE_LOG(LogTemp, Warning, TEXT("[Server] Player %d Connected to Server"), g_clients[client_id]->m_id);
 
 				// Send Player Info to Player
 				hc_player_info_packet p;
@@ -269,12 +259,12 @@ void h_process_packet(char* packet) {
 		player_vector_packet* p = reinterpret_cast<player_vector_packet*>(packet);
 		p->packet_type = H2C_PLAYER_VECTOR_PACKET;
 		for (char other_id = 0; other_id < MAX_CLIENTS; ++other_id) {
-			//if (p->id != other_id) {
+			if (p->id != other_id) {
 				if (g_clients[other_id]) {
 					g_clients[other_id]->do_send(p);
-					UE_LOG(LogTemp, Warning, TEXT("[Server] Send Packet to Player %d"), other_id);
+					UE_LOG(LogTemp, Warning, TEXT("[Server] Send Packet to Player %d"), p->id);
 				}
-			//}
+			}
 		}
 		break;
 	}
@@ -323,12 +313,18 @@ void c_process_packet(char* packet) {
 	switch (packet_type) {
 	case H2C_PLAYER_INFO_PACKET: {
 		hc_player_info_packet* p = reinterpret_cast<hc_player_info_packet*>(packet);
-		g_id = p->id;
-		g_x = p->x; g_y = p->y; g_z = p->z;
-		g_dx = p->dx; g_dy = p->dy; g_dz = p->dz;
-		g_hp = p->hp;
-		g_animation_state = p->animation_state;
-		g_current_element = p->current_element;
+
+		UWorld* World = GEngine->GetWorldFromContextObjectChecked(GEngine->GameViewport);
+		if (!World) return;
+
+		APlayerCharacter* MyPlayer = Cast<APlayerCharacter>(UGameplayStatics::GetPlayerCharacter(World, 0));
+		if (MyPlayer) {
+			MyPlayer->set_id(p->id);
+			MyPlayer->set_is_player(true); 
+			g_players[p->id] = MyPlayer;
+
+			UE_LOG(LogTemp, Warning, TEXT("[Client] Registered Local Player (ID: %d) in g_players"), p->id);
+		}
 		break;
 	}
 
@@ -339,7 +335,7 @@ void c_process_packet(char* packet) {
 		UWorld* World = GEngine->GetWorldFromContextObjectChecked(GEngine->GameViewport);
 		if (!World) return;
 
-		FVector SpawnLocation(0, 0, 100.0f);
+		FVector SpawnLocation(40'000, -40'000, 1'500);
 		FRotator SpawnRotation = FRotator::ZeroRotator;
 
 		FActorSpawnParameters Params;
@@ -350,6 +346,8 @@ void c_process_packet(char* packet) {
 		if (NewPlayer) {
 			NewPlayer->AutoPossessPlayer = EAutoReceiveInput::Disabled;
 			NewPlayer->DisableInput(nullptr);
+			NewPlayer->set_is_player(false);
+			NewPlayer->set_id(p->id);
 
 			g_players[p->id] = NewPlayer;
 
@@ -369,7 +367,8 @@ void c_process_packet(char* packet) {
 
 	case H2C_PLAYER_VECTOR_PACKET: {
 		player_vector_packet* p = reinterpret_cast<player_vector_packet*>(packet);
-		UE_LOG(LogTemp, Warning, TEXT("[Client] Player %d, dx : %.2f, dy : %.2f"), p->id, p->dx, p->dy);
+		UE_LOG(LogTemp, Warning, TEXT("[Client] Player %d Moved"), p->id);
+		g_players[p->id]->set_vector(p->dx, p->dy, p->dz);
 		break;
 	}
 	}
@@ -382,6 +381,7 @@ void CALLBACK c_recv_callback(DWORD err, DWORD num_bytes, LPWSAOVERLAPPED p_over
 	}
 
 	char* p = g_recv_over.m_buffer;
+	UE_LOG(LogTemp, Warning, TEXT("[Client] Received Packet from Server"));
 	c_process_packet(p);
 
 	DWORD recv_bytes;

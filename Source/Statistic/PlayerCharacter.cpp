@@ -1,6 +1,5 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-
 #include "PlayerCharacter.h"
 #include "Components/CapsuleComponent.h"
 #include "Camera/CameraComponent.h"
@@ -210,15 +209,26 @@ void APlayerCharacter::BasicMove(const FInputActionValue& Value)
     AddMovementInput(ForwardDirection, MovementVector.X);
     AddMovementInput(RightDirection, MovementVector.Y);
 
-	// Player Vector Packet Send
-	player_vector_packet p;
-	p.packet_size = sizeof(player_vector_packet);
-	p.packet_type = C2H_PLAYER_VECTOR_PACKET;
-	p.id = g_id;
-	p.x = g_x; p.y = g_y; p.z = g_z;
-	p.dx = MovementVector.X; p.dy = MovementVector.Y;
-	do_send(&p);
-	UE_LOG(LogTemp, Warning, TEXT("[Client] Send Packet to Host"));
+	// Send Player Vector Packet 
+	FVector MoveDirection = (ForwardDirection * GetCharacterMovement()->Velocity.X) + (RightDirection * GetCharacterMovement()->Velocity.Y);
+	FVector PrevDirection = FVector(m_dx, m_dy, m_dz);
+
+	float DistanceDiff = FVector::Dist(MoveDirection, PrevDirection);
+
+	if (DistanceDiff > 0.05f) {
+		m_dx = MoveDirection.X;
+		m_dy = MoveDirection.Y;
+		m_dz = MoveDirection.Z;
+
+		player_vector_packet p;
+		p.packet_size = sizeof(player_vector_packet);
+		p.packet_type = C2H_PLAYER_VECTOR_PACKET;
+		p.id = m_id;
+		p.x = m_x; p.y = m_y; p.z = m_z;
+		p.dx = m_dx; p.dy = m_dy; p.dz = m_dz;
+		do_send(&p);
+		UE_LOG(LogTemp, Warning, TEXT("[Client %d] Send Packet to Server"), m_id);
+	}
 }
 
 void APlayerCharacter::BasicLook(const FInputActionValue& Value)
@@ -484,4 +494,26 @@ void APlayerCharacter::do_send(void* buff) {
 	o->m_wsabuf[0].len = packet_size;
 	DWORD send_bytes;
 	WSASend(g_h_socket, o->m_wsabuf, 1, &send_bytes, 0, &(o->m_over), NULL);
+}
+
+void APlayerCharacter::set_is_player(bool is_player) {
+	m_is_player = is_player;
+}
+
+void APlayerCharacter::set_id(char id) {
+	m_id = id;
+}
+
+void APlayerCharacter::set_vector(float dx, float dy, float dz) {
+	m_dx = dx; m_dy = dy; m_dz = dz;
+}
+
+void APlayerCharacter::Tick(float DeltaTime) {
+	Super::Tick(DeltaTime);
+
+	if (!m_is_player) {
+		FVector Velocity(m_dx, m_dy, m_dz);
+		AddActorWorldOffset(Velocity * DeltaTime, true);
+		UE_LOG(LogTemp, Warning, TEXT("[Player %d] Moved (%.2f, %.2f, %.2f)"), m_id, m_dx, m_dy, m_dz);
+	}
 }

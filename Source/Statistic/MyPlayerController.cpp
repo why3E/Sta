@@ -377,25 +377,46 @@ void c_process_packet(char* packet) {
 	case H2C_PLAYER_ENTER_PACKET: {
 		hc_player_info_packet* p = reinterpret_cast<hc_player_info_packet*>(packet);
 		UE_LOG(LogTemp, Warning, TEXT("[Client] Player %d has Entered the Game"), p->id);
-
+	
 		UWorld* World = GEngine->GetWorldFromContextObjectChecked(GEngine->GameViewport);
 		if (!World) return;
-
-		FVector SpawnLocation(40'000, -40'000, 1'500);
+	
+		FVector SpawnLocation(40000, -40000, 500); // 초기 위치 설정
 		FRotator SpawnRotation = FRotator::ZeroRotator;
-
+	
 		FActorSpawnParameters Params;
 		Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-
+	
 		APlayerCharacter* NewPlayer = World->SpawnActor<APlayerCharacter>(APlayerCharacter::StaticClass(), SpawnLocation, SpawnRotation, Params);
-
+	
 		if (NewPlayer) {
 			NewPlayer->AutoPossessPlayer = EAutoReceiveInput::Disabled;
 			NewPlayer->DisableInput(nullptr);
 			NewPlayer->set_id(p->id);
-
+	
 			g_players[p->id] = NewPlayer;
-
+	
+			// ✅ 애니메이션 블루프린트 수동 설정
+			UClass* AnimClass = LoadClass<UAnimInstance>(
+				nullptr,
+				TEXT("/Game/player_anim/MyPlayerAnim.MyPlayerAnim_C")
+			);
+	
+			if (AnimClass)
+			{
+				NewPlayer->GetMesh()->SetAnimInstanceClass(AnimClass);
+				NewPlayer->GetMesh()->SetAnimationMode(EAnimationMode::AnimationBlueprint);
+				NewPlayer->GetMesh()->SetComponentTickEnabled(true);
+				NewPlayer->GetMesh()->bPauseAnims = false;
+				NewPlayer->GetMesh()->bNoSkeletonUpdate = false;
+	
+				UE_LOG(LogTemp, Warning, TEXT("AnimInstance Set: %s"), *AnimClass->GetName());
+			}
+			else
+			{
+				UE_LOG(LogTemp, Error, TEXT("Failed to Load AnimBP"));
+			}
+	
 			UE_LOG(LogTemp, Warning, TEXT("[Client] Spawned Player %d and Stored in g_players"), p->id);
 		}
 		break;

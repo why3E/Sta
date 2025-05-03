@@ -151,7 +151,7 @@ protected:
 	
 private:
 	char m_id;
-	FVector m_dir;
+	float m_yaw;
 	FVector m_velocity;
 	char m_hp;
 	char m_animation_state;
@@ -162,8 +162,8 @@ private:
 public:
 	void do_send(void* buff);
 	void set_id(char id);
-	void set_dir(float x, float y, float z);
 	void set_velocity(float x, float y, float z);
+	void rotate(float yaw);
 	virtual void Tick(float DeltaTime);
 };
 

@@ -27,7 +27,7 @@ public:
 	int m_remained;
 
 	long long m_id;
-	FVector m_dir;
+	float m_yaw;
 	FVector m_velocity;
 	char m_hp;
 	char m_animation_state;

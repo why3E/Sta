@@ -28,8 +28,11 @@ constexpr char H2C_MONSTER_PACKET = 14;
 
 constexpr char H2C_PLAYER_VECTOR_PACKET = 21;
 constexpr char H2C_PLAYER_STOPPED_PACKET = 22;
-constexpr char C2H_PLAYER_VECTOR_PACKET = 23;
-constexpr char C2H_PLAYER_STOPPED_PACKET = 24;
+constexpr char H2C_PLAYER_DIRECTION_PACKET = 23;
+
+constexpr char C2H_PLAYER_VECTOR_PACKET = 31;
+constexpr char C2H_PLAYER_STOPPED_PACKET = 32;
+constexpr char C2H_PLAYER_DIRECTION_PACKET = 33;
 
 constexpr char ANIMATION_STATE_IDLE = 1;
 
@@ -82,7 +85,7 @@ struct hc_player_info_packet {
 	unsigned char packet_size;
 	char packet_type;
 	char id;
-	float dx, dy, dz;
+	float yaw;
 	float vx, vy, vz;
 	char hp;
 	char animation_state;
@@ -133,6 +136,13 @@ struct player_stopped_packet {
 	unsigned char packet_size;
 	char packet_type;
 	char id;
+};
+
+struct player_direction_packet {
+	unsigned char packet_size;
+	char packet_type;
+	char id;
+	float yaw;
 };
 
 #pragma pack(pop)

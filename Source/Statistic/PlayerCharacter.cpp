@@ -129,6 +129,8 @@ void APlayerCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
+	m_yaw = GetControlRotation().Yaw;
+
 	APlayerController* PlayerController = Cast<APlayerController>(GetController());
 	if (PlayerController && IMC_Basic)
 	{
@@ -225,7 +227,6 @@ void APlayerCharacter::BasicMove(const FInputActionValue& Value)
 		p.x = Position.X; p.y = Position.Y; p.z = Position.Z;
 		p.vx = m_velocity.X; p.vy = m_velocity.Y; p.vz = m_velocity.Z;
 		do_send(&p);
-		UE_LOG(LogTemp, Warning, TEXT("[Client %d] Send Packet to Host"), m_id);
 	}
 }
 
@@ -241,6 +242,21 @@ void APlayerCharacter::BasicLook(const FInputActionValue& Value)
     // 카메라 회전에 따라 캐릭터가 회전하도록 설정
     bUseControllerRotationYaw = true;
     GetCharacterMovement()->bOrientRotationToMovement = false;
+
+	// Send Player Direction Packet 
+	float CurrentYaw = GetControlRotation().Yaw;
+	float YawDiff = FMath::Abs(CurrentYaw - m_yaw);
+
+	if (YawDiff > 2.0f) { 
+		m_yaw = CurrentYaw;
+
+		player_direction_packet p;
+		p.packet_size = sizeof(player_direction_packet);
+		p.packet_type = C2H_PLAYER_DIRECTION_PACKET;
+		p.id = m_id;
+		p.yaw = CurrentYaw;
+		do_send(&p);
+	}
 }
 
 void APlayerCharacter::StartJump()
@@ -498,12 +514,14 @@ void APlayerCharacter::set_id(char id) {
 	m_id = id;
 }
 
-void APlayerCharacter::set_dir(float x, float y, float z) {
-	m_dir.X = x; m_dir.Y = y; m_dir.Z = z;
-}
-
 void APlayerCharacter::set_velocity(float x, float y, float z) {
 	m_velocity.X = x; m_velocity.Y = y; m_velocity.Z = z;
+}
+
+void APlayerCharacter::rotate(float yaw){
+	FRotator NewRotation = GetActorRotation();
+	NewRotation.Yaw = yaw;
+	SetActorRotation(NewRotation);
 }
 
 void APlayerCharacter::Tick(float DeltaTime) {
@@ -520,7 +538,7 @@ void APlayerCharacter::Tick(float DeltaTime) {
 				p.id = m_id;
 				do_send(&p);
 				m_was_moving = false;
-				UE_LOG(LogTemp, Warning, TEXT("[Client %d] Send Stopped Packet to Host"), m_id);
+				//UE_LOG(LogTemp, Warning, TEXT("[Client %d] Send Stopped Packet to Host"), m_id);
 			}
 		}
 	}

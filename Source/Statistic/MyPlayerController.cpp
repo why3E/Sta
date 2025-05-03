@@ -210,8 +210,8 @@ void accept_thread() {
 				p.packet_size = sizeof(hc_player_info_packet);
 				p.packet_type = H2C_PLAYER_INFO_PACKET;
 				p.id = c->m_id;
-				p.dx = c->m_dir.X; p.dy = c->m_dir.Y; p.dz = c->m_dir.Z;
-				p.vx = c->m_velocity.X; p.dy = c->m_velocity.Y; p.dz = c->m_velocity.Z;
+				p.yaw = c->m_yaw;
+				p.vx = c->m_velocity.X; p.vy = c->m_velocity.Y; p.vz = c->m_velocity.Z;
 				p.hp = c->m_hp;
 				p.animation_state = c->m_animation_state;
 				p.current_element = c->m_current_element;
@@ -233,8 +233,8 @@ void accept_thread() {
 						if (g_clients[other_id]) {
 							c = g_clients[other_id].get();
 							p.id = c->m_id;
-							p.dx = c->m_dir.X; p.dy = c->m_dir.Y; p.dz = c->m_dir.Z;
-							p.vx = c->m_velocity.X; p.dy = c->m_velocity.Y; p.dz = c->m_velocity.Z;
+							p.yaw = c->m_yaw;
+							p.vx = c->m_velocity.X; p.vy = c->m_velocity.Y; p.vz = c->m_velocity.Z;
 							p.hp = c->m_hp;
 							p.animation_state = c->m_animation_state;
 							p.current_element = c->m_current_element;
@@ -282,6 +282,19 @@ void h_process_packet(char* packet) {
 			}
 		}
 		break;
+	}
+
+	case C2H_PLAYER_DIRECTION_PACKET: {
+		player_direction_packet* p = reinterpret_cast<player_direction_packet*>(packet);
+		p->packet_type = H2C_PLAYER_DIRECTION_PACKET;
+		for (char other_id = 0; other_id < MAX_CLIENTS; ++other_id) {
+			if (p->id != other_id) {
+				if (g_clients[other_id]) {
+					g_clients[other_id]->do_send(p);
+					UE_LOG(LogTemp, Warning, TEXT("[Host] Send Player %d's Direction Packet to Player %d"), p->id, other_id);
+				}
+			}
+		}
 	}
 	}
 }
@@ -401,14 +414,20 @@ void c_process_packet(char* packet) {
 		FVector Position = FVector(p->x, p->y, p->z);
 		g_players[p->id]->SetActorLocation(Position, false);
 		g_players[p->id]->set_velocity(p->vx, p->vy, p->vz);
-		UE_LOG(LogTemp, Warning, TEXT("[Client] Player %d Moved, vx : %.2f, vy : %.2f, vz : %.2f"), p->id, p->vx, p->vy, p->vz);
+		//UE_LOG(LogTemp, Warning, TEXT("[Client] Player %d Moved, vx : %.2f, vy : %.2f, vz : %.2f"), p->id, p->vx, p->vy, p->vz);
 		break;
 	}
 
 	case H2C_PLAYER_STOPPED_PACKET: {
 		player_stopped_packet* p = reinterpret_cast<player_stopped_packet*>(packet);
 		g_players[p->id]->set_velocity(0.0f, 0.0f, 0.0f);
-		UE_LOG(LogTemp, Warning, TEXT("[Client] Player %d Stopped"), p->id);
+		//UE_LOG(LogTemp, Warning, TEXT("[Client] Player %d Stopped"), p->id);
+		break;
+	}
+
+	case H2C_PLAYER_DIRECTION_PACKET: {
+		player_direction_packet* p = reinterpret_cast<player_direction_packet*>(packet);
+		g_players[p->id]->rotate(p->yaw);
 		break;
 	}
 	}

@@ -201,7 +201,7 @@ void accept_thread() {
 		// Create SESSION
 		for (char client_id = 0; client_id < MAX_CLIENTS; ++client_id) {
 			if (!g_clients[client_id]) {
-				g_clients[client_id] = std::make_unique<SESSION>(client_id, c_socket, h_recv_callback);
+				g_clients[client_id] = std::make_unique<SESSION>(client_id, c_socket, h_recv_callback, h_send_callback);
 				UE_LOG(LogTemp, Warning, TEXT("[Host] Player %d Connected to Server"), g_clients[client_id]->m_id);
 
 				// Send Player Info to Player
@@ -254,7 +254,7 @@ void accept_thread() {
 // Host CALLBACK
 void h_process_packet(char* packet) {
 	char packet_type = packet[1];
-	UE_LOG(LogTemp, Warning, TEXT("[Host] Received Packet Type : %d"), packet_type);
+	//UE_LOG(LogTemp, Warning, TEXT("[Host] Received Packet Type : %d"), packet_type);
 	switch (packet_type) {
 	case C2H_PLAYER_VECTOR_PACKET: {
 		player_vector_packet* p = reinterpret_cast<player_vector_packet*>(packet);
@@ -263,7 +263,7 @@ void h_process_packet(char* packet) {
 			if (p->id != other_id) {
 				if (g_clients[other_id]) {
 					g_clients[other_id]->do_send(p);
-					UE_LOG(LogTemp, Warning, TEXT("[Host] Send Player %d's Packet to Player %d"), p->id, other_id);
+					UE_LOG(LogTemp, Warning, TEXT("[Host] Send Player %d's Vector Packet to Player %d"), p->id, other_id);
 				}
 			}
 		}
@@ -295,6 +295,7 @@ void h_process_packet(char* packet) {
 				}
 			}
 		}
+		break;
 	}
 	}
 }
@@ -355,7 +356,7 @@ void CALLBACK h_send_callback(DWORD err, DWORD num_bytes, LPWSAOVERLAPPED p_over
 // Client CALLBACK
 void c_process_packet(char* packet) {
 	char packet_type = packet[1];
-	UE_LOG(LogTemp, Warning, TEXT("[Client] Received Packet Type : %d"), packet_type);
+	//UE_LOG(LogTemp, Warning, TEXT("[Client] Received Packet Type : %d"), packet_type);
 	switch (packet_type) {
 	case H2C_PLAYER_INFO_PACKET: {
 		hc_player_info_packet* p = reinterpret_cast<hc_player_info_packet*>(packet);
@@ -411,10 +412,11 @@ void c_process_packet(char* packet) {
 
 	case H2C_PLAYER_VECTOR_PACKET: {
 		player_vector_packet* p = reinterpret_cast<player_vector_packet*>(packet);
-		FVector Position = FVector(p->x, p->y, p->z);
+		FVector Position(p->x, p->y, p->z);
+		FVector Velocity(p->vx, p->vy, p->vz);
 		g_players[p->id]->SetActorLocation(Position, false);
-		g_players[p->id]->set_velocity(p->vx, p->vy, p->vz);
-		//UE_LOG(LogTemp, Warning, TEXT("[Client] Player %d Moved, vx : %.2f, vy : %.2f, vz : %.2f"), p->id, p->vx, p->vy, p->vz);
+		g_players[p->id]->set_velocity(Velocity.X, Velocity.Y, Velocity.Z);
+		//UE_LOG(LogTemp, Warning, TEXT("[Client] Player %d Moved, x : %.2f, y : %.2f, z : %.2f, vx : %.2f, vy : %.2f, vz : %.2f"), p->id, p->x, p->y, p->z, p->vx, p->vy, p->vz);
 		break;
 	}
 
@@ -427,7 +429,10 @@ void c_process_packet(char* packet) {
 
 	case H2C_PLAYER_DIRECTION_PACKET: {
 		player_direction_packet* p = reinterpret_cast<player_direction_packet*>(packet);
-		g_players[p->id]->rotate(p->yaw);
+		APlayerCharacter* TargetPlayer = g_players[p->id];
+		AsyncTask(ENamedThreads::GameThread, [TargetPlayer, Yaw = p->yaw]() {
+			TargetPlayer->rotate(Yaw);
+		});
 		break;
 	}
 	}
@@ -462,6 +467,8 @@ void CALLBACK c_recv_callback(DWORD err, DWORD num_bytes, LPWSAOVERLAPPED p_over
 
 	DWORD recv_bytes;
 	DWORD recv_flag = 0;
+	g_recv_over.m_wsabuf[0].buf = g_recv_over.m_buffer + g_remained;
+	g_recv_over.m_wsabuf[0].len = sizeof(g_recv_over.m_buffer) - g_remained;
 	WSARecv(g_h_socket, g_recv_over.m_wsabuf, 1, &recv_bytes, &recv_flag, &g_recv_over.m_over, c_recv_callback);
 }
 

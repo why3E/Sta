@@ -17,6 +17,8 @@
 
 #include "SESSION.h"
 
+void CALLBACK send_callback(DWORD err, DWORD num_bytes, LPWSAOVERLAPPED p_over, DWORD flags);
+
 APlayerCharacter::APlayerCharacter()
 {
 	// Collision 설정
@@ -214,19 +216,23 @@ void APlayerCharacter::BasicMove(const FInputActionValue& Value)
 	// Send Player Vector Packet 
 	FVector Velocity = GetCharacterMovement()->Velocity;
 	float DistanceDiff = FVector::Dist(Velocity, m_velocity);
+	bool bCurrentlyFalling = GetCharacterMovement()->IsFalling();
 	if (DistanceDiff > 0.5f) {
-		m_velocity = Velocity;
-		m_was_moving = true;
+		if (!bCurrentlyFalling) {
+			m_velocity = Velocity;
 
-		FVector Position = GetActorLocation();
+			FVector Position = GetActorLocation();
 
-		player_vector_packet p;
-		p.packet_size = sizeof(player_vector_packet);
-		p.packet_type = C2H_PLAYER_VECTOR_PACKET;
-		p.id = m_id;
-		p.x = Position.X; p.y = Position.Y; p.z = Position.Z;
-		p.vx = m_velocity.X; p.vy = m_velocity.Y; p.vz = m_velocity.Z;
-		do_send(&p);
+			player_vector_packet p;
+			p.packet_size = sizeof(player_vector_packet);
+			p.packet_type = C2H_PLAYER_VECTOR_PACKET;
+			p.id = m_id;
+			p.x = Position.X; p.y = Position.Y; p.z = Position.Z;
+			p.vx = m_velocity.X; p.vy = m_velocity.Y; p.vz = m_velocity.Z;
+			do_send(&p);
+			m_was_moving = true;
+			UE_LOG(LogTemp, Warning, TEXT("[Client %d] Send Move Packet to Host"), m_id);
+		}
 	}
 }
 
@@ -247,7 +253,7 @@ void APlayerCharacter::BasicLook(const FInputActionValue& Value)
 	float CurrentYaw = GetControlRotation().Yaw;
 	float YawDiff = FMath::Abs(CurrentYaw - m_yaw);
 
-	if (YawDiff > 2.0f) { 
+	if (YawDiff > 10.0f) { 
 		m_yaw = CurrentYaw;
 
 		player_direction_packet p;
@@ -507,7 +513,13 @@ void APlayerCharacter::do_send(void* buff) {
 	memcpy(o->m_buffer, buff, packet_size);
 	o->m_wsabuf[0].len = packet_size;
 	DWORD send_bytes;
-	WSASend(g_h_socket, o->m_wsabuf, 1, &send_bytes, 0, &(o->m_over), NULL);
+	auto ret = WSASend(g_h_socket, o->m_wsabuf, 1, &send_bytes, 0, &(o->m_over), send_callback);
+	if (ret == SOCKET_ERROR) {
+		if (WSAGetLastError() != WSA_IO_PENDING) {
+			delete o;
+			return;
+		}
+	}
 }
 
 void APlayerCharacter::set_id(char id) {
@@ -528,9 +540,27 @@ void APlayerCharacter::Tick(float DeltaTime) {
 	Super::Tick(DeltaTime);
 
 	if (Controller && IsLocallyControlled()) {
-		// Stop Moving
+		bool bCurrentlyFalling = GetCharacterMovement()->IsFalling();
+		FVector Velocity = GetCharacterMovement()->Velocity;
+
+		// Jump
+		if (bCurrentlyFalling) {
+			m_velocity = Velocity;
+
+			FVector Position = GetActorLocation();
+
+			player_vector_packet p;
+			p.packet_size = sizeof(player_vector_packet);
+			p.packet_type = C2H_PLAYER_VECTOR_PACKET;
+			p.id = m_id;
+			p.x = Position.X; p.y = Position.Y; p.z = Position.Z;
+			p.vx = m_velocity.X; p.vy = m_velocity.Y; p.vz = m_velocity.Z;
+			do_send(&p);
+			UE_LOG(LogTemp, Warning, TEXT("[Client %d] Send Jump Packet to Host"), m_id);
+		}
+
+		// Stop
 		if (m_was_moving) {
-			FVector Velocity = GetCharacterMovement()->Velocity;
 			if (Velocity.IsNearlyZero()) {
 				player_stopped_packet p;
 				p.packet_size = sizeof(player_stopped_packet);
@@ -538,12 +568,16 @@ void APlayerCharacter::Tick(float DeltaTime) {
 				p.id = m_id;
 				do_send(&p);
 				m_was_moving = false;
-				//UE_LOG(LogTemp, Warning, TEXT("[Client %d] Send Stopped Packet to Host"), m_id);
+				UE_LOG(LogTemp, Warning, TEXT("[Client %d] Send Stopped Packet to Host"), m_id);
 			}
 		}
 	}
 	else {
-		// Move Other Client's Avatar
-		AddActorWorldOffset(m_velocity * DeltaTime, false);
+		AddActorWorldOffset(m_velocity * DeltaTime, true);
 	}
+}
+
+void send_callback(DWORD err, DWORD num_bytes, LPWSAOVERLAPPED p_over, DWORD flags) {
+	EXP_OVER* p = reinterpret_cast<EXP_OVER*>(p_over);
+	delete p;
 }

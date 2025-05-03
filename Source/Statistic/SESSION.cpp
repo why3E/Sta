@@ -21,8 +21,10 @@ SESSION::SESSION() {
 
 }
 
-SESSION::SESSION(long long id, SOCKET c_socket, LPWSAOVERLAPPED_COMPLETION_ROUTINE h_recv_callback) : m_c_socket(c_socket), m_id(id) {
+SESSION::SESSION(long long id, SOCKET c_socket, 
+	LPWSAOVERLAPPED_COMPLETION_ROUTINE h_recv_callback, LPWSAOVERLAPPED_COMPLETION_ROUTINE h_send_callback) : m_c_socket(c_socket), m_id(id) {
 	m_recv_callback = h_recv_callback;
+	m_send_callback = h_send_callback;
 
 	do_recv();
 }
@@ -44,5 +46,11 @@ void SESSION::do_send(void* buff) {
 	memcpy(o->m_buffer, buff, packet_size);
 	o->m_wsabuf[0].len = packet_size;
 	DWORD send_bytes;
-	WSASend(m_c_socket, o->m_wsabuf, 1, &send_bytes, 0, &(o->m_over), NULL);
+	auto ret = WSASend(m_c_socket, o->m_wsabuf, 1, &send_bytes, 0, &(o->m_over), m_send_callback);
+	if (ret == SOCKET_ERROR) {
+		if (WSAGetLastError() != WSA_IO_PENDING) {
+			delete o;
+			return;
+		}
+	}
 }

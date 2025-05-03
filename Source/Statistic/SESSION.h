@@ -34,10 +34,11 @@ public:
 	char m_current_element;
 
 	LPWSAOVERLAPPED_COMPLETION_ROUTINE m_recv_callback;
+	LPWSAOVERLAPPED_COMPLETION_ROUTINE m_send_callback;
 
 public:
 	SESSION();
-	SESSION(long long id, SOCKET c_socket, LPWSAOVERLAPPED_COMPLETION_ROUTINE h_recv_callback);
+	SESSION(long long id, SOCKET c_socket, LPWSAOVERLAPPED_COMPLETION_ROUTINE h_recv_callback, LPWSAOVERLAPPED_COMPLETION_ROUTINE h_send_callback);
 	~SESSION();
 
 	void do_recv();

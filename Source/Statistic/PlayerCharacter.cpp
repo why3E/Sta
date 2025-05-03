@@ -511,9 +511,19 @@ void APlayerCharacter::set_vector(float dx, float dy, float dz) {
 void APlayerCharacter::Tick(float DeltaTime) {
 	Super::Tick(DeltaTime);
 
-	if (!m_is_player) {
-		FVector Velocity(m_dx, m_dy, m_dz);
-		AddActorWorldOffset(Velocity * DeltaTime, true);
-		UE_LOG(LogTemp, Warning, TEXT("[Player %d] Moved (%.2f, %.2f, %.2f)"), m_id, m_dx, m_dy, m_dz);
-	}
+	if (!m_is_player)
+    {
+        FVector Velocity(m_dx, m_dy, m_dz);
+
+        // 캐릭터의 속도를 설정
+        GetCharacterMovement()->Velocity = Velocity;
+
+        // 캐릭터를 이동
+        AddActorWorldOffset(Velocity * DeltaTime, true);
+		
+		FRotator NewRotation = Velocity.Rotation(); // 방향 벡터를 회전 값으로 변환
+		SetActorRotation(NewRotation); // 캐릭터의 회전 설정
+
+        UE_LOG(LogTemp, Warning, TEXT("[Player %d] Moved (%.2f, %.2f, %.2f)"), m_id, m_dx, m_dy, m_dz);
+    }
 }

@@ -150,19 +150,20 @@ protected:
     TSubclassOf<AMyWeapon> WindWeaponBP;
 	
 private:
-	bool m_is_player = true;
 	char m_id;
-	float m_x, m_y, m_z;
-	float m_dx, m_dy, m_dz;
+	FVector m_dir;
+	FVector m_velocity;
 	char m_hp;
 	char m_animation_state;
 	char m_current_element;
 
+	bool m_was_moving = false;
+
 public:
 	void do_send(void* buff);
-	void set_is_player(bool is_player);
 	void set_id(char id);
-	void set_vector(float dx, float dy, float dz);
+	void set_dir(float x, float y, float z);
+	void set_velocity(float x, float y, float z);
 	virtual void Tick(float DeltaTime);
 };
 

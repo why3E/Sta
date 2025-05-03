@@ -210,24 +210,22 @@ void APlayerCharacter::BasicMove(const FInputActionValue& Value)
     AddMovementInput(RightDirection, MovementVector.Y);
 
 	// Send Player Vector Packet 
-	FVector MoveDirection = (ForwardDirection * GetCharacterMovement()->Velocity.X) + (RightDirection * GetCharacterMovement()->Velocity.Y);
-	FVector PrevDirection = FVector(m_dx, m_dy, m_dz);
+	FVector Velocity = GetCharacterMovement()->Velocity;
+	float DistanceDiff = FVector::Dist(Velocity, m_velocity);
+	if (DistanceDiff > 0.5f) {
+		m_velocity = Velocity;
+		m_was_moving = true;
 
-	float DistanceDiff = FVector::Dist(MoveDirection, PrevDirection);
-
-	if (DistanceDiff > 0.05f) {
-		m_dx = MoveDirection.X;
-		m_dy = MoveDirection.Y;
-		m_dz = MoveDirection.Z;
+		FVector Position = GetActorLocation();
 
 		player_vector_packet p;
 		p.packet_size = sizeof(player_vector_packet);
 		p.packet_type = C2H_PLAYER_VECTOR_PACKET;
 		p.id = m_id;
-		p.x = m_x; p.y = m_y; p.z = m_z;
-		p.dx = m_dx; p.dy = m_dy; p.dz = m_dz;
+		p.x = Position.X; p.y = Position.Y; p.z = Position.Z;
+		p.vx = m_velocity.X; p.vy = m_velocity.Y; p.vz = m_velocity.Z;
 		do_send(&p);
-		UE_LOG(LogTemp, Warning, TEXT("[Client %d] Send Packet to Server"), m_id);
+		UE_LOG(LogTemp, Warning, TEXT("[Client %d] Send Packet to Host"), m_id);
 	}
 }
 
@@ -496,24 +494,38 @@ void APlayerCharacter::do_send(void* buff) {
 	WSASend(g_h_socket, o->m_wsabuf, 1, &send_bytes, 0, &(o->m_over), NULL);
 }
 
-void APlayerCharacter::set_is_player(bool is_player) {
-	m_is_player = is_player;
-}
-
 void APlayerCharacter::set_id(char id) {
 	m_id = id;
 }
 
-void APlayerCharacter::set_vector(float dx, float dy, float dz) {
-	m_dx = dx; m_dy = dy; m_dz = dz;
+void APlayerCharacter::set_dir(float x, float y, float z) {
+	m_dir.X = x; m_dir.Y = y; m_dir.Z = z;
+}
+
+void APlayerCharacter::set_velocity(float x, float y, float z) {
+	m_velocity.X = x; m_velocity.Y = y; m_velocity.Z = z;
 }
 
 void APlayerCharacter::Tick(float DeltaTime) {
 	Super::Tick(DeltaTime);
 
-	if (!m_is_player) {
-		FVector Velocity(m_dx, m_dy, m_dz);
-		AddActorWorldOffset(Velocity * DeltaTime, true);
-		UE_LOG(LogTemp, Warning, TEXT("[Player %d] Moved (%.2f, %.2f, %.2f)"), m_id, m_dx, m_dy, m_dz);
+	if (Controller && IsLocallyControlled()) {
+		// Stop Moving
+		if (m_was_moving) {
+			FVector Velocity = GetCharacterMovement()->Velocity;
+			if (Velocity.IsNearlyZero()) {
+				player_stopped_packet p;
+				p.packet_size = sizeof(player_stopped_packet);
+				p.packet_type = C2H_PLAYER_STOPPED_PACKET;
+				p.id = m_id;
+				do_send(&p);
+				m_was_moving = false;
+				UE_LOG(LogTemp, Warning, TEXT("[Client %d] Send Stopped Packet to Host"), m_id);
+			}
+		}
+	}
+	else {
+		// Move Other Client's Avatar
+		AddActorWorldOffset(m_velocity * DeltaTime, false);
 	}
 }

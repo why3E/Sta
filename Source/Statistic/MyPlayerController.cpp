@@ -29,6 +29,7 @@ void CALLBACK h_send_callback(DWORD err, DWORD num_bytes, LPWSAOVERLAPPED p_over
 //////////////////////////////////////////////////
 // Client
 EXP_OVER g_recv_over;
+int g_remained;
 std::array<APlayerCharacter*, MAX_CLIENTS> g_players;
 
 void c_process_packet(char* p);
@@ -201,7 +202,7 @@ void accept_thread() {
 		for (char client_id = 0; client_id < MAX_CLIENTS; ++client_id) {
 			if (!g_clients[client_id]) {
 				g_clients[client_id] = std::make_unique<SESSION>(client_id, c_socket, h_recv_callback);
-				UE_LOG(LogTemp, Warning, TEXT("[Server] Player %d Connected to Server"), g_clients[client_id]->m_id);
+				UE_LOG(LogTemp, Warning, TEXT("[Host] Player %d Connected to Server"), g_clients[client_id]->m_id);
 
 				// Send Player Info to Player
 				hc_player_info_packet p;
@@ -209,8 +210,8 @@ void accept_thread() {
 				p.packet_size = sizeof(hc_player_info_packet);
 				p.packet_type = H2C_PLAYER_INFO_PACKET;
 				p.id = c->m_id;
-				p.x = c->m_x; p.y = c->m_y; p.z = c->m_z;
-				p.dx = c->m_dx; p.dy = c->m_dy; p.dz = c->m_dz;
+				p.dx = c->m_dir.X; p.dy = c->m_dir.Y; p.dz = c->m_dir.Z;
+				p.vx = c->m_velocity.X; p.dy = c->m_velocity.Y; p.dz = c->m_velocity.Z;
 				p.hp = c->m_hp;
 				p.animation_state = c->m_animation_state;
 				p.current_element = c->m_current_element;
@@ -232,8 +233,8 @@ void accept_thread() {
 						if (g_clients[other_id]) {
 							c = g_clients[other_id].get();
 							p.id = c->m_id;
-							p.x = c->m_x; p.y = c->m_y; p.z = c->m_z;
-							p.dx = c->m_dx; p.dy = c->m_dy; p.dz = c->m_dz;
+							p.dx = c->m_dir.X; p.dy = c->m_dir.Y; p.dz = c->m_dir.Z;
+							p.vx = c->m_velocity.X; p.dy = c->m_velocity.Y; p.dz = c->m_velocity.Z;
 							p.hp = c->m_hp;
 							p.animation_state = c->m_animation_state;
 							p.current_element = c->m_current_element;
@@ -253,30 +254,45 @@ void accept_thread() {
 // Host CALLBACK
 void h_process_packet(char* packet) {
 	char packet_type = packet[1];
-	UE_LOG(LogTemp, Warning, TEXT("[Server] Packet Type : %d"), packet_type);
+	UE_LOG(LogTemp, Warning, TEXT("[Host] Received Packet Type : %d"), packet_type);
 	switch (packet_type) {
-	case C2H_PLAYER_VECTOR_PACKET:
+	case C2H_PLAYER_VECTOR_PACKET: {
 		player_vector_packet* p = reinterpret_cast<player_vector_packet*>(packet);
 		p->packet_type = H2C_PLAYER_VECTOR_PACKET;
 		for (char other_id = 0; other_id < MAX_CLIENTS; ++other_id) {
 			if (p->id != other_id) {
 				if (g_clients[other_id]) {
 					g_clients[other_id]->do_send(p);
-					UE_LOG(LogTemp, Warning, TEXT("[Server] Send Packet to Player %d"), p->id);
+					UE_LOG(LogTemp, Warning, TEXT("[Host] Send Player %d's Packet to Player %d"), p->id, other_id);
 				}
 			}
 		}
 		break;
+	}
+
+	case C2H_PLAYER_STOPPED_PACKET: {
+		player_stopped_packet* p = reinterpret_cast<player_stopped_packet*>(packet);
+		p->packet_type = H2C_PLAYER_STOPPED_PACKET;
+		for (char other_id = 0; other_id < MAX_CLIENTS; ++other_id) {
+			if (p->id != other_id) {
+				if (g_clients[other_id]) {
+					g_clients[other_id]->do_send(p);
+					UE_LOG(LogTemp, Warning, TEXT("[Host] Send Player %d's Stopped Packet to Player %d"), p->id, other_id);
+				}
+			}
+		}
+		break;
+	}
 	}
 }
 
 void CALLBACK h_recv_callback(DWORD err, DWORD num_bytes, LPWSAOVERLAPPED p_over, DWORD flags) {
 	SESSION* o = reinterpret_cast<SESSION*>(p_over);
 	if (!o) { return; }
-	UE_LOG(LogTemp, Warning, TEXT("[Server] Received Packet from Player %d"), o->m_id);
+	UE_LOG(LogTemp, Warning, TEXT("[Host] Received Packet from Player %d"), o->m_id);
 
 	if ((0 != err) || (0 == num_bytes)) {
-		UE_LOG(LogTemp, Warning, TEXT("[Server] Player %d DIsconnected"), o->m_id);
+		UE_LOG(LogTemp, Warning, TEXT("[Host] Player %d DIsconnected"), o->m_id);
 
 		hc_player_leave_packet p;
 		p.packet_size = sizeof(hc_player_leave_packet);
@@ -293,8 +309,25 @@ void CALLBACK h_recv_callback(DWORD err, DWORD num_bytes, LPWSAOVERLAPPED p_over
 		return;
 	}
 
+	// Process Packet
 	char* p = o->m_recv_over.m_buffer;
-	h_process_packet(p);
+	unsigned char packet_size = p[0];
+	int remained = o->m_remained + num_bytes;
+
+	while (packet_size <= remained) {
+		h_process_packet(p);
+		p += packet_size;
+		remained -= packet_size;
+		if (!remained) {
+			break;
+		}
+		packet_size = p[0];
+	}
+
+	o->m_remained = remained;
+	if (remained) {
+		memcpy(o->m_recv_over.m_buffer, p, remained);
+	}
 
 	o->do_recv();
 }
@@ -309,7 +342,7 @@ void CALLBACK h_send_callback(DWORD err, DWORD num_bytes, LPWSAOVERLAPPED p_over
 // Client CALLBACK
 void c_process_packet(char* packet) {
 	char packet_type = packet[1];
-	UE_LOG(LogTemp, Warning, TEXT("[Client] Packet Type : %d"), packet_type);
+	UE_LOG(LogTemp, Warning, TEXT("[Client] Received Packet Type : %d"), packet_type);
 	switch (packet_type) {
 	case H2C_PLAYER_INFO_PACKET: {
 		hc_player_info_packet* p = reinterpret_cast<hc_player_info_packet*>(packet);
@@ -320,7 +353,6 @@ void c_process_packet(char* packet) {
 		APlayerCharacter* MyPlayer = Cast<APlayerCharacter>(UGameplayStatics::GetPlayerCharacter(World, 0));
 		if (MyPlayer) {
 			MyPlayer->set_id(p->id);
-			MyPlayer->set_is_player(true); 
 			g_players[p->id] = MyPlayer;
 
 			UE_LOG(LogTemp, Warning, TEXT("[Client] Registered Local Player (ID: %d) in g_players"), p->id);
@@ -346,7 +378,6 @@ void c_process_packet(char* packet) {
 		if (NewPlayer) {
 			NewPlayer->AutoPossessPlayer = EAutoReceiveInput::Disabled;
 			NewPlayer->DisableInput(nullptr);
-			NewPlayer->set_is_player(false);
 			NewPlayer->set_id(p->id);
 
 			g_players[p->id] = NewPlayer;
@@ -367,8 +398,17 @@ void c_process_packet(char* packet) {
 
 	case H2C_PLAYER_VECTOR_PACKET: {
 		player_vector_packet* p = reinterpret_cast<player_vector_packet*>(packet);
-		UE_LOG(LogTemp, Warning, TEXT("[Client] Player %d Moved"), p->id);
-		g_players[p->id]->set_vector(p->dx, p->dy, p->dz);
+		FVector Position = FVector(p->x, p->y, p->z);
+		g_players[p->id]->SetActorLocation(Position, false);
+		g_players[p->id]->set_velocity(p->vx, p->vy, p->vz);
+		UE_LOG(LogTemp, Warning, TEXT("[Client] Player %d Moved, vx : %.2f, vy : %.2f, vz : %.2f"), p->id, p->vx, p->vy, p->vz);
+		break;
+	}
+
+	case H2C_PLAYER_STOPPED_PACKET: {
+		player_stopped_packet* p = reinterpret_cast<player_stopped_packet*>(packet);
+		g_players[p->id]->set_velocity(0.0f, 0.0f, 0.0f);
+		UE_LOG(LogTemp, Warning, TEXT("[Client] Player %d Stopped"), p->id);
 		break;
 	}
 	}
@@ -380,9 +420,26 @@ void CALLBACK c_recv_callback(DWORD err, DWORD num_bytes, LPWSAOVERLAPPED p_over
 		return;
 	}
 
+	// Process Packet
+	UE_LOG(LogTemp, Warning, TEXT("[Client] Received Packet from Host"));
 	char* p = g_recv_over.m_buffer;
-	UE_LOG(LogTemp, Warning, TEXT("[Client] Received Packet from Server"));
-	c_process_packet(p);
+	unsigned char packet_size = p[0];
+	int remained = g_remained + num_bytes;
+
+	while (packet_size <= remained) {
+		c_process_packet(p);
+		p += packet_size;
+		remained -= packet_size;
+		if (!remained) {
+			break;
+		}
+		packet_size = p[0];
+	}
+
+	g_remained = remained;
+	if (remained) {
+		memcpy(g_recv_over.m_buffer, p, remained);
+	}
 
 	DWORD recv_bytes;
 	DWORD recv_flag = 0;

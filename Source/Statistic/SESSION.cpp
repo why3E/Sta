@@ -33,6 +33,8 @@ SESSION::~SESSION() {
 
 void SESSION::do_recv() {
 	DWORD recv_flag = 0;
+	m_recv_over.m_wsabuf[0].buf = m_recv_over.m_buffer + m_remained;
+	m_recv_over.m_wsabuf[0].len = sizeof(m_recv_over.m_buffer) - m_remained;
 	auto ret = WSARecv(m_c_socket, m_recv_over.m_wsabuf, 1, NULL, &recv_flag, &m_recv_over.m_over, m_recv_callback);
 }
 

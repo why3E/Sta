@@ -29,10 +29,14 @@ constexpr char H2C_MONSTER_PACKET = 14;
 constexpr char H2C_PLAYER_VECTOR_PACKET = 21;
 constexpr char H2C_PLAYER_STOPPED_PACKET = 22;
 constexpr char H2C_PLAYER_DIRECTION_PACKET = 23;
+constexpr char H2C_PLAYER_JUMP_START_PACKET = 24;
+constexpr char H2C_PLAYER_ATTACK_PACKET = 25;
 
-constexpr char C2H_PLAYER_VECTOR_PACKET = 31;
-constexpr char C2H_PLAYER_STOPPED_PACKET = 32;
-constexpr char C2H_PLAYER_DIRECTION_PACKET = 33;
+constexpr char C2H_PLAYER_VECTOR_PACKET = 41;
+constexpr char C2H_PLAYER_STOPPED_PACKET = 42;
+constexpr char C2H_PLAYER_DIRECTION_PACKET = 43;
+constexpr char C2H_PLAYER_JUMP_START_PACKET = 44;
+constexpr char C2H_PLAYER_ATTACK_PACKET = 45;
 
 constexpr char ANIMATION_STATE_IDLE = 1;
 
@@ -101,27 +105,16 @@ struct hc_player_leave_packet {
 struct hc_item_packet {
 	unsigned char packet_size;
 	char packet_type;
-	char item_type;
-	char item_quantity;
 };
 
 struct hc_skill_packet {
 	unsigned char packet_size;
 	char packet_type;
-	float x, y, z;
-	float dx, dy, dz;
-	char skill_type;
-	bool destroyed;
 };
 
 struct hc_monster_packet {
 	unsigned char packet_size;
 	char packet_type;
-	float x, y, z;
-	float dx, dy, dz;
-	char hp;
-	char monster_type;
-	char animation_state;
 };
 
 struct player_vector_packet {
@@ -136,13 +129,27 @@ struct player_stopped_packet {
 	unsigned char packet_size;
 	char packet_type;
 	char id;
+	float x, y, z;
 };
 
-struct player_direction_packet {
+struct player_rotation_packet {
 	unsigned char packet_size;
 	char packet_type;
 	char id;
 	float yaw;
+};
+
+struct player_jump_packet {
+	unsigned char packet_size;
+	char packet_type;
+	char id;
+};
+
+struct player_attack_packet {
+	unsigned char packet_size;
+	char packet_type;
+	char id;
+	char current_element;
 };
 
 #pragma pack(pop)

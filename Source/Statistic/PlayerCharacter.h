@@ -157,10 +157,12 @@ private:
 	char m_animation_state;
 	char m_current_element;
 
+	bool m_is_player = false;
 	bool m_was_moving = false;
 
 public:
 	void do_send(void* buff);
+	void set_is_player(bool is_player);
 	void set_id(char id);
 	void set_velocity(float x, float y, float z);
 	void rotate(float yaw);

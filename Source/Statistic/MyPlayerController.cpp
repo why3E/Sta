@@ -3,6 +3,8 @@
 #include "MyPlayerController.h"
 #include "PlayerCharacter.h"
 #include "Kismet/GameplayStatics.h"
+#include "GameFramework/CharacterMovementComponent.h"
+#include "AIController.h"
 #include <array>
 #include <thread>
 #include <chrono>
@@ -263,7 +265,7 @@ void h_process_packet(char* packet) {
 			if (p->id != other_id) {
 				if (g_clients[other_id]) {
 					g_clients[other_id]->do_send(p);
-					UE_LOG(LogTemp, Warning, TEXT("[Host] Send Player %d's Vector Packet to Player %d"), p->id, other_id);
+					//UE_LOG(LogTemp, Warning, TEXT("[Host] Send Player %d's Vector Packet to Player %d"), p->id, other_id);
 				}
 			}
 		}
@@ -277,7 +279,7 @@ void h_process_packet(char* packet) {
 			if (p->id != other_id) {
 				if (g_clients[other_id]) {
 					g_clients[other_id]->do_send(p);
-					UE_LOG(LogTemp, Warning, TEXT("[Host] Send Player %d's Stopped Packet to Player %d"), p->id, other_id);
+					//UE_LOG(LogTemp, Warning, TEXT("[Host] Send Player %d's Stopped Packet to Player %d"), p->id, other_id);
 				}
 			}
 		}
@@ -285,13 +287,27 @@ void h_process_packet(char* packet) {
 	}
 
 	case C2H_PLAYER_DIRECTION_PACKET: {
-		player_direction_packet* p = reinterpret_cast<player_direction_packet*>(packet);
+		player_rotation_packet* p = reinterpret_cast<player_rotation_packet*>(packet);
 		p->packet_type = H2C_PLAYER_DIRECTION_PACKET;
 		for (char other_id = 0; other_id < MAX_CLIENTS; ++other_id) {
 			if (p->id != other_id) {
 				if (g_clients[other_id]) {
 					g_clients[other_id]->do_send(p);
-					UE_LOG(LogTemp, Warning, TEXT("[Host] Send Player %d's Direction Packet to Player %d"), p->id, other_id);
+					//UE_LOG(LogTemp, Warning, TEXT("[Host] Send Player %d's Rotation Packet to Player %d"), p->id, other_id);
+				}
+			}
+		}
+		break;
+	}
+
+	case C2H_PLAYER_JUMP_START_PACKET: {
+		player_jump_packet* p = reinterpret_cast<player_jump_packet*>(packet);
+		p->packet_type = H2C_PLAYER_JUMP_START_PACKET;
+		for (char other_id = 0; other_id < MAX_CLIENTS; ++other_id) {
+			if (p->id != other_id) {
+				if (g_clients[other_id]) {
+					g_clients[other_id]->do_send(p);
+					//UE_LOG(LogTemp, Warning, TEXT("[Host] Send Player %d's Jump Start Packet to Player %d"), p->id, other_id);
 				}
 			}
 		}
@@ -303,7 +319,7 @@ void h_process_packet(char* packet) {
 void CALLBACK h_recv_callback(DWORD err, DWORD num_bytes, LPWSAOVERLAPPED p_over, DWORD flags) {
 	SESSION* o = reinterpret_cast<SESSION*>(p_over);
 	if (!o) { return; }
-	UE_LOG(LogTemp, Warning, TEXT("[Host] Received Packet from Player %d"), o->m_id);
+	//UE_LOG(LogTemp, Warning, TEXT("[Host] Received Packet from Player %d"), o->m_id);
 
 	if ((0 != err) || (0 == num_bytes)) {
 		UE_LOG(LogTemp, Warning, TEXT("[Host] Player %d DIsconnected"), o->m_id);
@@ -366,10 +382,11 @@ void c_process_packet(char* packet) {
 
 		APlayerCharacter* MyPlayer = Cast<APlayerCharacter>(UGameplayStatics::GetPlayerCharacter(World, 0));
 		if (MyPlayer) {
+			MyPlayer->set_is_player(true);
 			MyPlayer->set_id(p->id);
 			g_players[p->id] = MyPlayer;
 
-			UE_LOG(LogTemp, Warning, TEXT("[Client] Registered Local Player (ID: %d) in g_players"), p->id);
+			//UE_LOG(LogTemp, Warning, TEXT("[Client] Registered Local Player (ID: %d) in g_players"), p->id);
 		}
 		break;
 	}
@@ -390,12 +407,26 @@ void c_process_packet(char* packet) {
 		APlayerCharacter* NewPlayer = World->SpawnActor<APlayerCharacter>(APlayerCharacter::StaticClass(), SpawnLocation, SpawnRotation, Params);
 	
 		if (NewPlayer) {
-			NewPlayer->AutoPossessPlayer = EAutoReceiveInput::Disabled;
-			NewPlayer->DisableInput(nullptr);
+			//NewPlayer->AutoPossessPlayer = EAutoReceiveInput::Disabled;
+			//NewPlayer->DisableInput(nullptr);
+			NewPlayer->set_is_player(false);
 			NewPlayer->set_id(p->id);
-	
-			g_players[p->id] = NewPlayer;
-	
+
+			AAIController* NewAI = World->SpawnActor<AAIController>(
+				AAIController::StaticClass(),
+				SpawnLocation,
+				SpawnRotation,
+				Params
+			);
+
+			if (NewAI) {
+				NewAI->Possess(NewPlayer);  
+				UE_LOG(LogTemp, Warning, TEXT("AIController Possessed Avatar"));
+			}
+			else {
+				UE_LOG(LogTemp, Error, TEXT("Failed to spawn AIController"));
+			}
+
 			// ✅ 애니메이션 블루프린트 수동 설정
 			UClass* AnimClass = LoadClass<UAnimInstance>(
 				nullptr,
@@ -416,8 +447,10 @@ void c_process_packet(char* packet) {
 			{
 				UE_LOG(LogTemp, Error, TEXT("Failed to Load AnimBP"));
 			}
+
+			g_players[p->id] = NewPlayer;
 	
-			UE_LOG(LogTemp, Warning, TEXT("[Client] Spawned Player %d and Stored in g_players"), p->id);
+			//UE_LOG(LogTemp, Warning, TEXT("[Client] Spawned Player %d and Stored in g_players"), p->id);
 		}
 		break;
 	}
@@ -437,23 +470,30 @@ void c_process_packet(char* packet) {
 		FVector Velocity(p->vx, p->vy, p->vz);
 		g_players[p->id]->SetActorLocation(Position, false);
 		g_players[p->id]->set_velocity(Velocity.X, Velocity.Y, Velocity.Z);
-		//UE_LOG(LogTemp, Warning, TEXT("[Client] Player %d Moved, x : %.2f, y : %.2f, z : %.2f, vx : %.2f, vy : %.2f, vz : %.2f"), p->id, p->x, p->y, p->z, p->vx, p->vy, p->vz);
+		//UE_LOG(LogTemp, Warning, TEXT("[Client] Player %d Moved, vx : %.2f, vy : %.2f"), p->id, p->vx, p->vy);
 		break;
 	}
 
 	case H2C_PLAYER_STOPPED_PACKET: {
 		player_stopped_packet* p = reinterpret_cast<player_stopped_packet*>(packet);
+		FVector Position(p->x, p->y, p->z);
+		g_players[p->id]->SetActorLocation(Position, false);
 		g_players[p->id]->set_velocity(0.0f, 0.0f, 0.0f);
 		//UE_LOG(LogTemp, Warning, TEXT("[Client] Player %d Stopped"), p->id);
 		break;
 	}
 
 	case H2C_PLAYER_DIRECTION_PACKET: {
-		player_direction_packet* p = reinterpret_cast<player_direction_packet*>(packet);
-		APlayerCharacter* TargetPlayer = g_players[p->id];
-		AsyncTask(ENamedThreads::GameThread, [TargetPlayer, Yaw = p->yaw]() {
-			TargetPlayer->rotate(Yaw);
-		});
+		player_rotation_packet* p = reinterpret_cast<player_rotation_packet*>(packet);
+		g_players[p->id]->rotate(p->yaw);
+		//UE_LOG(LogTemp, Warning, TEXT("[Client] Player %d Rotated"), p->id);
+		break;
+	}
+
+	case H2C_PLAYER_JUMP_START_PACKET: {
+		player_jump_packet* p = reinterpret_cast<player_jump_packet*>(packet);
+		g_players[p->id]->LaunchCharacter(FVector(0, 0, 800), false, true);
+		//UE_LOG(LogTemp, Warning, TEXT("[Client] Player %d Jump Started"), p->id);
 		break;
 	}
 	}
@@ -466,7 +506,7 @@ void CALLBACK c_recv_callback(DWORD err, DWORD num_bytes, LPWSAOVERLAPPED p_over
 	}
 
 	// Process Packet
-	UE_LOG(LogTemp, Warning, TEXT("[Client] Received Packet from Host"));
+	//UE_LOG(LogTemp, Warning, TEXT("[Client] Received Packet from Host"));
 	char* p = g_recv_over.m_buffer;
 	unsigned char packet_size = p[0];
 	int remained = g_remained + num_bytes;

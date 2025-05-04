@@ -131,6 +131,8 @@ void APlayerCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
+	//SetActorLocation(FVector(37'540.0f, -39'500.0f, 340.0f), true);
+	SetActorLocation(FVector(0.0f, 0.0f, 100.0f), true);
 	m_yaw = GetControlRotation().Yaw;
 
 	APlayerController* PlayerController = Cast<APlayerController>(GetController());
@@ -177,49 +179,51 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 
 void APlayerCharacter::BasicMove(const FInputActionValue& Value)
 {
-    // 입력받은 Value로부터 MovementVector 가져오기
-    MovementVector = Value.Get<FVector2D>();
+	if (!(GetCharacterMovement()->IsFalling())) {
+		// 입력받은 Value로부터 MovementVector 가져오기
+		MovementVector = Value.Get<FVector2D>();
 
-    // 컨트롤러의 회전 중 Yaw(Z)를 가져와 저장
-    const FRotator Rotation = Controller->GetControlRotation();
-    const FRotator YawRotation(0, Rotation.Yaw, 0);
+		// 컨트롤러의 회전 중 Yaw(Z)를 가져와 저장
+		const FRotator Rotation = Controller->GetControlRotation();
+		const FRotator YawRotation(0, Rotation.Yaw, 0);
 
-    // 회전(Yaw)을 기반으로 전방 및 오른쪽 방향을 받아오기 (X : 전방, Y : 오른쪽)
-    const FVector ForwardDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
-    const FVector RightDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
+		// 회전(Yaw)을 기반으로 전방 및 오른쪽 방향을 받아오기 (X : 전방, Y : 오른쪽)
+		const FVector ForwardDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
+		const FVector RightDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
 
-    // 뒤로 이동할 때 최대 속도를 300으로 제한
-    if (MovementVector.X < 0)
-    {
-        CheckBackMove = true;
-        GetCharacterMovement()->MaxWalkSpeed = 300.0f;
-    }
-    else
-    {
-        CheckBackMove = false;
+		// 뒤로 이동할 때 최대 속도를 300으로 제한
+		if (MovementVector.X < 0)
+		{
+			CheckBackMove = true;
+			GetCharacterMovement()->MaxWalkSpeed = 300.0f;
+		}
+		else
+		{
+			CheckBackMove = false;
 
-        // 대시 상태에 따라 최대 속도 설정
-        if (bIsDash)
-        {
-            GetCharacterMovement()->MaxWalkSpeed = 600.0f;
-        }
-        else
-        {
-            GetCharacterMovement()->MaxWalkSpeed = 300.0f;
-        }
-    }
+			// 대시 상태에 따라 최대 속도 설정
+			if (bIsDash)
+			{
+				GetCharacterMovement()->MaxWalkSpeed = 600.0f;
+			}
+			else
+			{
+				GetCharacterMovement()->MaxWalkSpeed = 300.0f;
+			}
+		}
 
-    // Movement에 값 전달 (방향, 이동량)
-    AddMovementInput(ForwardDirection, MovementVector.X);
-    AddMovementInput(RightDirection, MovementVector.Y);
+		// Movement에 값 전달 (방향, 이동량)
+		AddMovementInput(ForwardDirection, MovementVector.X);
+		AddMovementInput(RightDirection, MovementVector.Y);
+	
+		// Send Player Vector Packet 
+		FVector Velocity = GetCharacterMovement()->Velocity;
 
-	// Send Player Vector Packet 
-	FVector Velocity = GetCharacterMovement()->Velocity;
-	float DistanceDiff = FVector::Dist(Velocity, m_velocity);
-	bool bCurrentlyFalling = GetCharacterMovement()->IsFalling();
-	if (DistanceDiff > 0.5f) {
-		if (!bCurrentlyFalling) {
+		float DistanceDiff = FVector::Dist(Velocity, m_velocity);
+
+		if (DistanceDiff > 0.2f) {
 			m_velocity = Velocity;
+			m_was_moving = true;
 
 			FVector Position = GetActorLocation();
 
@@ -228,10 +232,10 @@ void APlayerCharacter::BasicMove(const FInputActionValue& Value)
 			p.packet_type = C2H_PLAYER_VECTOR_PACKET;
 			p.id = m_id;
 			p.x = Position.X; p.y = Position.Y; p.z = Position.Z;
-			p.vx = m_velocity.X; p.vy = m_velocity.Y; p.vz = m_velocity.Z;
+			p.vx = Velocity.X; p.vy = Velocity.Y; p.vz = Velocity.Z;
+
 			do_send(&p);
-			m_was_moving = true;
-			UE_LOG(LogTemp, Warning, TEXT("[Client %d] Send Move Packet to Host"), m_id);
+			UE_LOG(LogTemp, Warning, TEXT("[Client %d] Send Vector Packet to Host"), m_id);
 		}
 	}
 }
@@ -256,18 +260,31 @@ void APlayerCharacter::BasicLook(const FInputActionValue& Value)
 	if (YawDiff > 10.0f) { 
 		m_yaw = CurrentYaw;
 
-		player_direction_packet p;
-		p.packet_size = sizeof(player_direction_packet);
+		player_rotation_packet p;
+		p.packet_size = sizeof(player_rotation_packet);
 		p.packet_type = C2H_PLAYER_DIRECTION_PACKET;
 		p.id = m_id;
 		p.yaw = CurrentYaw;
+
 		do_send(&p);
+		//UE_LOG(LogTemp, Warning, TEXT("[Client %d] Send Rotation Packet to Host"), m_id);
 	}
 }
 
 void APlayerCharacter::StartJump()
 {
     bPressedJump = true;
+
+	if (!(GetCharacterMovement()->IsFalling())) {
+		player_jump_packet p;
+		p.packet_size = sizeof(player_jump_packet);
+		p.packet_type = C2H_PLAYER_JUMP_START_PACKET;
+		p.id = m_id;
+
+		do_send(&p);
+		UE_LOG(LogTemp, Warning, TEXT("[Client %.2f] Send Jump Start Packet to Host"), GetCharacterMovement()->Velocity.Z);
+		//UE_LOG(LogTemp, Warning, TEXT("[Client %d] Send Jump Start Packet to Host"), m_id);
+	}
 }
 
 void APlayerCharacter::StopJump()
@@ -341,6 +358,7 @@ void APlayerCharacter::ComboStart()
         UE_LOG(LogTemp, Error, TEXT("Montage_Play failed!"));
     }
 }
+
 void APlayerCharacter::ComboEnd(UAnimMontage* Montage, bool IsEnded)
 {
 	UE_LOG(LogTemp, Warning, TEXT("ComboEnd"));
@@ -512,6 +530,7 @@ void APlayerCharacter::do_send(void* buff) {
 	unsigned char packet_size = reinterpret_cast<unsigned char*>(buff)[0];
 	memcpy(o->m_buffer, buff, packet_size);
 	o->m_wsabuf[0].len = packet_size;
+
 	DWORD send_bytes;
 	auto ret = WSASend(g_h_socket, o->m_wsabuf, 1, &send_bytes, 0, &(o->m_over), send_callback);
 	if (ret == SOCKET_ERROR) {
@@ -520,6 +539,10 @@ void APlayerCharacter::do_send(void* buff) {
 			return;
 		}
 	}
+}
+
+void APlayerCharacter::set_is_player(bool is_player) {
+	m_is_player = is_player;
 }
 
 void APlayerCharacter::set_id(char id) {
@@ -539,41 +562,45 @@ void APlayerCharacter::rotate(float yaw){
 void APlayerCharacter::Tick(float DeltaTime) {
 	Super::Tick(DeltaTime);
 
-	if (Controller && IsLocallyControlled()) {
-		bool bCurrentlyFalling = GetCharacterMovement()->IsFalling();
-		FVector Velocity = GetCharacterMovement()->Velocity;
-
-		// Jump
-		if (bCurrentlyFalling) {
-			m_velocity = Velocity;
-
-			FVector Position = GetActorLocation();
-
-			player_vector_packet p;
-			p.packet_size = sizeof(player_vector_packet);
-			p.packet_type = C2H_PLAYER_VECTOR_PACKET;
-			p.id = m_id;
-			p.x = Position.X; p.y = Position.Y; p.z = Position.Z;
-			p.vx = m_velocity.X; p.vy = m_velocity.Y; p.vz = m_velocity.Z;
-			do_send(&p);
-			UE_LOG(LogTemp, Warning, TEXT("[Client %d] Send Jump Packet to Host"), m_id);
-		}
-
+	//if (Controller && IsLocallyControlled()) {
+	if (m_is_player) {
 		// Stop
 		if (m_was_moving) {
+			FVector Velocity = GetCharacterMovement()->Velocity;
+
 			if (Velocity.IsNearlyZero()) {
+				m_was_moving = false;
+
+				FVector Position = GetActorLocation();
+
 				player_stopped_packet p;
 				p.packet_size = sizeof(player_stopped_packet);
 				p.packet_type = C2H_PLAYER_STOPPED_PACKET;
 				p.id = m_id;
+				p.x = Position.X; p.y = Position.Y; p.z = Position.Z;
+
 				do_send(&p);
-				m_was_moving = false;
 				UE_LOG(LogTemp, Warning, TEXT("[Client %d] Send Stopped Packet to Host"), m_id);
 			}
 		}
 	}
 	else {
-		AddActorWorldOffset(m_velocity * DeltaTime, true);
+		if (!GetCharacterMovement()->IsFalling()) {
+			GetCharacterMovement()->Velocity = m_velocity;
+
+			float Speed = m_velocity.Size();
+
+			// Dash
+			if (Speed > 500.0f) {
+				GetCharacterMovement()->MaxWalkSpeed = 600.0f;
+			}
+			// Walk
+			else {
+				GetCharacterMovement()->MaxWalkSpeed = 300.0f;
+			}
+
+			AddMovementInput(m_velocity.GetSafeNormal(), 1.0f);
+		}
 	}
 }
 

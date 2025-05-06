@@ -313,6 +313,19 @@ void h_process_packet(char* packet) {
 		}
 		break;
 	}
+
+	case C2H_PLAYER_SKILL_PACKET: {
+		player_skill_packet* p = reinterpret_cast<player_skill_packet*>(packet);
+		p->packet_type = H2C_PLAYER_SKILL_PACKET;
+		for (char other_id = 0; other_id < MAX_CLIENTS; ++other_id) {
+			if (p->id != other_id) {
+				if (g_clients[other_id]) {
+					g_clients[other_id]->do_send(p);
+					//UE_LOG(LogTemp, Warning, TEXT("[Host] Send Player %d's Skill Packet to Player %d"), p->id, other_id);
+				}
+			}
+		}
+	}
 	}
 }
 
@@ -494,6 +507,13 @@ void c_process_packet(char* packet) {
 		player_jump_packet* p = reinterpret_cast<player_jump_packet*>(packet);
 		g_players[p->id]->LaunchCharacter(FVector(0, 0, 800), false, true);
 		//UE_LOG(LogTemp, Warning, TEXT("[Client] Player %d Jump Started"), p->id);
+		break;
+	}
+
+	case H2C_PLAYER_SKILL_PACKET: {
+		player_skill_packet* p = reinterpret_cast<player_skill_packet*>(packet);
+		g_players[p->id]->set_current_montage_section_name(TEXT("WindSkill"));
+		UE_LOG(LogTemp, Warning, TEXT("[Client] Player %d Used Skill %d"), p->id, p->skill_type);
 		break;
 	}
 	}

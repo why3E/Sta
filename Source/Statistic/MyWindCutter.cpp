@@ -1,12 +1,16 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
+#include "PlayerCharacter.h"
 #include "MyWindCutter.h"
 #include "Components/SphereComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "NiagaraComponent.h"
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraSystem.h"
+
+#include "SESSION.h"
+
 // Sets default values
 AMyWindCutter::AMyWindCutter()
 {
@@ -62,7 +66,7 @@ void AMyWindCutter::PostInitializeComponents()
 void AMyWindCutter::Fire(FVector TargetLocation)
 {
     FVector LaunchDirection;
-	
+
     // 방향 계산
     if ((TargetLocation - Owner->GetActorLocation()).Length() < 300.0f)
     {
@@ -73,6 +77,16 @@ void AMyWindCutter::Fire(FVector TargetLocation)
     {
         LaunchDirection = (TargetLocation - GetActorLocation()).GetSafeNormal();
     }
+
+    // Send Wind Cutter Packet
+    APlayerCharacter* player = Cast<APlayerCharacter>(GetOwner());
+    player_skill_packet p;
+    p.packet_size = sizeof(player_skill_packet);
+    p.packet_type = C2H_PLAYER_SKILL_PACKET;
+    p.id = player->get_id();
+    p.skill_type = SKILL_WIND_CUTTER;    
+    p.vx = LaunchDirection.X; p.vy = LaunchDirection.Y; p.vz = LaunchDirection.Z;
+    player->do_send(&p);
 
     // 방향 지정 및 Projectile Movement Component 활성화
     MovementComponent->Velocity = LaunchDirection * MovementComponent->InitialSpeed;

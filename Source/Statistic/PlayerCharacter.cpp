@@ -14,7 +14,7 @@
 #include "MyWeapon.h"
 #include "MyFireWeapon.h"
 #include "MyWindWeapon.h"
-#
+
 #include "Enums.h"
 
 #include "SESSION.h"
@@ -236,7 +236,7 @@ void APlayerCharacter::BasicMove(const FInputActionValue& Value)
 
 		float DistanceDiff = FVector::Dist(Velocity, m_velocity);
 
-		if (DistanceDiff > 0.2f) {
+		if (DistanceDiff > 0.5f) {
 			m_velocity = Velocity;
 			m_was_moving = true;
 
@@ -349,6 +349,7 @@ void APlayerCharacter::BasicAttack()
 		bHasComboInput = false;
 	}
 }
+
 void APlayerCharacter::SkillAttack()
 {
     UE_LOG(LogTemp, Warning, TEXT("Skill Attack!"));
@@ -378,8 +379,9 @@ void APlayerCharacter::SkillAttack()
     else
     {
         UE_LOG(LogTemp, Error, TEXT("AnimInstance or CurrentMontage is null!"));
-    }
+	}
 }
+
 void APlayerCharacter::ComboStart()
 {
     CurrentComboCount = 1;
@@ -518,6 +520,7 @@ void APlayerCharacter::UpdateCachedData()
         CurrentComboData = StoneComboData;
 		CheckAnimBone = 0;
         break;
+
 	case EClassType::CT_Fire:
         CurrentMontage = FireComboMontage;
         CurrentComboData = FireComboData;
@@ -525,6 +528,7 @@ void APlayerCharacter::UpdateCachedData()
 		CurrentMontageSectionName = TEXT("FireSkill");
 		CheckAnimBone = 1;
         break;
+
     default:
         CurrentMontage = nullptr;
         CurrentComboData = nullptr;
@@ -591,18 +595,6 @@ void APlayerCharacter::do_send(void* buff) {
 			return;
 		}
 	}
-}
-
-void APlayerCharacter::set_is_player(bool is_player) {
-	m_is_player = is_player;
-}
-
-void APlayerCharacter::set_id(char id) {
-	m_id = id;
-}
-
-void APlayerCharacter::set_velocity(float x, float y, float z) {
-	m_velocity.X = x; m_velocity.Y = y; m_velocity.Z = z;
 }
 
 void APlayerCharacter::rotate(float yaw){
@@ -708,6 +700,7 @@ void APlayerCharacter::QSkill()
         }
     }
 }
+
 void APlayerCharacter::UpdateCircle()
 {
     if (bIsDrawingCircle)

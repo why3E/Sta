@@ -58,7 +58,6 @@ void AMyWindWeapon::SpawnWindCutter()
 		// 발사할 위치를 선정합니다.
 		SetFireLocation();
 	}
-	
 }
 
 void AMyWindWeapon::SpawnWindSkill(FVector TargetLocation)

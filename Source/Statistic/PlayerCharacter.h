@@ -174,9 +174,11 @@ private:
 
 public:
 	void do_send(void* buff);
-	void set_is_player(bool is_player);
-	void set_id(char id);
-	void set_velocity(float x, float y, float z);
+	char get_id() { return m_id; }
+	void set_is_player(bool is_player) { m_is_player = is_player; }
+	void set_id(char id) { m_id = id; }
+	void set_velocity(float x, float y, float z) { m_velocity.X = x; m_velocity.Y = y; m_velocity.Z = z; }
+	void set_current_montage_section_name(FName name) { CurrentMontageSectionName = name.ToString(); SkillAttack(); }
 	void rotate(float yaw);
 	virtual void Tick(float DeltaTime);
 

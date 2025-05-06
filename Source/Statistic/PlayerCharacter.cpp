@@ -397,7 +397,6 @@ void APlayerCharacter::SkillAttack()
 		{
 			UE_LOG(LogTemp, Error, TEXT("Montage is null!"));
 		}
-
 	}
 }
 

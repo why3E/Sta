@@ -156,6 +156,7 @@ struct player_skill_packet {
 	char id;
 	char skill_type;
 	float x, y, z;
+	float vx, vy, vz;
 };
 
 #pragma pack(pop)

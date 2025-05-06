@@ -25,7 +25,6 @@ AMyWindWeapon::AMyWindWeapon()
     WindCutterSocket = TEXT("WindPosition");
 }
 
-
 void AMyWindWeapon::BeginPlay()
 {
 	Super::BeginPlay();
@@ -58,7 +57,6 @@ void AMyWindWeapon::SpawnWindCutter()
 		// 발사할 위치를 선정합니다.
 		SetFireLocation();
 	}
-	
 }
 
 void AMyWindWeapon::SpawnWindSkill(FVector TargetLocation)
@@ -88,7 +86,8 @@ void AMyWindWeapon::SpawnWindSkill(FVector TargetLocation)
     AMyWindSkill* WindSkill = GetWorld()->SpawnActor<AMyWindSkill>(WindSkillClass, TargetLocation, FRotator::ZeroRotator, SpawnParams);
     if (WindSkill)
     {
-        WindSkill->SpawnWindTonado(TargetLocation);
+		WindSkill->SetOwner(OwnerCharacter);
+		WindSkill->SpawnWindTonado(TargetLocation);
         UE_LOG(LogTemp, Warning, TEXT("WindSkill spawned at location: %s"), *TargetLocation.ToString());
     }
     else

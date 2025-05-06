@@ -1,4 +1,6 @@
 // Fill out your copyright notice in the Description page of Project Settings.
+
+#include "PlayerCharacter.h"
 #include "MyWindSkill.h"
 #include "Components/BoxComponent.h"
 #include "NiagaraFunctionLibrary.h"
@@ -6,6 +8,8 @@
 #include "Kismet/GameplayStatics.h"
 #include "Components/PrimitiveComponent.h"
 #include "NiagaraSystem.h"
+
+#include "SESSION.h"
 
 // Sets default values
 AMyWindSkill::AMyWindSkill()
@@ -27,19 +31,33 @@ AMyWindSkill::AMyWindSkill()
 void AMyWindSkill::BeginPlay()
 {
 	Super::BeginPlay();
-	
 }
 
 // Called every frame
 void AMyWindSkill::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
 }
 
 void AMyWindSkill::SpawnWindTonado(FVector Location)
 {
-    Location.Z += 375.0f;
+    // Send Wind Skill Packet : Line 44
+    APlayerCharacter* player = Cast<APlayerCharacter>(GetOwner());
+    if (player->get_is_player()) {
+        Location.Z += 375.0f;
+        
+        player_skill_packet p;
+        p.packet_size = sizeof(player_skill_packet);
+        p.packet_type = C2H_PLAYER_SKILL_PACKET;
+        p.id = player->get_id();
+        p.skill_type = SKILL_WIND_TORNADO;
+        p.x = Location.X; p.y = Location.Y; p.z = Location.Z;
+        player->do_send(&p);
+    }
+    else {
+        Location = player->get_skill_location();
+    }
+
     SetActorLocation(Location);
 
     // 나이아가라 파티클 활성화

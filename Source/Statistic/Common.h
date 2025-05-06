@@ -30,17 +30,22 @@ constexpr char H2C_PLAYER_VECTOR_PACKET = 21;
 constexpr char H2C_PLAYER_STOPPED_PACKET = 22;
 constexpr char H2C_PLAYER_DIRECTION_PACKET = 23;
 constexpr char H2C_PLAYER_JUMP_START_PACKET = 24;
-constexpr char H2C_PLAYER_ATTACK_PACKET = 25;
+constexpr char H2C_PLAYER_SKILL_PACKET = 25;
 
 constexpr char C2H_PLAYER_VECTOR_PACKET = 41;
 constexpr char C2H_PLAYER_STOPPED_PACKET = 42;
 constexpr char C2H_PLAYER_DIRECTION_PACKET = 43;
 constexpr char C2H_PLAYER_JUMP_START_PACKET = 44;
-constexpr char C2H_PLAYER_ATTACK_PACKET = 45;
+constexpr char C2H_PLAYER_SKILL_PACKET = 45;
+
+
 
 constexpr char ANIMATION_STATE_IDLE = 1;
 
-constexpr char ELEMENT_IDLE = 1;
+constexpr char SKILL_WIND_CUTTER = 1;
+constexpr char SKILL_WIND_TORNADO = 2;
+constexpr char SKILL_FIRE_BALL = 3;
+constexpr char SKILL_FIRE_WALL = 4;
 
 constexpr char MAX_CLIENTS = 4;
 
@@ -145,11 +150,12 @@ struct player_jump_packet {
 	char id;
 };
 
-struct player_attack_packet {
+struct player_skill_packet {
 	unsigned char packet_size;
 	char packet_type;
 	char id;
-	char current_element;
+	char skill_type;
+	float x, y, z;
 };
 
 #pragma pack(pop)

@@ -14,7 +14,7 @@
 #include "MyWeapon.h"
 #include "MyFireWeapon.h"
 #include "MyWindWeapon.h"
-#
+
 #include "Enums.h"
 
 #include "SESSION.h"
@@ -121,6 +121,7 @@ APlayerCharacter::APlayerCharacter()
 
     // 기본 클래스 타입 설정
     ClassType = EClassType::CT_Fire;
+
     // 초기 캐싱된 데이터 설정
     CurrentMontage = nullptr;
     CurrentComboData = nullptr;
@@ -236,7 +237,7 @@ void APlayerCharacter::BasicMove(const FInputActionValue& Value)
 
 		float DistanceDiff = FVector::Dist(Velocity, m_velocity);
 
-		if (DistanceDiff > 0.2f) {
+		if (DistanceDiff > 0.5f) {
 			m_velocity = Velocity;
 			m_was_moving = true;
 
@@ -349,6 +350,7 @@ void APlayerCharacter::BasicAttack()
 		bHasComboInput = false;
 	}
 }
+
 void APlayerCharacter::SkillAttack()
 {
     UE_LOG(LogTemp, Warning, TEXT("Skill Attack!"));
@@ -377,9 +379,28 @@ void APlayerCharacter::SkillAttack()
     }
     else
     {
-        UE_LOG(LogTemp, Error, TEXT("AnimInstance or CurrentMontage is null!"));
-    }
+		if (AnimInstance)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("AnimInstance is valid: %s"), *AnimInstance->GetName());
+		}
+		else
+		{
+			UE_LOG(LogTemp, Error, TEXT("AnimInstance is null!"));
+		}
+
+		// 몽타주 확인
+		if (CurrentMontage)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Montage is valid: %s"), *CurrentMontage->GetName());
+		}
+		else
+		{
+			UE_LOG(LogTemp, Error, TEXT("Montage is null!"));
+		}
+
+	}
 }
+
 void APlayerCharacter::ComboStart()
 {
     CurrentComboCount = 1;
@@ -402,18 +423,38 @@ void APlayerCharacter::ComboStart()
 
         // 타이머 초기화
         ComboTimerHandle.Invalidate();
+
         // 타이머 설정
         SetComboTimer(); 
     }
     else
     {
-        UE_LOG(LogTemp, Error, TEXT("Montage_Play failed!"));
+		if (AnimInstance)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("AnimInstance is valid: %s"), *AnimInstance->GetName());
+		}
+		else
+		{
+			UE_LOG(LogTemp, Error, TEXT("AnimInstance is null!"));
+		}
+
+		// 몽타주 확인
+		if (CurrentMontage)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Montage is valid: %s"), *CurrentMontage->GetName());
+		}
+		else
+		{
+			UE_LOG(LogTemp, Error, TEXT("Montage is null!"));
+		}
+
     }
 }
 
 void APlayerCharacter::ComboEnd(UAnimMontage* Montage, bool IsEnded)
 {
 	UE_LOG(LogTemp, Warning, TEXT("ComboEnd"));
+
 	// 콤보 수 초기화
 	CurrentComboCount = 0;
 
@@ -518,6 +559,7 @@ void APlayerCharacter::UpdateCachedData()
         CurrentComboData = StoneComboData;
 		CheckAnimBone = 0;
         break;
+
 	case EClassType::CT_Fire:
         CurrentMontage = FireComboMontage;
         CurrentComboData = FireComboData;
@@ -525,6 +567,7 @@ void APlayerCharacter::UpdateCachedData()
 		CurrentMontageSectionName = TEXT("FireSkill");
 		CheckAnimBone = 1;
         break;
+
     default:
         CurrentMontage = nullptr;
         CurrentComboData = nullptr;
@@ -543,7 +586,6 @@ void APlayerCharacter::UpdateCachedData()
 				EquipWeapon(CurrentWeapon);
 			}
 		}
-
 }
 
 void APlayerCharacter::SetComboTimer()
@@ -593,22 +635,29 @@ void APlayerCharacter::do_send(void* buff) {
 	}
 }
 
-void APlayerCharacter::set_is_player(bool is_player) {
-	m_is_player = is_player;
-}
-
-void APlayerCharacter::set_id(char id) {
-	m_id = id;
-}
-
-void APlayerCharacter::set_velocity(float x, float y, float z) {
-	m_velocity.X = x; m_velocity.Y = y; m_velocity.Z = z;
-}
-
 void APlayerCharacter::rotate(float yaw){
 	FRotator NewRotation = GetActorRotation();
 	NewRotation.Yaw = yaw;
 	SetActorRotation(NewRotation);
+}
+
+void APlayerCharacter::use_skill(char skill_type, FVector v) {
+	switch (skill_type) {
+	case SKILL_WIND_CUTTER:
+		CurrentMontage = WindComboMontage;
+		CurrentComboData = WindComboData; 
+		m_skill_velocity = v;
+		ComboStart();
+		break;
+
+	case SKILL_WIND_TORNADO:
+		CurrentMontage = WindComboMontage;
+		CurrentComboData = WindComboData;
+		CurrentMontageSectionName = TEXT("WindSkill");
+		m_skill_location = v;
+		SkillAttack();
+		break;
+	}
 }
 
 void APlayerCharacter::Tick(float DeltaTime) {
@@ -708,6 +757,7 @@ void APlayerCharacter::QSkill()
         }
     }
 }
+
 void APlayerCharacter::UpdateCircle()
 {
     if (bIsDrawingCircle)
@@ -744,5 +794,4 @@ void APlayerCharacter::UpdateCircle()
 
 void APlayerCharacter::ESkill() {
 	UE_LOG(LogTemp, Warning, TEXT("E Skill!"));
-	
 }

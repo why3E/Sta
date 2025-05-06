@@ -398,7 +398,7 @@ void c_process_packet(char* packet) {
 		UWorld* World = GEngine->GetWorldFromContextObjectChecked(GEngine->GameViewport);
 		if (!World) return;
 	
-		FVector SpawnLocation(40000, -40000, 500); // 초기 위치 설정
+		FVector SpawnLocation(40000, -40000, 1000); // 초기 위치 설정
 		FRotator SpawnRotation = FRotator::ZeroRotator;
 	
 		FActorSpawnParameters Params;

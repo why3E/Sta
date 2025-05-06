@@ -13,6 +13,8 @@
 #include "MMComboActionData.h" // Include the header for UMMComboActionData
 #include "MyWeapon.h"
 #include "MyFireWeapon.h"
+#include "MyWindWeapon.h"
+#
 #include "Enums.h"
 
 #include "SESSION.h"
@@ -85,6 +87,16 @@ APlayerCharacter::APlayerCharacter()
 		{
 			IA_BasicAttack = IA_BasicAttackRef.Object;
 		}
+		static ConstructorHelpers::FObjectFinder<UInputAction>IA_QSkillRef(TEXT("/Script/EnhancedInput.InputAction'/Game/input/IA_QSkill.IA_QSkill'"));
+		if (IA_QSkillRef.Object)
+		{
+			IA_QSkill = IA_QSkillRef.Object;
+		}
+		static ConstructorHelpers::FObjectFinder<UInputAction>IA_RSkillRef(TEXT("/Script/EnhancedInput.InputAction'/Game/input/IA_ESkill.IA_ESkill'"));
+		if (IA_RSkillRef.Object)
+		{
+			IA_ESkill = IA_RSkillRef.Object;
+		}
     }
 
 	// Setting (기본적으로 원하는 기본 이동을 위한 캐릭터 설정)
@@ -149,7 +161,7 @@ void APlayerCharacter::BeginPlay()
 	}
 
 	{
-	ChangeClass(EClassType::CT_Fire);
+	ChangeClass(EClassType::CT_Wind);
 	}
 
     // 초기 캐싱된 데이터 업데이트
@@ -175,6 +187,9 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 	EnhancedInputComponent->BindAction(IA_Dash, ETriggerEvent::Completed, this, &APlayerCharacter::DashEnd);
 
 	EnhancedInputComponent->BindAction(IA_BasicAttack, ETriggerEvent::Triggered, this, &APlayerCharacter::BasicAttack);
+
+	EnhancedInputComponent->BindAction(IA_QSkill, ETriggerEvent::Triggered, this, &APlayerCharacter::QSkill);
+	EnhancedInputComponent->BindAction(IA_ESkill, ETriggerEvent::Triggered, this, &APlayerCharacter::ESkill);
 }
 
 void APlayerCharacter::BasicMove(const FInputActionValue& Value)
@@ -307,10 +322,17 @@ void APlayerCharacter::DashEnd()
 
 void APlayerCharacter::BasicAttack()
 {
-	UE_LOG(LogTemp, Warning, TEXT("Basic Attack!"));
+	if (bIsDrawingCircle)
+    {
+        SkillAttack();
+		bIsDrawingCircle = false;
+        GetWorld()->GetTimerManager().ClearTimer(CircleUpdateTimerHandle);
+        return;
+    }
 
 	if (CurrentComboCount == 0)
 	{
+		UE_LOG(LogTemp, Warning, TEXT("Basic Attack!"));
 		ComboStart();
 		return;
 	}
@@ -327,7 +349,37 @@ void APlayerCharacter::BasicAttack()
 		bHasComboInput = false;
 	}
 }
+void APlayerCharacter::SkillAttack()
+{
+    UE_LOG(LogTemp, Warning, TEXT("Skill Attack!"));
 
+    UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+    if (AnimInstance && CurrentMontage)
+    {
+        // 현재 몽타주가 재생 중인지 확인
+        if (AnimInstance->Montage_IsPlaying(CurrentMontage))
+        {
+            UE_LOG(LogTemp, Warning, TEXT("Montage is already playing. SkillAttack aborted."));
+            return; // 몽타주가 재생 중이면 함수 종료
+        }
+
+        // 섹션 이름 설정
+        FName SectionName = FName(*CurrentMontageSectionName);
+
+        // 몽타주 재생
+        AnimInstance->Montage_Play(CurrentMontage);
+        AnimInstance->Montage_JumpToSection(SectionName, CurrentMontage);
+        UE_LOG(LogTemp, Warning, TEXT("Started montage and jumped to section: %s"), *SectionName.ToString());
+
+        // 다음 콤보를 위한 입력 초기화 및 타이머 재설정
+        SetComboTimer();
+        bHasComboInput = false;
+    }
+    else
+    {
+        UE_LOG(LogTemp, Error, TEXT("AnimInstance or CurrentMontage is null!"));
+    }
+}
 void APlayerCharacter::ComboStart()
 {
     CurrentComboCount = 1;
@@ -340,7 +392,7 @@ void APlayerCharacter::ComboStart()
     if (MontageLength > 0.0f)
     {
         UE_LOG(LogTemp, Warning, TEXT("Montage_Play succeeded! Montage Length: %f"), MontageLength);
-
+		
         // 몽타주 재생 종료 바인딩
         FOnMontageEnded EndDelegate;
         EndDelegate.BindUObject(this, &APlayerCharacter::ComboEnd);
@@ -371,14 +423,13 @@ void APlayerCharacter::ComboEnd(UAnimMontage* Montage, bool IsEnded)
 
 void APlayerCharacter::ComboCheck()
 {
-	UE_LOG(LogTemp, Warning, TEXT("ComboCheck"));
 
 	ComboTimerHandle.Invalidate();
 
 	if (bHasComboInput)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("ComboCheck ok "));
-
+        UE_LOG(LogTemp, Warning, TEXT("Max combo count reached. Combo ends. MaxComboCount: %d, CurrentComboCount: %d"), CurrentComboData->MaxComboCount, CurrentComboCount);
+		
 		CurrentComboCount = FMath::Clamp(CurrentComboCount + 1, 1, CurrentComboData->MaxComboCount);
 
 		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
@@ -389,7 +440,6 @@ void APlayerCharacter::ComboCheck()
 
 			// 다음 섹션 이름 생성
 			FName NextSectionName = *FString::Printf(TEXT("%s%d"), *CurrentComboData->SectionPrefix, CurrentComboCount);
-			UE_LOG(LogTemp, Warning, TEXT("Current: %s → Next: %s"), *CurrentSectionName.ToString(), *NextSectionName.ToString());
 
 			// 현재 섹션 끝나면 다음 섹션으로 자연스럽게 블렌드되도록 설정
 			AnimInstance->Montage_SetNextSection(CurrentSectionName, NextSectionName, CurrentMontage);
@@ -459,6 +509,7 @@ void APlayerCharacter::UpdateCachedData()
         CurrentMontage = WindComboMontage;
         CurrentComboData = WindComboData;
 		WeaponClass = WindWeaponBP;
+		CurrentMontageSectionName = TEXT("WindSkill");
 		CheckAnimBone = 1;
         break;
 
@@ -471,6 +522,7 @@ void APlayerCharacter::UpdateCachedData()
         CurrentMontage = FireComboMontage;
         CurrentComboData = FireComboData;
 		WeaponClass = FireWeaponBP;
+		CurrentMontageSectionName = TEXT("FireSkill");
 		CheckAnimBone = 1;
         break;
     default:
@@ -607,4 +659,90 @@ void APlayerCharacter::Tick(float DeltaTime) {
 void send_callback(DWORD err, DWORD num_bytes, LPWSAOVERLAPPED p_over, DWORD flags) {
 	EXP_OVER* p = reinterpret_cast<EXP_OVER*>(p_over);
 	delete p;
+}
+
+void APlayerCharacter::QSkill()
+{
+    if (bIsDrawingCircle)
+    {
+        // 원 그리기를 중단
+        bIsDrawingCircle = false;
+        GetWorld()->GetTimerManager().ClearTimer(CircleUpdateTimerHandle);
+        UE_LOG(LogTemp, Warning, TEXT("Stopped drawing circle."));
+    }
+    else
+    {
+        // 원 그리기를 시작
+        bIsDrawingCircle = true;
+
+        // 카메라 위치와 방향 가져오기
+        FVector CameraLocation;
+        FRotator CameraRotation;
+        GetController()->GetPlayerViewPoint(CameraLocation, CameraRotation);
+
+        // 라인트레이스 시작점과 끝점 설정
+        FVector Start = CameraLocation;
+        FVector End = Start + (CameraRotation.Vector() * 6000.0f); // 10,000 단위 거리
+
+        // 충돌 파라미터 설정
+        FHitResult HitResult;
+        FCollisionQueryParams CollisionParams;
+        CollisionParams.AddIgnoredActor(this); // 자기 자신은 무시
+
+        // 라인트레이스 실행
+        bool bHit = GetWorld()->LineTraceSingleByChannel(HitResult, Start, End, ECC_Visibility, CollisionParams);
+
+        if (bHit)
+        {
+            // 충돌 지점 저장
+            CurrentImpactPoint = HitResult.ImpactPoint;
+
+            // 원 업데이트 타이머 시작
+            GetWorld()->GetTimerManager().SetTimer(CircleUpdateTimerHandle, this, &APlayerCharacter::UpdateCircle, 0.1f, true);
+
+            UE_LOG(LogTemp, Warning, TEXT("Started drawing circle at: %s"), *CurrentImpactPoint.ToString());
+        }
+        else
+        {
+            UE_LOG(LogTemp, Warning, TEXT("No hit detected."));
+        }
+    }
+}
+void APlayerCharacter::UpdateCircle()
+{
+    if (bIsDrawingCircle)
+    {
+        // 카메라 위치와 방향 가져오기
+        FVector CameraLocation;
+        FRotator CameraRotation;
+        GetController()->GetPlayerViewPoint(CameraLocation, CameraRotation);
+
+        // 라인트레이스 시작점과 끝점 설정
+        FVector Start = CameraLocation;
+        FVector End = Start + (CameraRotation.Vector() * 10000.0f); // 10,000 단위 거리
+
+        // 충돌 파라미터 설정
+        FHitResult HitResult;
+        FCollisionQueryParams CollisionParams;
+        CollisionParams.AddIgnoredActor(this); // 자기 자신은 무시
+
+        // 라인트레이스 실행
+        bool bHit = GetWorld()->LineTraceSingleByChannel(HitResult, Start, End, ECC_Visibility, CollisionParams);
+
+        if (bHit)
+        {
+            // 충돌 지점 업데이트
+            CurrentImpactPoint = HitResult.ImpactPoint;
+			FVector Direction = (CurrentImpactPoint - GetActorLocation()).GetSafeNormal();
+			// ✅ 해당 방향의 회전값 구하기
+			CurrentImpactRot = Direction.Rotation();
+            // 충돌 지점에 구 모양의 디버그 라인 표시
+            DrawDebugSphere(GetWorld(), CurrentImpactPoint, 50.0f, 12, FColor::Green, false, 0.1f);
+        }
+    }
+}
+
+void APlayerCharacter::ESkill() {
+	UE_LOG(LogTemp, Warning, TEXT("E Skill!"));
+	
 }

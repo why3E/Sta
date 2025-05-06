@@ -1,9 +1,12 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 #include "MyFireBall.h"
+#include "PlayerCharacter.h"
 #include "Components/SphereComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "NiagaraComponent.h"
 #include "NiagaraFunctionLibrary.h"
+
+#include "SESSION.h"
 
 // Sets default values
 AMyFireBall::AMyFireBall()
@@ -74,6 +77,21 @@ void AMyFireBall::Fire(FVector TargetLocation)
     else
     {
         LaunchDirection = (TargetLocation - GetActorLocation()).GetSafeNormal();
+    }
+
+    // Send Fire Ball Packet
+    APlayerCharacter* player = Cast<APlayerCharacter>(GetOwner());
+    if (player->get_is_player()) {
+        player_skill_packet p;
+        p.packet_size = sizeof(player_skill_packet);
+        p.packet_type = C2H_PLAYER_SKILL_PACKET;
+        p.id = player->get_id();
+        p.skill_type = SKILL_FIRE_BALL;
+        p.x = LaunchDirection.X; p.y = LaunchDirection.Y; p.z = LaunchDirection.Z;
+        player->do_send(&p);
+    }
+    else {
+        LaunchDirection = player->get_skill_velocity();
     }
 
     // 방향 지정 및 Projectile Movement Component 활성화

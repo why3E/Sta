@@ -644,7 +644,7 @@ void APlayerCharacter::use_skill(char skill_type, FVector v) {
 	switch (skill_type) {
 	case SKILL_WIND_CUTTER:
 		CurrentMontage = WindComboMontage;
-		CurrentComboData = WindComboData; 
+		CurrentComboData = WindComboData;
 		m_skill_velocity = v;
 		ComboStart();
 		break;
@@ -653,6 +653,21 @@ void APlayerCharacter::use_skill(char skill_type, FVector v) {
 		CurrentMontage = WindComboMontage;
 		CurrentComboData = WindComboData;
 		CurrentMontageSectionName = TEXT("WindSkill");
+		m_skill_location = v;
+		SkillAttack();
+		break;
+
+	case SKILL_FIRE_BALL:
+		CurrentMontage = FireComboMontage;
+		CurrentComboData = FireComboData;
+		m_skill_velocity = v;
+		ComboStart();
+		break;
+
+	case SKILL_FIRE_WALL:
+		CurrentMontage = FireComboMontage;
+		CurrentComboData = FireComboData;
+		CurrentMontageSectionName = TEXT("FireSkill");
 		m_skill_location = v;
 		SkillAttack();
 		break;

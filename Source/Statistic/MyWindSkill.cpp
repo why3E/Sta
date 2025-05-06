@@ -1,7 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-#include "PlayerCharacter.h"
 #include "MyWindSkill.h"
+#include "PlayerCharacter.h"
 #include "Components/BoxComponent.h"
 #include "NiagaraFunctionLibrary.h"
 #include "GameFramework/Actor.h"
@@ -41,7 +41,7 @@ void AMyWindSkill::Tick(float DeltaTime)
 
 void AMyWindSkill::SpawnWindTonado(FVector Location)
 {
-    // Send Wind Skill Packet : Line 44
+    // Send Wind Skill Packet 
     APlayerCharacter* player = Cast<APlayerCharacter>(GetOwner());
     if (player->get_is_player()) {
         Location.Z += 375.0f;

@@ -161,7 +161,7 @@ void APlayerCharacter::BeginPlay()
 	}
 
 	{
-	ChangeClass(EClassType::CT_Fire);
+	ChangeClass(EClassType::CT_Wind);
 	}
 
     // 초기 캐싱된 데이터 업데이트

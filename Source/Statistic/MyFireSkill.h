@@ -42,7 +42,7 @@ protected:
 
     // 데미지 값
     UPROPERTY(EditAnywhere, Category = "Settings")
-    float Damage = 10.0f;
+    float Damage = 10.0f; 
 private:
     // 충돌 처리 함수
     UFUNCTION()

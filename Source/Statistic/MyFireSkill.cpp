@@ -11,7 +11,7 @@ AMyFireSkill::AMyFireSkill()
 {
     // 콜리전 컴포넌트 초기화
     CollisionComponent = CreateDefaultSubobject<UBoxComponent>(TEXT("CollisionComponent"));
-    CollisionComponent->SetBoxExtent(FVector(50.0f, 50.0f, 100.0f)); // 불벽 크기 설정
+    CollisionComponent->SetBoxExtent(FVector(100.0f, 100.0f, 150.0f)); // 불벽 크기 설정
     CollisionComponent->SetCollisionProfileName(TEXT("Projectile")); // 충돌 프로파일 설정
     RootComponent = CollisionComponent;
 
@@ -36,6 +36,7 @@ void AMyFireSkill::Tick(float DeltaTime)
 void AMyFireSkill::SpawnFireWall(FVector Location, FRotator Rotation)
 {
     // 위치와 회전 설정
+    Location.Z += 75.0f;
     SetActorLocation(Location);
     SetActorRotation(Rotation);
 

@@ -10,11 +10,12 @@
 #include "MMComboActionData.h" // 데이터 에셋 헤더 포함
 #include "AnimationUpdateInterface.h"
 #include "MyPlayerVisualInterface.h"
+#include "ImpactPointInterface.h"
 #include "AnimationWeaponInterface.h"
 #include "PlayerCharacter.generated.h"
 
 UCLASS()
-class STATISTIC_API APlayerCharacter : public AMyCharacterBase, public IAnimationAttackInterface, public IAnimationUpdateInterface, public IMyPlayerVisualInterface, public IAnimationWeaponInterface
+class STATISTIC_API APlayerCharacter : public AMyCharacterBase, public IAnimationAttackInterface, public IAnimationUpdateInterface, public IMyPlayerVisualInterface, public IAnimationWeaponInterface, public IImpactPointInterface
 {
 	GENERATED_BODY()
 
@@ -49,6 +50,9 @@ protected:
 	void DashStart();
 	void DashEnd();
 	void BasicAttack();
+	void SkillAttack();
+	void QSkill();
+	void ESkill();
 
 	UPROPERTY(VisibleAnywhere, Category = Input, Meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<class UInputMappingContext> IMC_Basic;
@@ -67,6 +71,13 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, Category = Input, Meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<class UInputAction> IA_BasicAttack;
+
+	UPROPERTY(VisibleAnywhere, Category = Input, Meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<class UInputAction> IA_QSkill;
+
+	UPROPERTY(VisibleAnywhere, Category = Input, Meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<class UInputAction> IA_ESkill;
+
 
 protected:
 	uint8 bIsDash : 1;
@@ -126,6 +137,7 @@ private:
 	// 캐싱된 현재 몽타주와 데이터
 	UAnimMontage* CurrentMontage;
 	UMMComboActionData* CurrentComboData;
+	FString CurrentMontageSectionName; // 섹션 이름을 저장하는 변수
 
 	// 캐싱된 데이터를 업데이트하는 함수 
 	void UpdateCachedData();
@@ -167,6 +179,17 @@ public:
 	void set_velocity(float x, float y, float z);
 	void rotate(float yaw);
 	virtual void Tick(float DeltaTime);
+
+private:
+    bool bIsDrawingCircle = false; // 원을 그리고 있는지 여부
+    FVector CurrentImpactPoint;   // 현재 충돌 지점
+	FRotator CurrentImpactRot;     // 현재 충돌 회전
+    FTimerHandle CircleUpdateTimerHandle; // 원 업데이트를 위한 타이머 핸들
+	void UpdateCircle();
+
+protected:
+	FORCEINLINE virtual FVector GetCurrentImpactPoint() override { return CurrentImpactPoint; }
+	FORCEINLINE virtual FRotator GetCurrentImpactRot() override { return CurrentImpactRot; }
 };
 
 

@@ -21,7 +21,7 @@ public:
 
 	virtual void PostInitializeComponents() override;
     // 불벽 생성 함수
-    void SpawnFireWall(FVector Location, FRotator Rotation);
+    void SpawnFireWall(FVector Location);
 
 protected:
     // 콜리전 컴포넌트

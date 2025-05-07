@@ -767,6 +767,8 @@ void APlayerCharacter::ReceiveSkillHit(const FSkillInfo& Info, AActor* Causer)
     {
         //Stun(Info.StunTime);
     }
+	
 	UE_LOG(LogTemp, Warning, TEXT("Receive Skill Hit! Damage: %f"), FinalDamage);
 	UE_LOG(LogTemp, Warning, TEXT("Current HP: %f"), HP);
+
 }

@@ -28,14 +28,13 @@ void AMyWindSkill::BeginPlay()
 {
 	Super::BeginPlay();
 	
+    GetWorld()->GetTimerManager().SetTimer(CheckOverlapTimerHandle, this, &AMyWindSkill::CheckOverlappingActors, 1.0f, true);
 }
 
 // Called every frame
 void AMyWindSkill::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-    GetWorld()->GetTimerManager().SetTimer(CheckOverlapTimerHandle, this, &AMyWindSkill::CheckOverlappingActors, 1.0f, true);
-
 }
 
 void AMyWindSkill::SpawnWindTonado(FVector Location)
@@ -70,11 +69,10 @@ void AMyWindSkill::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* O
         // 같은 클래스라면 무시
         if (OtherActor->IsA(AMyWindSkill::StaticClass()))
         {
-            UE_LOG(LogTemp, Warning, TEXT("Ignored collision with another Fire Wall."));
             return;
         }
 
-        UE_LOG(LogTemp, Warning, TEXT("Fire Wall hit actor: %s"), *OtherActor->GetName());
+        UE_LOG(LogTemp, Warning, TEXT("Tonado hit actor: %s"), *OtherActor->GetName());
     }
 }
 
@@ -86,12 +84,9 @@ void AMyWindSkill::CheckOverlappingActors()
 
     for (AActor* Actor : CurrentOverlappingActors)
     {
-        if (Actor && !OverlappingActors.Contains(Actor))
+        if (Actor)
         {
-            OverlappingActors.Add(Actor);
-
             // 데미지 전달
-
             UE_LOG(LogTemp, Warning, TEXT("Applied %f damage to Actor: %s"), Damage, *Actor->GetName());
         }
     }

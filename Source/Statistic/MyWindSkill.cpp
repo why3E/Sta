@@ -34,6 +34,7 @@ void AMyWindSkill::BeginPlay()
 void AMyWindSkill::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+    GetWorld()->GetTimerManager().SetTimer(CheckOverlapTimerHandle, this, &AMyWindSkill::CheckOverlappingActors, 1.0f, true);
 
 }
 
@@ -75,4 +76,31 @@ void AMyWindSkill::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* O
 
         UE_LOG(LogTemp, Warning, TEXT("Fire Wall hit actor: %s"), *OtherActor->GetName());
     }
+}
+
+
+void AMyWindSkill::CheckOverlappingActors()
+{
+    TArray<AActor*> CurrentOverlappingActors;
+    CollisionComponent->GetOverlappingActors(CurrentOverlappingActors);
+
+    for (AActor* Actor : CurrentOverlappingActors)
+    {
+        if (Actor && !OverlappingActors.Contains(Actor))
+        {
+            OverlappingActors.Add(Actor);
+
+            // 데미지 전달
+
+            UE_LOG(LogTemp, Warning, TEXT("Applied %f damage to Actor: %s"), Damage, *Actor->GetName());
+        }
+    }
+}
+
+void AMyWindSkill::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+    Super::EndPlay(EndPlayReason);
+
+    // 타이머 정리
+    GetWorld()->GetTimerManager().ClearTimer(CheckOverlapTimerHandle);
 }

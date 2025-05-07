@@ -50,4 +50,7 @@ protected:
 private:
 	float Speed = 3000.0f;
 	uint8 bIsHit : 1;
+
+    UPROPERTY(EditAnywhere, Category = "Damage", meta = (AllowPrivateAccess = "true"))
+    float Damage = 10.0f;
 };

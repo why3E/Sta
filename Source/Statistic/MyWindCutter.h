@@ -33,7 +33,7 @@ protected:
 
     // 콜리전 컴포넌트
     UPROPERTY(VisibleAnywhere, Category = "Collision", meta = (AllowPrivateAccess = "true"))
-    TObjectPtr<class USphereComponent> CollisionComponent;
+    TObjectPtr<class UBoxComponent> CollisionComponent;
 
     // 나이아가라 파티클 시스템
     UPROPERTY(VisibleAnywhere, Category = "Particle", meta = (AllowPrivateAccess = "true"))

@@ -7,18 +7,15 @@
 // Sets default values
 AMyWeapon::AMyWeapon()
 {
-	
-		{
-			WeaponEffect = CreateDefaultSubobject<UNiagaraComponent>(TEXT("WeaponEffect"));
-			WeaponEffect->SetupAttachment(RootComponent);
-	
-			WeaponCollision = CreateDefaultSubobject<USphereComponent>(TEXT("WeaponCollision"));
-			WeaponCollision->SetupAttachment(RootComponent);
-			WeaponCollision->SetCollisionProfileName(TEXT("NoCollision"));
-			WeaponCollision->bHiddenInGame = false;
-		}
-	
+    // WeaponCollision을 루트 컴포넌트로 설정
+    WeaponCollision = CreateDefaultSubobject<USphereComponent>(TEXT("WeaponCollision"));
+    RootComponent = WeaponCollision; // 루트 컴포넌트로 설정
+    WeaponCollision->SetCollisionProfileName(TEXT("NoCollision"));
+    WeaponCollision->bHiddenInGame = false;
 
+    // WeaponEffect를 WeaponCollision에 부착
+    WeaponEffect = CreateDefaultSubobject<UNiagaraComponent>(TEXT("WeaponEffect"));
+    WeaponEffect->SetupAttachment(WeaponCollision);
 }
 
 // Called when the game starts or when spawned
@@ -37,8 +34,15 @@ void AMyWeapon::EquipWeapon(ACharacter* Player)
         SetOwner(Player);
         USkeletalMeshComponent* PlayerMesh = Player->GetMesh();
         OwnerCharacter = Player; // 소유자 캐릭터 설정
-        WeaponEffect->AttachToComponent(PlayerMesh, FAttachmentTransformRules::SnapToTargetIncludingScale, BaseSocketName);
-        WeaponEffect->Activate(); // 나이아가라 효과 활성화
+
+        // WeaponCollision을 소켓에 부착
+        WeaponCollision->AttachToComponent(PlayerMesh, FAttachmentTransformRules::SnapToTargetIncludingScale, BaseSocketName);
+
+        // WeaponEffect를 WeaponCollision에 부착 (이미 설정된 경우 유지)
+        WeaponEffect->AttachToComponent(WeaponCollision, FAttachmentTransformRules::KeepRelativeTransform, BaseSocketName);
+
+        // 나이아가라 효과 활성화
+        WeaponEffect->Activate();
     }
 }
 

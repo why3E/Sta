@@ -17,7 +17,6 @@ void UMMSpawnWindCutter::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceB
             AMyWindWeapon* Weapon = Cast<AMyWindWeapon>(WeaponPawn->GetWeapon());
             if (Weapon)
             {
-                
                 Weapon->SpawnWindCutter(); // 에너지볼 스폰 함수 호출
             }
         }

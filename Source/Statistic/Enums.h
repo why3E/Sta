@@ -11,3 +11,21 @@ enum class EClassType : uint8
     CT_Ice,
     CT_Stone,
 };
+
+USTRUCT(BlueprintType)
+struct FSkillInfo
+{
+    GENERATED_BODY()
+
+    UPROPERTY()
+    float Damage;
+
+    UPROPERTY()
+    EClassType Element;
+
+    UPROPERTY()
+    float StunTime;
+
+    UPROPERTY()
+    FVector KnockbackDir;
+};

@@ -503,47 +503,57 @@ void APlayerCharacter::ChangeClass(EClassType NewClassType)
 
 void APlayerCharacter::UpdateCachedData()
 {
+    // 기존 무기 제거
+    if (CurrentWeapon)
+    {
+        CurrentWeapon->Destroy();
+        CurrentWeapon = nullptr;
+        UE_LOG(LogTemp, Warning, TEXT("Previous weapon removed."));
+    }
+
+    // 클래스 타입에 따라 무기와 데이터를 업데이트
     switch (ClassType)
     {
     case EClassType::CT_Wind:
         CurrentMontage = WindComboMontage;
         CurrentComboData = WindComboData;
-		WeaponClass = WindWeaponBP;
-		CurrentMontageSectionName = TEXT("WindSkill");
-		CheckAnimBone = 1;
+        WeaponClass = WindWeaponBP;
+        CurrentMontageSectionName = TEXT("WindSkill");
+        CheckAnimBone = 1;
         break;
 
     case EClassType::CT_Stone:
         CurrentMontage = StoneComboMontage;
         CurrentComboData = StoneComboData;
-		CheckAnimBone = 0;
+        CheckAnimBone = 0;
         break;
-	case EClassType::CT_Fire:
+
+    case EClassType::CT_Fire:
         CurrentMontage = FireComboMontage;
         CurrentComboData = FireComboData;
-		WeaponClass = FireWeaponBP;
-		CurrentMontageSectionName = TEXT("FireSkill");
-		CheckAnimBone = 1;
+        WeaponClass = FireWeaponBP;
+        CurrentMontageSectionName = TEXT("FireSkill");
+        CheckAnimBone = 1;
         break;
+
     default:
         CurrentMontage = nullptr;
         CurrentComboData = nullptr;
         break;
     }
-	if (GetWorld())
-		{
-			CurrentWeapon = Cast<AMyWeapon>(GetWorld()->SpawnActor<AMyWeapon>(WeaponClass));
 
-			
-			UE_LOG(LogTemp, Warning, TEXT("WeaponClass Load: %s"), CurrentWeapon ? TEXT("Success") : TEXT("Fail"));
+    // 새로운 무기 생성 및 장착
+    if (GetWorld() && WeaponClass)
+    {
+        CurrentWeapon = Cast<AMyWeapon>(GetWorld()->SpawnActor<AMyWeapon>(WeaponClass));
+        UE_LOG(LogTemp, Warning, TEXT("WeaponClass Load: %s"), CurrentWeapon ? TEXT("Success") : TEXT("Fail"));
 
-			if (CurrentWeapon)
-			{
-				UE_LOG(LogTemp, Warning, TEXT("Weapon Spawned"));
-				EquipWeapon(CurrentWeapon);
-			}
-		}
-
+        if (CurrentWeapon)
+        {
+            UE_LOG(LogTemp, Warning, TEXT("Weapon Spawned"));
+            EquipWeapon(CurrentWeapon);
+        }
+    }
 }
 
 void APlayerCharacter::SetComboTimer()
@@ -745,4 +755,18 @@ void APlayerCharacter::UpdateCircle()
 void APlayerCharacter::ESkill() {
 	UE_LOG(LogTemp, Warning, TEXT("E Skill!"));
 	
+}
+
+void APlayerCharacter::ReceiveSkillHit(const FSkillInfo& Info, AActor* Causer)
+{
+    //float Resistance = GetResistanceAgainst(Info.Element);
+    float FinalDamage = Info.Damage;// * (1.0f - Resistance);
+    HP = HP - FinalDamage;
+
+    if (Info.StunTime > 0.0f)
+    {
+        //Stun(Info.StunTime);
+    }
+	UE_LOG(LogTemp, Warning, TEXT("Receive Skill Hit! Damage: %f"), FinalDamage);
+	UE_LOG(LogTemp, Warning, TEXT("Current HP: %f"), HP);
 }

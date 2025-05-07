@@ -12,10 +12,11 @@
 #include "MyPlayerVisualInterface.h"
 #include "ImpactPointInterface.h"
 #include "AnimationWeaponInterface.h"
+#include "ReceiveDamageInterface.h"
 #include "PlayerCharacter.generated.h"
 
 UCLASS()
-class STATISTIC_API APlayerCharacter : public AMyCharacterBase, public IAnimationAttackInterface, public IAnimationUpdateInterface, public IMyPlayerVisualInterface, public IAnimationWeaponInterface, public IImpactPointInterface
+class STATISTIC_API APlayerCharacter : public AMyCharacterBase, public IAnimationAttackInterface, public IAnimationUpdateInterface, public IMyPlayerVisualInterface, public IAnimationWeaponInterface, public IImpactPointInterface, public IReceiveDamageInterface
 {
 	GENERATED_BODY()
 
@@ -190,6 +191,12 @@ private:
 protected:
 	FORCEINLINE virtual FVector GetCurrentImpactPoint() override { return CurrentImpactPoint; }
 	FORCEINLINE virtual FRotator GetCurrentImpactRot() override { return CurrentImpactRot; }
+	virtual void ReceiveSkillHit(const FSkillInfo& Info, AActor* Causer) override;
+
+private:
+    // 캐릭터의 체력
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats", Meta = (AllowPrivateAccess = "true"))
+    float HP = 100.0f; // 기본 체력 값
 };
 
 

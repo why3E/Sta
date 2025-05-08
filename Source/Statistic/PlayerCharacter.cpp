@@ -161,7 +161,7 @@ void APlayerCharacter::BeginPlay()
 	}
 
 	{
-	ChangeClass(EClassType::CT_Wind);
+	ChangeClass(EClassType::CT_Fire);
 	}
 
     // 초기 캐싱된 데이터 업데이트
@@ -755,20 +755,4 @@ void APlayerCharacter::UpdateCircle()
 void APlayerCharacter::ESkill() {
 	UE_LOG(LogTemp, Warning, TEXT("E Skill!"));
 	
-}
-
-void APlayerCharacter::ReceiveSkillHit(const FSkillInfo& Info, AActor* Causer)
-{
-    //float Resistance = GetResistanceAgainst(Info.Element);
-    float FinalDamage = Info.Damage;// * (1.0f - Resistance);
-    HP = HP - FinalDamage;
-
-    if (Info.StunTime > 0.0f)
-    {
-        //Stun(Info.StunTime);
-    }
-	
-	UE_LOG(LogTemp, Warning, TEXT("Receive Skill Hit! Damage: %f"), FinalDamage);
-	UE_LOG(LogTemp, Warning, TEXT("Current HP: %f"), HP);
-
 }

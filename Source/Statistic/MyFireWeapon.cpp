@@ -87,7 +87,7 @@ void AMyFireWeapon::SpawnFireSkill(FVector TargetLocation, FRotator TargetRotati
     SpawnParams.Instigator = GetInstigator();
 
     int32 TotalObjects = 5; // 총 생성할 오브젝트 수
-    float OffsetDistance = 100.f; // 오브젝트 간 거리
+    float OffsetDistance = 200.f; // 오브젝트 간 거리
     FVector Forward = TargetRotation.Vector(); // 플레이어가 보는 방향
     FVector Right = FRotationMatrix(TargetRotation).GetUnitAxis(EAxis::Y); // 플레이어 기준 오른쪽 방향
     FVector Origin = TargetLocation; // 기준점: TargetLocation에서 앞쪽으로 이동

@@ -6,6 +6,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Components/PrimitiveComponent.h"
 #include "NiagaraSystem.h"
+#include "ReceiveDamageInterface.h"
 
 // Sets default values
 AMyWindSkill::AMyWindSkill()
@@ -82,12 +83,26 @@ void AMyWindSkill::CheckOverlappingActors()
     TArray<AActor*> CurrentOverlappingActors;
     CollisionComponent->GetOverlappingActors(CurrentOverlappingActors);
 
-    for (AActor* Actor : CurrentOverlappingActors)
+    for (AActor* OtherActor : CurrentOverlappingActors)
     {
-        if (Actor)
+        if (OtherActor)
         {
-            // 데미지 전달
-            UE_LOG(LogTemp, Warning, TEXT("Applied %f damage to Actor: %s"), Damage, *Actor->GetName());
+            if (OtherActor->Implements<UReceiveDamageInterface>())
+            {
+                FSkillInfo Info;
+                Info.Damage = 10.f;
+                Info.Element = EClassType::CT_Wind;
+                Info.StunTime = 1.5f;
+                Info.KnockbackDir = (OtherActor->GetActorLocation() - GetActorLocation()).GetSafeNormal();
+
+                // 인터페이스로 캐스팅하여 함수 호출
+                IReceiveDamageInterface* DamageReceiver = Cast<IReceiveDamageInterface>(OtherActor);
+                if (DamageReceiver)
+                {
+                    DamageReceiver->ReceiveSkillHit(Info, this);
+                    UE_LOG(LogTemp, Warning, TEXT("Skill hit applied to: %s"), *OtherActor->GetName());
+                }
+            }
         }
     }
 }

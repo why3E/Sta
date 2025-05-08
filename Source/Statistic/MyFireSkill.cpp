@@ -5,6 +5,8 @@
 #include "Kismet/GameplayStatics.h"
 #include "Components/PrimitiveComponent.h"
 #include "NiagaraComponent.h"
+#include "Enums.h"
+#include "ReceiveDamageInterface.h"
 
 // Sets default values
 AMyFireSkill::AMyFireSkill()
@@ -25,6 +27,8 @@ AMyFireSkill::AMyFireSkill()
 void AMyFireSkill::BeginPlay()
 {
     Super::BeginPlay();
+    
+    GetWorld()->GetTimerManager().SetTimer(CheckOverlapTimerHandle, this, &AMyFireSkill::CheckOverlappingActors, 1.0f, true);
 }
 
 // Called every frame
@@ -74,4 +78,41 @@ void AMyFireSkill::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* O
 
         UE_LOG(LogTemp, Warning, TEXT("Fire Wall hit actor: %s"), *OtherActor->GetName());
     }
+}
+
+void AMyFireSkill::CheckOverlappingActors()
+{
+    TArray<AActor*> CurrentOverlappingActors;
+    CollisionComponent->GetOverlappingActors(CurrentOverlappingActors);
+
+    for (AActor* OtherActor : CurrentOverlappingActors)
+    {
+        if (OtherActor)
+        {
+            if (OtherActor->Implements<UReceiveDamageInterface>())
+            {
+                FSkillInfo Info;
+                Info.Damage = 10.f;
+                Info.Element = EClassType::CT_Fire;
+                Info.StunTime = 1.5f;
+                Info.KnockbackDir = (OtherActor->GetActorLocation() - GetActorLocation()).GetSafeNormal();
+
+                // 인터페이스로 캐스팅하여 함수 호출
+                IReceiveDamageInterface* DamageReceiver = Cast<IReceiveDamageInterface>(OtherActor);
+                if (DamageReceiver)
+                {
+                    DamageReceiver->ReceiveSkillHit(Info, this);
+                    UE_LOG(LogTemp, Warning, TEXT("Skill hit applied to: %s"), *OtherActor->GetName());
+                }
+            }
+        }
+    }
+}
+
+void AMyFireSkill::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+    Super::EndPlay(EndPlayReason);
+
+    // 타이머 정리
+    GetWorld()->GetTimerManager().ClearTimer(CheckOverlapTimerHandle);
 }

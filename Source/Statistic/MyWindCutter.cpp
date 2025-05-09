@@ -104,22 +104,7 @@ void AMyWindCutter::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* 
             return;
         }
     }
-}
-
-void AMyWindCutter::Overlap() {
-    // 나이아가라 파티클 시스템 비활성화
-    if (WindCutterNiagaraComponent)
-    {
-        WindCutterNiagaraComponent->Deactivate();
-    }
-
-    // 히트 효과 생성
-    if (WindCutterNiagaraComponent)
-    {
-        UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), HitEffectNiagaraSystem, GetActorLocation());
-    }
     
-    /*
     // 데미지 전달
     if (OtherActor->Implements<UReceiveDamageInterface>())
     {
@@ -137,8 +122,24 @@ void AMyWindCutter::Overlap() {
             UE_LOG(LogTemp, Warning, TEXT("Skill hit applied to: %s"), *OtherActor->GetName());
         }
     }
-    */
 
+
+    
+}
+
+void AMyWindCutter::Overlap() {
+    // 나이아가라 파티클 시스템 비활성화
+    if (WindCutterNiagaraComponent)
+    {
+        WindCutterNiagaraComponent->Deactivate();
+    }
+
+    // 히트 효과 생성
+    if (WindCutterNiagaraComponent)
+    {
+        UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), HitEffectNiagaraSystem, GetActorLocation());
+    }
+    
     // 충돌 상태 설정
     bIsHit = true;
 

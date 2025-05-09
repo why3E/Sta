@@ -43,7 +43,7 @@ void AMyFireSkill::Tick(float DeltaTime)
 void AMyFireSkill::SpawnFireWall(FVector Location, FRotator Rotation)
 {
     // 위치와 회전 설정
-    SetActorLocation(Location);
+    SetActorLocation(Location + FVector(0.0f, 0.0f, 75.0f)); // 불벽이 땅 위에 위치하도록 조정
     SetActorRotation(Rotation);
 
     // 나이아가라 파티클 활성화

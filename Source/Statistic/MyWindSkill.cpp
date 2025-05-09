@@ -42,7 +42,7 @@ void AMyWindSkill::Tick(float DeltaTime)
 
 void AMyWindSkill::SpawnWindTonado(FVector Location)
 {
-    SetActorLocation(Location);
+    SetActorLocation(Location + FVector(0.0f, 0.0f, 375.0f)); // 위치 조정
 
     // 나이아가라 파티클 활성화
     if (WindTonadoEffect)
@@ -52,7 +52,6 @@ void AMyWindSkill::SpawnWindTonado(FVector Location)
         WindTonadoNiagaraComponent->Activate();
     }
 
-    // 불벽의 지속 시간 설정
     SetLifeSpan(WindTonadoDuration);
 }
 

@@ -174,15 +174,30 @@ private:
 	char m_animation_state;
 	char m_current_element;
 
+	FVector m_skill_velocity;
+	FVector m_skill_location;
+
 	bool m_is_player = false;
 	bool m_was_moving = false;
 
 public:
 	void do_send(void* buff);
-	void set_is_player(bool is_player);
-	void set_id(char id);
-	void set_velocity(float x, float y, float z);
+
+	bool get_is_player() { return m_is_player; }
+	char get_id() { return m_id; }
+	FVector get_skill_velocity() { return  m_skill_velocity; }
+	FVector get_skill_location() { return  m_skill_location; }
+
+	void set_is_player(bool is_player) { m_is_player = is_player; }
+	void set_id(char id) { m_id = id; }
+	void set_velocity(float x, float y, float z) { m_velocity.X = x; m_velocity.Y = y; m_velocity.Z = z; }
+	void set_skill_velocity(float x, float y, float z) { m_skill_velocity.X = x; m_skill_velocity.Y = y; m_skill_velocity.Z = z; }
+	void set_skill_location(float x, float y, float z) { m_skill_location.X = x; m_skill_location.Y = y; m_skill_location.Z = z; }
+
 	void rotate(float yaw);
+
+	void use_skill(char skill_type, FVector v);
+
 	virtual void Tick(float DeltaTime);
 
 private:

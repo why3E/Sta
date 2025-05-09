@@ -112,7 +112,12 @@ void AMyFireWeapon::SpawnFireSkill(FVector TargetLocation, FRotator TargetRotati
         AMyFireSkill* FireSkill = GetWorld()->SpawnActor<AMyFireSkill>(FireSkillClass, SpawnLocation, TargetRotation, SpawnParams);
         if (FireSkill)
         {
+
             FireSkill->SpawnFireWall(SpawnLocation);
+
+            FireSkill->SetOwner(OwnerCharacter);
+            FireSkill->SpawnFireWall(SpawnLocation, TargetRotation);
+
             UE_LOG(LogTemp, Warning, TEXT("FireSkill %d spawned at location: %s"), i + 1, *SpawnLocation.ToString());
         }
         else

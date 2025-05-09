@@ -1,5 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
+
 #include "MyWindSkill.h"
+#include "PlayerCharacter.h"
 #include "Components/BoxComponent.h"
 #include "NiagaraFunctionLibrary.h"
 #include "GameFramework/Actor.h"
@@ -7,6 +9,8 @@
 #include "Components/PrimitiveComponent.h"
 #include "NiagaraSystem.h"
 #include "ReceiveDamageInterface.h"
+
+#include "SESSION.h"
 
 // Sets default values
 AMyWindSkill::AMyWindSkill()
@@ -28,8 +32,8 @@ AMyWindSkill::AMyWindSkill()
 void AMyWindSkill::BeginPlay()
 {
 	Super::BeginPlay();
-	
-    GetWorld()->GetTimerManager().SetTimer(CheckOverlapTimerHandle, this, &AMyWindSkill::CheckOverlappingActors, 1.0f, true);
+  GetWorld()->GetTimerManager().SetTimer(CheckOverlapTimerHandle, this, &AMyWindSkill::CheckOverlappingActors, 1.0f, true);
+
 }
 
 // Called every frame
@@ -40,7 +44,23 @@ void AMyWindSkill::Tick(float DeltaTime)
 
 void AMyWindSkill::SpawnWindTonado(FVector Location)
 {
-    Location.Z += 375.0f;
+    // Send Wind Skill Packet 
+    APlayerCharacter* player = Cast<APlayerCharacter>(GetOwner());
+    if (player->get_is_player()) {
+        Location.Z += 375.0f;
+        
+        player_skill_packet p;
+        p.packet_size = sizeof(player_skill_packet);
+        p.packet_type = C2H_PLAYER_SKILL_PACKET;
+        p.id = player->get_id();
+        p.skill_type = SKILL_WIND_TORNADO;
+        p.x = Location.X; p.y = Location.Y; p.z = Location.Z;
+        player->do_send(&p);
+    }
+    else {
+        Location = player->get_skill_location();
+    }
+
     SetActorLocation(Location);
 
     // 나이아가라 파티클 활성화

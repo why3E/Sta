@@ -341,6 +341,19 @@ void h_process_packet(char* packet) {
 		}
 		break;
 	}
+
+	case C2H_PLAYER_SKILL_PACKET: {
+		player_skill_packet* p = reinterpret_cast<player_skill_packet*>(packet);
+		p->packet_type = H2C_PLAYER_SKILL_PACKET;
+		for (char other_id = 0; other_id < MAX_CLIENTS; ++other_id) {
+			if (p->id != other_id) {
+				if (g_clients[other_id]) {
+					g_clients[other_id]->do_send(p);
+					//UE_LOG(LogTemp, Warning, TEXT("[Host] Send Player %d's Skill Packet to Player %d"), p->id, other_id);
+				}
+			}
+		}
+	}
 	}
 }
 
@@ -432,30 +445,18 @@ void c_process_packet(char* packet) {
 		FActorSpawnParameters Params;
 		Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 	
-		APlayerCharacter* NewPlayer = World->SpawnActor<APlayerCharacter>(APlayerCharacter::StaticClass(), SpawnLocation, SpawnRotation, Params);
+		//APlayerCharacter* NewPlayer = World->SpawnActor<APlayerCharacter>(APlayerCharacter::StaticClass(), SpawnLocation, SpawnRotation, Params);
 	
-		if (NewPlayer) {
-			//NewPlayer->AutoPossessPlayer = EAutoReceiveInput::Disabled;
-			//NewPlayer->DisableInput(nullptr);
-			NewPlayer->set_is_player(false);
-			NewPlayer->set_id(p->id);
+		UClass* PlayerBPClass = LoadClass<APlayerCharacter>(
+			nullptr,
+			TEXT("/Game/player_anim/MyPlayerCharacter.MyPlayerCharacter_C")
+		);
 
-			AAIController* NewAI = World->SpawnActor<AAIController>(
-				AAIController::StaticClass(),
-				SpawnLocation,
-				SpawnRotation,
-				Params
-			);
+		if (!PlayerBPClass) {
+			UE_LOG(LogTemp, Error, TEXT("Failed to load BP_PlayerCharacter!"));
+			return;
+		}
 
-			if (NewAI) {
-				NewAI->Possess(NewPlayer);  
-				UE_LOG(LogTemp, Warning, TEXT("AIController Possessed Avatar"));
-			}
-			else {
-				UE_LOG(LogTemp, Error, TEXT("Failed to spawn AIController"));
-			}
-
-			// ✅ 애니메이션 블루프린트 수동 설정
 			UClass* AnimClass = LoadClass<UAnimInstance>(
 				nullptr,
 				TEXT("/Game/player_anim/MyPlayerAnim.MyPlayerAnim_C")
@@ -471,24 +472,34 @@ void c_process_packet(char* packet) {
 	
 				UE_LOG(LogTemp, Warning, TEXT("AnimInstance Set: %s"), *AnimClass->GetName());
 				
-				if(NewPlayer->GetMesh()->GetAnimInstance())
-				{
-					UE_LOG(LogTemp, Warning, TEXT("Player Spawned with AnimInstance: %s"), *NewPlayer->GetMesh()->GetAnimInstance()->GetName());
-				}
-				else
-				{
-					UE_LOG(LogTemp, Warning, TEXT("Player Spawned without AnimInstance"));
-				}
-			}
-			else
-			{
-				UE_LOG(LogTemp, Error, TEXT("Failed to Load AnimBP"));
-			}
+		APlayerCharacter* NewPlayer = World->SpawnActor<APlayerCharacter>(
+			PlayerBPClass,
+			SpawnLocation,
+			SpawnRotation,
+			Params
+		);
 
-			g_players[p->id] = NewPlayer;
-	
-			//UE_LOG(LogTemp, Warning, TEXT("[Client] Spawned Player %d and Stored in g_players"), p->id);
+		NewPlayer->set_is_player(false);
+		NewPlayer->set_id(p->id);
+
+		AAIController* NewAI = World->SpawnActor<AAIController>(
+			AAIController::StaticClass(),
+			SpawnLocation,
+			SpawnRotation,
+			Params
+		);
+
+		if (NewAI) {
+			NewAI->Possess(NewPlayer);  
+			UE_LOG(LogTemp, Warning, TEXT("AIController Possessed Avatar"));
 		}
+		else {
+			UE_LOG(LogTemp, Error, TEXT("Failed to spawn AIController"));
+		}
+
+
+		g_players[p->id] = NewPlayer;
+		//UE_LOG(LogTemp, Warning, TEXT("[Client] Spawned Player %d and Stored in g_players"), p->id);
 		break;
 	}
 
@@ -531,6 +542,13 @@ void c_process_packet(char* packet) {
 		player_jump_packet* p = reinterpret_cast<player_jump_packet*>(packet);
 		g_players[p->id]->LaunchCharacter(FVector(0, 0, 800), false, true);
 		//UE_LOG(LogTemp, Warning, TEXT("[Client] Player %d Jump Started"), p->id);
+		break;
+	}
+
+	case H2C_PLAYER_SKILL_PACKET: {
+		player_skill_packet* p = reinterpret_cast<player_skill_packet*>(packet);
+		g_players[p->id]->use_skill(p->skill_type, FVector(p->x, p->y, p->z));
+		UE_LOG(LogTemp, Warning, TEXT("[Client] Player %d Used Skill %d"), p->id, p->skill_type);
 		break;
 	}
 	}

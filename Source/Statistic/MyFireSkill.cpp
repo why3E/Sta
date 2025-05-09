@@ -1,4 +1,5 @@
 #include "MyFireSkill.h"
+#include "PlayerCharacter.h"
 #include "Components/BoxComponent.h"
 #include "NiagaraFunctionLibrary.h"
 #include "GameFramework/Actor.h"
@@ -7,6 +8,8 @@
 #include "NiagaraComponent.h"
 #include "Enums.h"
 #include "ReceiveDamageInterface.h"
+
+#include "SESSION.h"
 
 // Sets default values
 AMyFireSkill::AMyFireSkill()
@@ -39,8 +42,24 @@ void AMyFireSkill::Tick(float DeltaTime)
 
 void AMyFireSkill::SpawnFireWall(FVector Location)
 {
+    // Send Wind Skill Packet 
+    APlayerCharacter* player = Cast<APlayerCharacter>(GetOwner());
+    if (player->get_is_player()) {
+        Location.Z += 75.0f;
+
+        player_skill_packet p;
+        p.packet_size = sizeof(player_skill_packet);
+        p.packet_type = C2H_PLAYER_SKILL_PACKET;
+        p.id = player->get_id();
+        p.skill_type = SKILL_WIND_TORNADO;
+        p.x = Location.X; p.y = Location.Y; p.z = Location.Z;
+        player->do_send(&p);
+    }
+    else {
+        Location = player->get_skill_location();
+    }
+
     // 위치와 회전 설정
-    Location.Z += 75.0f;
     SetActorLocation(Location);
 
     // 나이아가라 파티클 활성화

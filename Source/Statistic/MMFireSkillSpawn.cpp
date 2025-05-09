@@ -21,6 +21,7 @@ void UMMFireSkillSpawn::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBa
             // GetCurrentImpactPoint 호출하여 위치 가져오기
             FVector ImpactPoint = ImpactPointOwner->GetCurrentImpactPoint();
             FRotator ImpactRot = ImpactPointOwner->GetCurrentImpactRot(); // 회전값 가져오기
+            
             UE_LOG(LogTemp, Warning, TEXT("Impact Point: %s"), *ImpactPoint.ToString());
 
             // 무기 인터페이스를 통해 FireBall 스폰

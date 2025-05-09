@@ -27,7 +27,7 @@ void AMyWeapon::BeginPlay()
 }
 
 
-void AMyWeapon::EquipWeapon(ACharacter* Player)
+void AMyWeapon::EquipWeapon(ACharacter* Player, bool bIsLeft)
 {
     if (Player)
     {
@@ -36,10 +36,10 @@ void AMyWeapon::EquipWeapon(ACharacter* Player)
         OwnerCharacter = Player; // 소유자 캐릭터 설정
 
         // WeaponCollision을 소켓에 부착
-        WeaponCollision->AttachToComponent(PlayerMesh, FAttachmentTransformRules::SnapToTargetIncludingScale, BaseSocketName);
+        WeaponCollision->AttachToComponent(PlayerMesh, FAttachmentTransformRules::SnapToTargetIncludingScale, BaseLeftSocketName);
 
         // WeaponEffect를 WeaponCollision에 부착 (이미 설정된 경우 유지)
-        WeaponEffect->AttachToComponent(WeaponCollision, FAttachmentTransformRules::KeepRelativeTransform, BaseSocketName);
+        WeaponEffect->AttachToComponent(WeaponCollision, FAttachmentTransformRules::KeepRelativeTransform, BaseLeftSocketName);
 
         // 나이아가라 효과 활성화
         WeaponEffect->Activate();
@@ -52,7 +52,7 @@ void AMyWeapon::SheatheWeapon(USkeletalMeshComponent* Mesh)
     if (Mesh)
     {
         // 나이아가라 컴포넌트를 Base 소켓에 부착
-        WeaponEffect->AttachToComponent(Mesh, FAttachmentTransformRules::KeepRelativeTransform, BaseSocketName);
+        WeaponEffect->AttachToComponent(Mesh, FAttachmentTransformRules::KeepRelativeTransform, BaseLeftSocketName);
         WeaponEffect->Activate(); // 나이아가라 효과 활성화
     }
 }

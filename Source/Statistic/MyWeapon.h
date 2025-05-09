@@ -30,7 +30,7 @@ public:
 	FORCEINLINE EWeaponType GetWeaponType() { return WeaponType; }
 	
 public:
-	void EquipWeapon(ACharacter* Player);
+	void EquipWeapon(ACharacter* Player, bool bIsLeft);
 	void DrawWeapon(USkeletalMeshComponent* Mesh);
 	void SheatheWeapon(USkeletalMeshComponent* Mesh);
 
@@ -49,7 +49,7 @@ protected:
 
 	FCharacterStat WeaponStat;
 
-	FName BaseSocketName;
+	FName BaseLeftSocketName;
 
 	UPROPERTY()
     ACharacter* OwnerCharacter;

@@ -134,16 +134,20 @@ APlayerCharacter::APlayerCharacter()
 		GetCharacterMovement()->MaxWalkSpeed = 300.0f;
 		 // Member Variable 초기화
 	}
+
 	{
 		bIsDash = false;
 	}
 
     // 기본 클래스 타입 설정
-    ClassType = EClassType::CT_Fire;
-
+    LeftClassType = EClassType::CT_None;
+	RightClassType = EClassType::CT_None;
     // 초기 캐싱된 데이터 설정
-    CurrentMontage = nullptr;
-    CurrentComboData = nullptr;
+    CurrentLeftMontage = nullptr;
+    CurrentLeftComboData = nullptr;
+
+	CurrentRightMontage = nullptr;
+    CurrentRightComboData = nullptr;
 
 	static ConstructorHelpers::FClassFinder<AMyWeapon> FireWeaponBPRef(TEXT("/Game/Weapon/BP_FIreWeapon.BP_FIreWeapon_C"));
     if (FireWeaponBPRef.Succeeded())
@@ -180,12 +184,9 @@ void APlayerCharacter::BeginPlay()
 		}
 	}
 
-	{
-	ChangeClass(EClassType::CT_Fire);
-	}
-
-    // 초기 캐싱된 데이터 업데이트
-    UpdateCachedData();
+	
+	ChangeClass(EClassType::CT_Fire, true);
+	
 }
 
 void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -383,20 +384,20 @@ void APlayerCharacter::SkillAttack()
     UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 	UE_LOG(LogTemp, Warning, TEXT("AnimInstance: %s"), AnimInstance ? TEXT("Valid") : TEXT("Invalid"));
 
-    if (AnimInstance && CurrentMontage)
+    if (AnimInstance && CurrentLeftMontage)
     {
         // 현재 몽타주가 재생 중인지 확인
-        if (AnimInstance->Montage_IsPlaying(CurrentMontage))
+        if (AnimInstance->Montage_IsPlaying(CurrentLeftMontage))
         {
             return; // 몽타주가 재생 중이면 함수 종료
         }
 
         // 섹션 이름 설정
-        FName SectionName = FName(*CurrentMontageSectionName);
+        FName SectionName = FName(*CurrentLeftMontageSectionName);
 
         // 몽타주 재생
-        AnimInstance->Montage_Play(CurrentMontage);
-        AnimInstance->Montage_JumpToSection(SectionName, CurrentMontage);
+        AnimInstance->Montage_Play(CurrentLeftMontage);
+        AnimInstance->Montage_JumpToSection(SectionName, CurrentLeftMontage);
 
         // 다음 콤보를 위한 입력 초기화 및 타이머 재설정
         SetComboTimer();
@@ -414,9 +415,9 @@ void APlayerCharacter::SkillAttack()
 		}
 
 		// 몽타주 확인
-		if (CurrentMontage)
+		if (CurrentLeftMontage)
 		{
-			UE_LOG(LogTemp, Warning, TEXT("Montage is valid: %s"), *CurrentMontage->GetName());
+			UE_LOG(LogTemp, Warning, TEXT("Montage is valid: %s"), *CurrentLeftMontage->GetName());
 		}
 		else
 		{
@@ -433,7 +434,7 @@ void APlayerCharacter::ComboStart()
     UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 
     // 몽타주 재생
-    float MontageLength = AnimInstance->Montage_Play(CurrentMontage, AttackSpeedRate);
+    float MontageLength = AnimInstance->Montage_Play(CurrentLeftMontage, AttackSpeedRate);
     if (MontageLength > 0.0f)
     {
         UE_LOG(LogTemp, Warning, TEXT("Montage_Play succeeded! Montage Length: %f"), MontageLength);
@@ -443,7 +444,7 @@ void APlayerCharacter::ComboStart()
         EndDelegate.BindUObject(this, &APlayerCharacter::ComboEnd);
 
         // BasicComboMontage가 종료되면 EndDelegate에 연동된 ComboEnd 함수 호출
-        AnimInstance->Montage_SetEndDelegate(EndDelegate, CurrentMontage);
+        AnimInstance->Montage_SetEndDelegate(EndDelegate, CurrentLeftMontage);
 
         // 타이머 초기화
         ComboTimerHandle.Invalidate();
@@ -463,9 +464,9 @@ void APlayerCharacter::ComboStart()
 		}
 
 		// 몽타주 확인
-		if (CurrentMontage)
+		if (CurrentLeftMontage)
 		{
-			UE_LOG(LogTemp, Warning, TEXT("Montage is valid: %s"), *CurrentMontage->GetName());
+			UE_LOG(LogTemp, Warning, TEXT("Montage is valid: %s"), *CurrentLeftMontage->GetName());
 		}
 		else
 		{
@@ -493,19 +494,19 @@ void APlayerCharacter::ComboCheck()
 
 	if (bHasComboInput)
 	{
-		CurrentComboCount = FMath::Clamp(CurrentComboCount + 1, 1, CurrentComboData->MaxComboCount);
+		CurrentComboCount = FMath::Clamp(CurrentComboCount + 1, 1, CurrentLeftComboData->MaxComboCount);
 
 		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-		if (AnimInstance && CurrentMontage)
+		if (AnimInstance && CurrentLeftMontage)
 		{
 			// 현재 섹션 이름 얻기
-			FName CurrentSectionName = AnimInstance->Montage_GetCurrentSection(CurrentMontage);
+			FName CurrentSectionName = AnimInstance->Montage_GetCurrentSection(CurrentLeftMontage);
 
 			// 다음 섹션 이름 생성
-			FName NextSectionName = *FString::Printf(TEXT("%s%d"), *CurrentComboData->SectionPrefix, CurrentComboCount);
+			FName NextSectionName = *FString::Printf(TEXT("%s%d"), *CurrentLeftComboData->SectionPrefix, CurrentComboCount);
 
 			// 현재 섹션 끝나면 다음 섹션으로 자연스럽게 블렌드되도록 설정
-			AnimInstance->Montage_SetNextSection(CurrentSectionName, NextSectionName, CurrentMontage);
+			AnimInstance->Montage_SetNextSection(CurrentSectionName, NextSectionName, CurrentLeftMontage);
 
 			// 다음 콤보를 위한 입력 초기화 및 타이머 재설정
 			SetComboTimer();
@@ -554,50 +555,69 @@ void APlayerCharacter::BaseAttackCheck()
 	DrawDebugCapsule(GetWorld(), CapsuleOrigin, CapsuleHalfHeight, AttackRadius, FRotationMatrix::MakeFromZ(GetActorForwardVector()).ToQuat(), DrawColor, false, 3.0f);
 }
 
-void APlayerCharacter::ChangeClass(EClassType NewClassType)
+void APlayerCharacter::ChangeClass(EClassType NewClassType, bool bIsLeftType)
 {
-    if (ClassType != NewClassType)
+    EClassType& TargetClassType = bIsLeftType ? LeftClassType : RightClassType;
+
+    if (TargetClassType != NewClassType)
     {
-        ClassType = NewClassType;
-        UpdateCachedData(); // 클래스 변경 시 캐싱된 데이터 업데이트
-        UE_LOG(LogTemp, Warning, TEXT("Class Type Changed to: %d"), static_cast<int32>(ClassType));
+        TargetClassType = NewClassType;
+        UpdateCachedData(bIsLeftType);
+        UE_LOG(LogTemp, Warning, TEXT("%s Class Type Changed to: %d"), bIsLeftType ? TEXT("Left") : TEXT("Right"), static_cast<int32>(TargetClassType));
     }
 }
 
-void APlayerCharacter::UpdateCachedData()
+void APlayerCharacter::UpdateCachedData(bool bIsLeftType)
 {
-    // 기존 무기 제거
-    if (CurrentWeapon)
+    if (bIsLeftType)
     {
-        CurrentWeapon->Destroy();
-        CurrentWeapon = nullptr;
-        UE_LOG(LogTemp, Warning, TEXT("Previous weapon removed."));
+        // 기존 왼쪽 무기 제거
+        if (CurrentLeftWeapon)
+        {
+            CurrentLeftWeapon->Destroy();
+            CurrentLeftWeapon = nullptr;
+            UE_LOG(LogTemp, Warning, TEXT("Previous left weapon removed."));
+        }
+    }
+    else
+    {
+        // 기존 오른쪽 무기 제거 
+        if (CurrentRightWeapon)
+        {
+            CurrentRightWeapon->Destroy();
+            CurrentRightWeapon = nullptr;
+            UE_LOG(LogTemp, Warning, TEXT("Previous right weapon removed."));
+        }
     }
 
     // 클래스 타입에 따라 무기와 데이터를 업데이트
-    switch (ClassType)
+    EClassType ClassTypeToUpdate = bIsLeftType ? LeftClassType : RightClassType;
+    UAnimMontage*& CurrentMontage = bIsLeftType ? CurrentLeftMontage : CurrentRightMontage;
+    UMMComboActionData*& CurrentComboData = bIsLeftType ? CurrentLeftComboData : CurrentRightComboData;
+    FString& CurrentMontageSectionName = bIsLeftType ? CurrentLeftMontageSectionName : CurrentRightMontageSectionName;
+
+    switch (ClassTypeToUpdate)
     {
     case EClassType::CT_Wind:
         CurrentMontage = WindComboMontage;
         CurrentComboData = WindComboData;
         WeaponClass = WindWeaponBP;
         CurrentMontageSectionName = TEXT("WindSkill");
-        CheckAnimBone = 1;
+        if (bIsLeftType) CheckAnimBone = 1;
         break;
 
     case EClassType::CT_Stone:
         CurrentMontage = StoneComboMontage;
         CurrentComboData = StoneComboData;
-        CheckAnimBone = 0;
+        if (bIsLeftType) CheckAnimBone = 0;
         break;
 
     case EClassType::CT_Fire:
-
         CurrentMontage = FireComboMontage;
         CurrentComboData = FireComboData;
         WeaponClass = FireWeaponBP;
         CurrentMontageSectionName = TEXT("FireSkill");
-        CheckAnimBone = 1;
+        if (bIsLeftType) CheckAnimBone = 1;
         break;
 
     default:
@@ -606,24 +626,39 @@ void APlayerCharacter::UpdateCachedData()
         break;
     }
 
+    UE_LOG(LogTemp, Warning, TEXT("CurrentLeftMontage: %s"), CurrentLeftMontage ? *CurrentLeftMontage->GetName() : TEXT("None"));
+    UE_LOG(LogTemp, Warning, TEXT("CurrentRightMontage: %s"), CurrentRightMontage ? *CurrentRightMontage->GetName() : TEXT("None"));
+
     // 새로운 무기 생성 및 장착
     if (GetWorld() && WeaponClass)
     {
-        CurrentWeapon = Cast<AMyWeapon>(GetWorld()->SpawnActor<AMyWeapon>(WeaponClass));
-        UE_LOG(LogTemp, Warning, TEXT("WeaponClass Load: %s"), CurrentWeapon ? TEXT("Success") : TEXT("Fail"));
-
-        if (CurrentWeapon)
+        if (bIsLeftType)
         {
-            UE_LOG(LogTemp, Warning, TEXT("Weapon Spawned"));
-            EquipWeapon(CurrentWeapon);
+            CurrentLeftWeapon = Cast<AMyWeapon>(GetWorld()->SpawnActor<AMyWeapon>(WeaponClass));
+            UE_LOG(LogTemp, Warning, TEXT("Left WeaponClass Load: %s"), CurrentLeftWeapon ? TEXT("Success") : TEXT("Fail"));
+
+            if (CurrentLeftWeapon)
+            {
+                UE_LOG(LogTemp, Warning, TEXT("Left Weapon Spawned"));
+                EquipWeapon(CurrentLeftWeapon, bIsLeftType);
+            }
+        }
+        else
+        {
+            CurrentRightWeapon = Cast<AMyWeapon>(GetWorld()->SpawnActor<AMyWeapon>(WeaponClass));
+            UE_LOG(LogTemp, Warning, TEXT("Right WeaponClass Load: %s"), CurrentRightWeapon ? TEXT("Success") : TEXT("Fail"));
+
+            if (CurrentRightWeapon)
+            {
+                UE_LOG(LogTemp, Warning, TEXT("Right Weapon Spawned"));
+                EquipWeapon(CurrentRightWeapon, bIsLeftType);
+            }
         }
     }
-
 }
-
 void APlayerCharacter::SetComboTimer()
 {
-    if (!CurrentComboData)
+    if (!CurrentLeftComboData)
     {
         UE_LOG(LogTemp, Error, TEXT("ComboData is missing for the current class type!"));
         return;
@@ -632,12 +667,12 @@ void APlayerCharacter::SetComboTimer()
     int32 ComboIndex = CurrentComboCount - 1;
 
     // 인덱스가 유효한지 체크
-    if (CurrentComboData->ComboFrame.IsValidIndex(ComboIndex))
+    if (CurrentLeftComboData->ComboFrame.IsValidIndex(ComboIndex))
     {
         const float AttackSpeedRate = 2.0f;
 
         // 실제 콤보가 입력될 수 있는 시간 구하기
-        float ComboAvailableTime = (CurrentComboData->ComboFrame[ComboIndex] / CurrentComboData->FrameRate) / AttackSpeedRate;
+        float ComboAvailableTime = (CurrentLeftComboData->ComboFrame[ComboIndex] / CurrentLeftComboData->FrameRate) / AttackSpeedRate;
 
         // 타이머 설정하기
         if (ComboAvailableTime > 0.0f)
@@ -647,9 +682,9 @@ void APlayerCharacter::SetComboTimer()
     }
 }
 
-void APlayerCharacter::EquipWeapon(AMyWeapon* Weapon)
+void APlayerCharacter::EquipWeapon(AMyWeapon* Weapon, bool bIsLeftType)
 {
-	Weapon->EquipWeapon(this);
+	Weapon->EquipWeapon(this, bIsLeftType);
 }
 
 void APlayerCharacter::Tick(float DeltaTime) {
@@ -815,21 +850,21 @@ void APlayerCharacter::GetFireTargetLocation()
 
 void APlayerCharacter::ChangeClassTest()
 {
-	switch (ClassType)
+	switch (LeftClassType)
 	{
 	case EClassType::CT_Wind:
-		ChangeClass(EClassType::CT_Fire);
+		ChangeClass(EClassType::CT_Fire,1);
 		UE_LOG(LogTemp, Warning, TEXT("Class changed to Fire"));
 		break;
 
 	case EClassType::CT_Stone:
-		ChangeClass(EClassType::CT_Wind);
+		ChangeClass(EClassType::CT_Wind,1);
 		UE_LOG(LogTemp, Warning, TEXT("Class changed to Wind"));
 		break;
 
 	case EClassType::CT_Fire:
-		ChangeClass(EClassType::CT_Stone);
-		UE_LOG(LogTemp, Warning, TEXT("Class changed to Stone"));
+		ChangeClass(EClassType::CT_Wind,1);
+		UE_LOG(LogTemp, Warning, TEXT("Class changed to Wind"));
 		break;
 
 	default:
@@ -868,31 +903,31 @@ void send_callback(DWORD err, DWORD num_bytes, LPWSAOVERLAPPED p_over, DWORD fla
 void APlayerCharacter::use_skill(char skill_type, FVector v) {
 	switch (skill_type) {
 	case SKILL_WIND_CUTTER:
-		CurrentMontage = WindComboMontage;
-		CurrentComboData = WindComboData;
+		CurrentLeftMontage = WindComboMontage;
+		CurrentLeftComboData = WindComboData;
 		m_skill_velocity = v;
 		ComboStart();
 		break;
 
 	case SKILL_WIND_TORNADO:
-		CurrentMontage = WindComboMontage;
-		CurrentComboData = WindComboData;
-		CurrentMontageSectionName = TEXT("WindSkill");
+		CurrentLeftMontage = WindComboMontage;
+		CurrentLeftComboData = WindComboData;
+		CurrentLeftMontageSectionName = TEXT("WindSkill");
 		m_skill_location = v;
 		SkillAttack();
 		break;
 
 	case SKILL_FIRE_BALL:
-		CurrentMontage = FireComboMontage;
-		CurrentComboData = FireComboData;
+		CurrentLeftMontage = FireComboMontage;
+		CurrentLeftComboData = FireComboData;
 		m_skill_velocity = v;
 		ComboStart();
 		break;
 
 	case SKILL_FIRE_WALL:
-		CurrentMontage = FireComboMontage;
-		CurrentComboData = FireComboData;
-		CurrentMontageSectionName = TEXT("FireSkill");
+		CurrentLeftMontage = FireComboMontage;
+		CurrentLeftComboData = FireComboData;
+		CurrentLeftMontageSectionName = TEXT("FireSkill");
 		m_skill_location = v;
 		SkillAttack();
 		break;

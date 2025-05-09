@@ -1,12 +1,8 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "MyWindCutter.h"
-
 #include "Components/BoxComponent.h"
-
 #include "PlayerCharacter.h"
-#include "Components/SphereComponent.h"
-
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "NiagaraComponent.h"
 #include "NiagaraFunctionLibrary.h"
@@ -54,7 +50,6 @@ void AMyWindCutter::BeginPlay()
 void AMyWindCutter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
 }
 
 void AMyWindCutter::PostInitializeComponents()

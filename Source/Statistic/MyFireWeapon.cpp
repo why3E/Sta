@@ -24,7 +24,6 @@ AMyFireWeapon::AMyFireWeapon()
 		FireSkillClass = FireSkillRef.Class;
 	}
 	WeaponType = EWeaponType::WT_Fire;
-	BaseLeftSocketName = TEXT("FirePosition");
 	FireBallSocket = TEXT("FirePosition");
 }
 

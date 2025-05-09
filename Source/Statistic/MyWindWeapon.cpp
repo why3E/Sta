@@ -24,7 +24,6 @@ AMyWindWeapon::AMyWindWeapon()
         WindSkillClass = WindSkillRef.Class;
     }
     WeaponType = EWeaponType::WT_Wind;
-    BaseLeftSocketName = TEXT("WindPosition");
     WindCutterSocket = TEXT("WindPosition");
 }
 

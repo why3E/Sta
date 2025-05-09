@@ -365,6 +365,8 @@ void APlayerCharacter::BasicAttack()
 void APlayerCharacter::SkillAttack()
 {
     UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	UE_LOG(LogTemp, Warning, TEXT("AnimInstance: %s"), AnimInstance ? TEXT("Valid") : TEXT("Invalid"));
+
     if (AnimInstance && CurrentMontage)
     {
         // 현재 몽타주가 재생 중인지 확인
@@ -747,7 +749,6 @@ void APlayerCharacter::UpdateCircle()
             // 충돌 지점 업데이트
             CurrentImpactPoint = HitResult.ImpactPoint;
 			FVector Direction = (CurrentImpactPoint - GetActorLocation()).GetSafeNormal();
-			// ✅ 해당 방향의 회전값 구하기
 			CurrentImpactRot = Direction.Rotation();
             // 충돌 지점에 구 모양의 디버그 라인 표시
             DrawDebugSphere(GetWorld(), CurrentImpactPoint, 50.0f, 12, FColor::Green, false, 0.1f);

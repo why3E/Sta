@@ -470,6 +470,15 @@ void c_process_packet(char* packet) {
 				NewPlayer->GetMesh()->bNoSkeletonUpdate = false;
 	
 				UE_LOG(LogTemp, Warning, TEXT("AnimInstance Set: %s"), *AnimClass->GetName());
+				
+				if(NewPlayer->GetMesh()->GetAnimInstance())
+				{
+					UE_LOG(LogTemp, Warning, TEXT("Player Spawned with AnimInstance: %s"), *NewPlayer->GetMesh()->GetAnimInstance()->GetName());
+				}
+				else
+				{
+					UE_LOG(LogTemp, Warning, TEXT("Player Spawned without AnimInstance"));
+				}
 			}
 			else
 			{

@@ -5,7 +5,6 @@
 #include "InputActionValue.h"
 #include "CoreMinimal.h"
 #include "MyCharacterBase.h"
-#include "AnimationAttackInterface.h"
 #include "Enums.h" // EClassType 포함
 #include "MMComboActionData.h" // 데이터 에셋 헤더 포함
 #include "AnimationUpdateInterface.h"
@@ -16,7 +15,7 @@
 #include "PlayerCharacter.generated.h"
 
 UCLASS()
-class STATISTIC_API APlayerCharacter : public AMyCharacterBase, public IAnimationAttackInterface, public IAnimationUpdateInterface, public IMyPlayerVisualInterface, public IAnimationWeaponInterface, public IImpactPointInterface
+class STATISTIC_API APlayerCharacter : public AMyCharacterBase, public IAnimationUpdateInterface, public IMyPlayerVisualInterface, public IAnimationWeaponInterface, public IImpactPointInterface
 {
 	GENERATED_BODY()
 
@@ -131,8 +130,6 @@ protected:
 	uint8 CheckBackMove = 0;
 
 protected:
-	virtual void BaseAttackCheck() override;
-
 	EClassType LeftClassType;
 	EClassType RightClassType;
 	

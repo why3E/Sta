@@ -42,7 +42,7 @@ protected:
 
 	FVector2D MovementVector;
 
-	FORCEINLINE virtual class AMyWeapon* GetWeapon() override { return CurrentLeftWeapon; }
+	FORCEINLINE virtual class AMyWeapon* GetWeapon() override { return CurrentWeapon; }
 	
 protected:
 	void BasicMove(const FInputActionValue& Value);
@@ -51,6 +51,8 @@ protected:
     void StopJump();
 	void DashStart();
 	void DashEnd();
+	void LeftClick();
+	void RightClick();
 	void BasicAttack();
 	void SkillAttack();
 	void QSkill();
@@ -74,6 +76,8 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, Category = Input, Meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<class UInputAction> IA_BasicAttack;
+	UPROPERTY(VisibleAnywhere, Category = Input, Meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<class UInputAction> IA_RightAttack;
 
 	UPROPERTY(VisibleAnywhere, Category = Input, Meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<class UInputAction> IA_QSkill;
@@ -145,17 +149,21 @@ public:
     uint8 CheckAnimBone : 1;
 
 private:
-	// 캐싱된 현재 몽타주와 데이터
 	UAnimMontage* CurrentLeftMontage;
 	UMMComboActionData* CurrentLeftComboData;
 	FString CurrentLeftMontageSectionName; // 섹션 이름을 저장하는 변수
 
-	// 캐싱된 데이터를 업데이트하는 함수 
-	void UpdateCachedData(bool bIsLeftType);
-
 	UAnimMontage* CurrentRightMontage;
 	UMMComboActionData* CurrentRightComboData;
 	FString CurrentRightMontageSectionName; // 섹션 이름을 저장하는 변수
+
+	// 캐싱된 데이터를 업데이트하는 함수 
+	void UpdateCachedData(bool bIsLeftType);
+
+	// 캐싱된 현재 몽타주와 데이터
+	UAnimMontage* CurrentMontage;
+	UMMComboActionData* CurrentComboData;
+	FString CurrentMontageSectionName; // 섹션 이름을 저장하는 변수
 
 	// MMPlayerCharacter Header
 	void EquipWeapon(class AMyWeapon* Weapon, bool bIsLeftType);
@@ -169,6 +177,9 @@ private:
 
 	UPROPERTY(VisibleAnywhere, Category = Weapon, meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<class AMyWeapon> CurrentRightWeapon;
+
+	UPROPERTY(VisibleAnywhere, Category = Weapon, meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<class AMyWeapon> CurrentWeapon;
 
 protected:
 	FORCEINLINE virtual EClassType GetClassType() override { return RightClassType; };

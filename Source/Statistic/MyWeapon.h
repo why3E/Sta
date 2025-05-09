@@ -32,7 +32,6 @@ public:
 public:
 	void EquipWeapon(ACharacter* Player, bool bIsLeft);
 	void DrawWeapon(USkeletalMeshComponent* Mesh);
-	void SheatheWeapon(USkeletalMeshComponent* Mesh);
 
 protected:
 	virtual void BeginPlay() override;
@@ -50,6 +49,7 @@ protected:
 	FCharacterStat WeaponStat;
 
 	FName BaseLeftSocketName;
+	FName BaseRightSocketName;
 
 	UPROPERTY()
     ACharacter* OwnerCharacter;

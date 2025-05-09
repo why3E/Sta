@@ -1,12 +1,18 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "MyWindCutter.h"
+
+#include "Components/BoxComponent.h"
+
 #include "PlayerCharacter.h"
 #include "Components/SphereComponent.h"
+
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "NiagaraComponent.h"
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraSystem.h"
+
+#include "ReceiveDamageInterface.h"
 
 #include "SESSION.h"
 
@@ -14,16 +20,15 @@
 AMyWindCutter::AMyWindCutter()
 {
 	// 콜리전 컴포넌트 초기화
-	CollisionComponent = CreateDefaultSubobject<USphereComponent>(TEXT("CollisionComponent"));
-	CollisionComponent->SetSphereRadius(30.0f);
-	CollisionComponent->SetCollisionProfileName(TEXT("Projectile")); // 콜리전 프로파일 설정
-	RootComponent = CollisionComponent;
+    CollisionComponent = CreateDefaultSubobject<UBoxComponent>(TEXT("CollisionComponent"));
+    CollisionComponent->SetBoxExtent(FVector(40.0f, 120.0f, 5.0f)); // 박스 크기 설정
+    CollisionComponent->SetCollisionProfileName(TEXT("Projectile")); // 콜리전 프로파일 설정
+    RootComponent = CollisionComponent;
 
 	// 나이아가라 파티클 컴포넌트 초기화
 	WindCutterNiagaraComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("WindCutterNiagaraComponent"));
 	WindCutterNiagaraComponent->SetupAttachment(CollisionComponent);
 	WindCutterNiagaraComponent->SetVisibility(true);
-
 
 	// Projectile Movement 컴포넌트 초기화
 	MovementComponent = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("MovementComponent"));
@@ -104,7 +109,7 @@ void AMyWindCutter::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* 
     if (bIsHit) return; // 이미 충돌 처리된 경우 무시
     if (Owner == OtherActor) return; // 발사체의 소유자와 충돌한 경우 무시
 
-    // TODO: 데미지 전달 로직 추가
+    // 충돌한 액터 로그 출력
     UE_LOG(LogTemp, Warning, TEXT("Hit Actor: %s"), *OtherActor->GetName());
     UE_LOG(LogTemp, Warning, TEXT("Hit Component: %s"), *OverlappedComp->GetName());
 
@@ -118,6 +123,24 @@ void AMyWindCutter::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* 
     if (WindCutterNiagaraComponent)
     {
         UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), HitEffectNiagaraSystem, GetActorLocation());
+    }
+
+    // 데미지 전달
+    if (OtherActor->Implements<UReceiveDamageInterface>())
+    {
+        FSkillInfo Info;
+        Info.Damage = 10.f;
+        Info.Element = EClassType::CT_Wind;
+        Info.StunTime = 1.5f;
+        Info.KnockbackDir = (OtherActor->GetActorLocation() - GetActorLocation()).GetSafeNormal();
+
+        // 인터페이스로 캐스팅하여 함수 호출
+        IReceiveDamageInterface* DamageReceiver = Cast<IReceiveDamageInterface>(OtherActor);
+        if (DamageReceiver)
+        {
+            DamageReceiver->ReceiveSkillHit(Info, this);
+            UE_LOG(LogTemp, Warning, TEXT("Skill hit applied to: %s"), *OtherActor->GetName());
+        }
     }
 
     // 충돌 상태 설정

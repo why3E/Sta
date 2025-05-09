@@ -8,6 +8,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Components/PrimitiveComponent.h"
 #include "NiagaraSystem.h"
+#include "ReceiveDamageInterface.h"
 
 #include "SESSION.h"
 
@@ -31,6 +32,8 @@ AMyWindSkill::AMyWindSkill()
 void AMyWindSkill::BeginPlay()
 {
 	Super::BeginPlay();
+  GetWorld()->GetTimerManager().SetTimer(CheckOverlapTimerHandle, this, &AMyWindSkill::CheckOverlappingActors, 1.0f, true);
+
 }
 
 // Called every frame
@@ -88,10 +91,47 @@ void AMyWindSkill::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* O
         // 같은 클래스라면 무시
         if (OtherActor->IsA(AMyWindSkill::StaticClass()))
         {
-            UE_LOG(LogTemp, Warning, TEXT("Ignored collision with another Fire Wall."));
             return;
         }
 
-        UE_LOG(LogTemp, Warning, TEXT("Fire Wall hit actor: %s"), *OtherActor->GetName());
+        UE_LOG(LogTemp, Warning, TEXT("Tonado hit actor: %s"), *OtherActor->GetName());
     }
+}
+
+
+void AMyWindSkill::CheckOverlappingActors()
+{
+    TArray<AActor*> CurrentOverlappingActors;
+    CollisionComponent->GetOverlappingActors(CurrentOverlappingActors);
+
+    for (AActor* OtherActor : CurrentOverlappingActors)
+    {
+        if (OtherActor)
+        {
+            if (OtherActor->Implements<UReceiveDamageInterface>())
+            {
+                FSkillInfo Info;
+                Info.Damage = 10.f;
+                Info.Element = EClassType::CT_Wind;
+                Info.StunTime = 1.5f;
+                Info.KnockbackDir = (OtherActor->GetActorLocation() - GetActorLocation()).GetSafeNormal();
+
+                // 인터페이스로 캐스팅하여 함수 호출
+                IReceiveDamageInterface* DamageReceiver = Cast<IReceiveDamageInterface>(OtherActor);
+                if (DamageReceiver)
+                {
+                    DamageReceiver->ReceiveSkillHit(Info, this);
+                    UE_LOG(LogTemp, Warning, TEXT("Skill hit applied to: %s"), *OtherActor->GetName());
+                }
+            }
+        }
+    }
+}
+
+void AMyWindSkill::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+    Super::EndPlay(EndPlayReason);
+
+    // 타이머 정리
+    GetWorld()->GetTimerManager().ClearTimer(CheckOverlapTimerHandle);
 }

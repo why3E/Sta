@@ -24,4 +24,5 @@ class STATISTIC_API IImpactPointInterface
 public:
 	virtual FVector GetCurrentImpactPoint() = 0;
 	virtual FRotator GetCurrentImpactRot() = 0;
+	virtual FVector GetFireLocation() = 0;
 };

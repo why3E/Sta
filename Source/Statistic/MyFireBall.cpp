@@ -5,6 +5,8 @@
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "NiagaraComponent.h"
 #include "NiagaraFunctionLibrary.h"
+#include "ReceiveDamageInterface.h"
+#include "Enums.h"
 
 #include "SESSION.h"
 
@@ -122,6 +124,23 @@ void AMyFireBall::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* Ot
     if (HitEffectNiagaraSystem)
     {
         UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), HitEffectNiagaraSystem, GetActorLocation());
+    }
+
+    if (OtherActor->Implements<UReceiveDamageInterface>())
+    {
+        FSkillInfo Info;
+        Info.Damage = 10.f;
+        Info.Element = EClassType::CT_Fire;
+        Info.StunTime = 1.5f;
+        Info.KnockbackDir = (OtherActor->GetActorLocation() - GetActorLocation()).GetSafeNormal();
+
+        // 인터페이스로 캐스팅하여 함수 호출
+        IReceiveDamageInterface* DamageReceiver = Cast<IReceiveDamageInterface>(OtherActor);
+        if (DamageReceiver)
+        {
+            DamageReceiver->ReceiveSkillHit(Info, this);
+            UE_LOG(LogTemp, Warning, TEXT("Skill hit applied to: %s"), *OtherActor->GetName());
+        }
     }
 
     // 충돌 상태 설정

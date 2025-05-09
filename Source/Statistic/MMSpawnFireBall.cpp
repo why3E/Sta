@@ -3,6 +3,7 @@
 
 #include "MMSpawnFireBall.h"
 #include "AnimationWeaponInterface.h"
+#include "ImpactPointInterface.h"
 #include "MyFireWeapon.h"
 #include "MyFireBall.h"
 
@@ -12,13 +13,19 @@ void UMMSpawnFireBall::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBas
 
     if(MeshComp)
     {
-        IAnimationWeaponInterface* WeaponPawn = Cast<IAnimationWeaponInterface>(MeshComp->GetOwner());
-        if (WeaponPawn)
+        IImpactPointInterface* ImpactPointOwner = Cast<IImpactPointInterface>(MeshComp->GetOwner());
+        if (ImpactPointOwner)
         {
-            AMyFireWeapon* Weapon = Cast<AMyFireWeapon>(WeaponPawn->GetWeapon());
-            if (Weapon)
+            FVector FireLocation = ImpactPointOwner->GetFireLocation();
+
+            IAnimationWeaponInterface* WeaponPawn = Cast<IAnimationWeaponInterface>(MeshComp->GetOwner());
+            if (WeaponPawn)
             {
-                Weapon->SpawnFireBall(); // 에너지볼 스폰 함수 호출
+                AMyFireWeapon* Weapon = Cast<AMyFireWeapon>(WeaponPawn->GetWeapon());
+                if (Weapon)
+                {
+                    Weapon->SpawnFireBall(FireLocation); // 에너지볼 스폰 함수 호출
+                }
             }
         }
     }

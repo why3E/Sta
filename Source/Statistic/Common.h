@@ -40,7 +40,7 @@ constexpr char C2H_PLAYER_SKILL_PACKET = 45;
 
 
 
-constexpr char ANIMATION_STATE_IDLE = 1;
+constexpr char WIND_ELEMENT = 1;
 
 constexpr char SKILL_WIND_CUTTER = 1;
 constexpr char SKILL_WIND_TORNADO = 2;

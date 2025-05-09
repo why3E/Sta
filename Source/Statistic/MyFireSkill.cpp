@@ -47,9 +47,10 @@ void AMyFireSkill::SpawnFireWall(FVector Location, FRotator Rotation)
         p.packet_size = sizeof(player_skill_packet);
         p.packet_type = C2H_PLAYER_SKILL_PACKET;
         p.id = player->get_id();
-        p.skill_type = SKILL_WIND_TORNADO;
+        p.skill_type = SKILL_FIRE_WALL;
         p.x = Location.X; p.y = Location.Y; p.z = Location.Z;
         player->do_send(&p);
+        //UE_LOG(LogTemp, Warning, TEXT("[Client %d] Send Fire Ball Packet to Host"), p.id);
     }
     else {
         Location = player->get_skill_location();

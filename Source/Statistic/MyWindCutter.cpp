@@ -85,6 +85,7 @@ void AMyWindCutter::Fire(FVector TargetLocation)
         p.skill_type = SKILL_WIND_CUTTER;
         p.x = LaunchDirection.X; p.y = LaunchDirection.Y; p.z = LaunchDirection.Z;
         player->do_send(&p);
+        //UE_LOG(LogTemp, Warning, TEXT("[Client %d] Send Wind Cutter Packet to Host"), p.id);
     }
     else {
         LaunchDirection = player->get_skill_velocity();

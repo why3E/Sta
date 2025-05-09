@@ -89,6 +89,7 @@ void AMyFireBall::Fire(FVector TargetLocation)
         p.skill_type = SKILL_FIRE_BALL;
         p.x = LaunchDirection.X; p.y = LaunchDirection.Y; p.z = LaunchDirection.Z;
         player->do_send(&p);
+        //UE_LOG(LogTemp, Warning, TEXT("[Client %d] Send Fire Skill Packet to Host"), p.id);
     }
     else {
         LaunchDirection = player->get_skill_velocity();

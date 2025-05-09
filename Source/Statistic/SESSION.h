@@ -30,7 +30,6 @@ public:
 	float m_yaw;
 	FVector m_velocity;
 	char m_hp;
-	char m_animation_state;
 	char m_current_element;
 
 	LPWSAOVERLAPPED_COMPLETION_ROUTINE m_recv_callback;

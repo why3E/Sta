@@ -23,6 +23,21 @@ void CALLBACK send_callback(DWORD err, DWORD num_bytes, LPWSAOVERLAPPED p_over, 
 
 APlayerCharacter::APlayerCharacter()
 {
+	// Initialize
+	m_id = -1;
+	m_yaw = 0.0f;
+	m_velocity = FVector(0.0f, 0.0f, 0.0f);
+	m_hp = 100;
+	m_current_element = WIND_ELEMENT;
+
+	m_skill_velocity = FVector(0.0f, 0.0f, 0.0f);
+	m_skill_location = FVector(0.0f, 0.0f, 0.0f);
+
+	m_is_player = false;
+	m_was_moving = false;
+
+	SetActorLocation(FVector(37'975.0f, -40'000.0f, 950.0f));
+
 	// Collision 설정
 	{
 		GetCapsuleComponent()->InitCapsuleSize(35.0f, 90.0f);
@@ -237,7 +252,7 @@ void APlayerCharacter::BasicMove(const FInputActionValue& Value)
 
 		float DistanceDiff = FVector::Dist(Velocity, m_velocity);
 
-		if (DistanceDiff > 0.5f) {
+		if (DistanceDiff > 10.0f) {
 			m_velocity = Velocity;
 			m_was_moving = true;
 
@@ -251,7 +266,7 @@ void APlayerCharacter::BasicMove(const FInputActionValue& Value)
 			p.vx = Velocity.X; p.vy = Velocity.Y; p.vz = Velocity.Z;
 
 			do_send(&p);
-			UE_LOG(LogTemp, Warning, TEXT("[Client %d] Send Vector Packet to Host"), m_id);
+			//UE_LOG(LogTemp, Warning, TEXT("[Client %d] Send Vector Packet to Host"), m_id);
 		}
 	}
 }
@@ -273,7 +288,7 @@ void APlayerCharacter::BasicLook(const FInputActionValue& Value)
 	float CurrentYaw = GetControlRotation().Yaw;
 	float YawDiff = FMath::Abs(CurrentYaw - m_yaw);
 
-	if (YawDiff > 10.0f) { 
+	if (YawDiff > 30.0f) { 
 		m_yaw = CurrentYaw;
 
 		player_rotation_packet p;
@@ -298,7 +313,6 @@ void APlayerCharacter::StartJump()
 		p.id = m_id;
 
 		do_send(&p);
-		UE_LOG(LogTemp, Warning, TEXT("[Client %.2f] Send Jump Start Packet to Host"), GetCharacterMovement()->Velocity.Z);
 		//UE_LOG(LogTemp, Warning, TEXT("[Client %d] Send Jump Start Packet to Host"), m_id);
 	}
 }
@@ -618,62 +632,6 @@ void APlayerCharacter::EquipWeapon(AMyWeapon* Weapon)
 	Weapon->EquipWeapon(this);
 }
 
-void APlayerCharacter::do_send(void* buff) {
-	EXP_OVER* o = new EXP_OVER;
-	unsigned char packet_size = reinterpret_cast<unsigned char*>(buff)[0];
-	memcpy(o->m_buffer, buff, packet_size);
-	o->m_wsabuf[0].len = packet_size;
-
-	DWORD send_bytes;
-	auto ret = WSASend(g_h_socket, o->m_wsabuf, 1, &send_bytes, 0, &(o->m_over), send_callback);
-	if (ret == SOCKET_ERROR) {
-		if (WSAGetLastError() != WSA_IO_PENDING) {
-			delete o;
-			return;
-		}
-	}
-}
-
-void APlayerCharacter::rotate(float yaw){
-	FRotator NewRotation = GetActorRotation();
-	NewRotation.Yaw = yaw;
-	SetActorRotation(NewRotation);
-}
-
-void APlayerCharacter::use_skill(char skill_type, FVector v) {
-	switch (skill_type) {
-	case SKILL_WIND_CUTTER:
-		CurrentMontage = WindComboMontage;
-		CurrentComboData = WindComboData;
-		m_skill_velocity = v;
-		ComboStart();
-		break;
-
-	case SKILL_WIND_TORNADO:
-		CurrentMontage = WindComboMontage;
-		CurrentComboData = WindComboData;
-		CurrentMontageSectionName = TEXT("WindSkill");
-		m_skill_location = v;
-		SkillAttack();
-		break;
-
-	case SKILL_FIRE_BALL:
-		CurrentMontage = FireComboMontage;
-		CurrentComboData = FireComboData;
-		m_skill_velocity = v;
-		ComboStart();
-		break;
-
-	case SKILL_FIRE_WALL:
-		CurrentMontage = FireComboMontage;
-		CurrentComboData = FireComboData;
-		CurrentMontageSectionName = TEXT("FireSkill");
-		m_skill_location = v;
-		SkillAttack();
-		break;
-	}
-}
-
 void APlayerCharacter::Tick(float DeltaTime) {
 	Super::Tick(DeltaTime);
 
@@ -682,6 +640,7 @@ void APlayerCharacter::Tick(float DeltaTime) {
 		// Stop
 		if (m_was_moving) {
 			FVector Velocity = GetCharacterMovement()->Velocity;
+			//UE_LOG(LogTemp, Warning, TEXT("[Client %d] VX : %.2f, VY : %.2f"), m_id, Velocity.X, Velocity.Y);
 
 			if (Velocity.IsNearlyZero()) {
 				m_was_moving = false;
@@ -695,7 +654,7 @@ void APlayerCharacter::Tick(float DeltaTime) {
 				p.x = Position.X; p.y = Position.Y; p.z = Position.Z;
 
 				do_send(&p);
-				UE_LOG(LogTemp, Warning, TEXT("[Client %d] Send Stopped Packet to Host"), m_id);
+				//UE_LOG(LogTemp, Warning, TEXT("[Client %d] Send Stop Packet to Host"), m_id);
 			}
 		}
 	}
@@ -717,11 +676,8 @@ void APlayerCharacter::Tick(float DeltaTime) {
 			AddMovementInput(m_velocity.GetSafeNormal(), 1.0f);
 		}
 	}
-}
 
-void send_callback(DWORD err, DWORD num_bytes, LPWSAOVERLAPPED p_over, DWORD flags) {
-	EXP_OVER* p = reinterpret_cast<EXP_OVER*>(p_over);
-	delete p;
+	SleepEx(0, TRUE);
 }
 
 void APlayerCharacter::QSkill()
@@ -808,4 +764,65 @@ void APlayerCharacter::UpdateCircle()
 
 void APlayerCharacter::ESkill() {
 	UE_LOG(LogTemp, Warning, TEXT("E Skill!"));
+}
+
+void APlayerCharacter::rotate(float yaw) {
+	FRotator NewRotation = GetActorRotation();
+	NewRotation.Yaw = yaw;
+	SetActorRotation(NewRotation);
+}
+
+void APlayerCharacter::do_send(void* buff) {
+	EXP_OVER* o = new EXP_OVER;
+	unsigned char packet_size = reinterpret_cast<unsigned char*>(buff)[0];
+	memcpy(o->m_buffer, buff, packet_size);
+	o->m_wsabuf[0].len = packet_size;
+
+	DWORD send_bytes;
+	auto ret = WSASend(g_h_socket, o->m_wsabuf, 1, &send_bytes, 0, &(o->m_over), send_callback);
+	if (ret == SOCKET_ERROR) {
+		if (WSAGetLastError() != WSA_IO_PENDING) {
+			delete o;
+			return;
+		}
+	}
+}
+
+void send_callback(DWORD err, DWORD num_bytes, LPWSAOVERLAPPED p_over, DWORD flags) {
+	EXP_OVER* p = reinterpret_cast<EXP_OVER*>(p_over);
+	delete p;
+}
+
+void APlayerCharacter::use_skill(char skill_type, FVector v) {
+	switch (skill_type) {
+	case SKILL_WIND_CUTTER:
+		CurrentMontage = WindComboMontage;
+		CurrentComboData = WindComboData;
+		m_skill_velocity = v;
+		ComboStart();
+		break;
+
+	case SKILL_WIND_TORNADO:
+		CurrentMontage = WindComboMontage;
+		CurrentComboData = WindComboData;
+		CurrentMontageSectionName = TEXT("WindSkill");
+		m_skill_location = v;
+		SkillAttack();
+		break;
+
+	case SKILL_FIRE_BALL:
+		CurrentMontage = FireComboMontage;
+		CurrentComboData = FireComboData;
+		m_skill_velocity = v;
+		ComboStart();
+		break;
+
+	case SKILL_FIRE_WALL:
+		CurrentMontage = FireComboMontage;
+		CurrentComboData = FireComboData;
+		CurrentMontageSectionName = TEXT("FireSkill");
+		m_skill_location = v;
+		SkillAttack();
+		break;
+	}
 }

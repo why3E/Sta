@@ -24,6 +24,7 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
+	virtual void Tick(float DeltaTime);
 
 protected:
 	FORCEINLINE virtual class UCameraComponent* GetPlayerCamera() override { return Camera; }
@@ -160,40 +161,6 @@ protected:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
     TSubclassOf<AMyWeapon> WindWeaponBP;
-	
-private:
-	char m_id;
-	float m_yaw;
-	FVector m_velocity;
-	char m_hp;
-	char m_animation_state;
-	char m_current_element;
-
-	FVector m_skill_velocity;
-	FVector m_skill_location;
-
-	bool m_is_player = false;
-	bool m_was_moving = false;
-
-public:
-	void do_send(void* buff);
-
-	bool get_is_player() { return m_is_player; }
-	char get_id() { return m_id; }
-	FVector get_skill_velocity() { return  m_skill_velocity; }
-	FVector get_skill_location() { return  m_skill_location; }
-
-	void set_is_player(bool is_player) { m_is_player = is_player; }
-	void set_id(char id) { m_id = id; }
-	void set_velocity(float x, float y, float z) { m_velocity.X = x; m_velocity.Y = y; m_velocity.Z = z; }
-	void set_skill_velocity(float x, float y, float z) { m_skill_velocity.X = x; m_skill_velocity.Y = y; m_skill_velocity.Z = z; }
-	void set_skill_location(float x, float y, float z) { m_skill_location.X = x; m_skill_location.Y = y; m_skill_location.Z = z; }
-
-	void rotate(float yaw);
-
-	void use_skill(char skill_type, FVector v);
-
-	virtual void Tick(float DeltaTime);
 
 private:
     bool bIsDrawingCircle = false; // 원을 그리고 있는지 여부
@@ -205,6 +172,34 @@ private:
 protected:
 	FORCEINLINE virtual FVector GetCurrentImpactPoint() override { return CurrentImpactPoint; }
 	FORCEINLINE virtual FRotator GetCurrentImpactRot() override { return CurrentImpactRot; }
+
+private:
+	char m_id;
+	float m_yaw;
+	FVector m_velocity;
+	char m_hp;
+	char m_current_element;
+
+	FVector m_skill_velocity;
+	FVector m_skill_location;
+
+	bool m_is_player;
+	bool m_was_moving;
+
+public:
+	void do_send(void* buff);
+
+	char get_id() { return m_id; }
+	FVector get_skill_velocity() { return  m_skill_velocity; }
+	FVector get_skill_location() { return  m_skill_location; }
+	bool get_is_player() { return m_is_player; }
+
+	void set_id(char id) { m_id = id; }
+	void set_velocity(float x, float y, float z) { m_velocity.X = x; m_velocity.Y = y; m_velocity.Z = z; }
+	void set_skill_velocity(float x, float y, float z) { m_skill_velocity.X = x; m_skill_velocity.Y = y; m_skill_velocity.Z = z; }
+	void set_skill_location(float x, float y, float z) { m_skill_location.X = x; m_skill_location.Y = y; m_skill_location.Z = z; }
+	void set_is_player(bool is_player) { m_is_player = is_player; }
+
+	void rotate(float yaw);
+	void use_skill(char skill_type, FVector v);
 };
-
-

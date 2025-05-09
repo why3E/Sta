@@ -53,6 +53,7 @@ void AMyWindSkill::SpawnWindTonado(FVector Location)
         p.skill_type = SKILL_WIND_TORNADO;
         p.x = Location.X; p.y = Location.Y; p.z = Location.Z;
         player->do_send(&p);
+        //UE_LOG(LogTemp, Warning, TEXT("[Client %d] Send Wind Skill Packet to Host"), p.id);
     }
     else {
         Location = player->get_skill_location();

@@ -5,11 +5,12 @@
 #include "Kismet/GameplayStatics.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "AIController.h"
-#include <array>
-#include <thread>
-#include <chrono>
-#include <atomic>
 #include "SESSION.h"
+
+#include <array>
+#include <atomic>
+#include <chrono>
+#include <thread>
 
 constexpr short HOST_PORT = 3000;
 constexpr char HOST_ADDRESS[] = "127.0.0.1";
@@ -25,8 +26,8 @@ std::atomic<bool> g_running;
 void server_thread();
 void accept_thread();
 void h_process_packet(char* p);
-void CALLBACK h_recv_callback(DWORD err, DWORD num_bytes, LPWSAOVERLAPPED p_over, DWORD flags);
-void CALLBACK h_send_callback(DWORD err, DWORD num_bytes, LPWSAOVERLAPPED p_over, DWORD flags);
+extern void CALLBACK h_recv_callback(DWORD err, DWORD num_bytes, LPWSAOVERLAPPED p_over, DWORD flags);
+extern void CALLBACK h_send_callback(DWORD err, DWORD num_bytes, LPWSAOVERLAPPED p_over, DWORD flags);
 
 //////////////////////////////////////////////////
 // Client
@@ -70,7 +71,10 @@ void AMyPlayerController::InitSocket()
 	// [Host] : WSASocket
 	g_s_socket = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_OVERLAPPED);
 	if (INVALID_SOCKET == g_s_socket) { UE_LOG(LogTemp, Warning, TEXT("Host Socket Create Failed : %d"), WSAGetLastError()); }
-	else { UE_LOG(LogTemp, Warning, TEXT("Host Socket Created Succeed")); }
+	else { UE_LOG(LogTemp, Warning, TEXT("Host Socket Create Succeed")); }
+
+	u_long noblock = 1;
+	ioctlsocket(g_s_socket, FIONBIO, &noblock);
 
 	// Bind & Listen
 	SOCKADDR_IN addr;
@@ -110,15 +114,6 @@ void AMyPlayerController::CleanupSocket()
 	g_running = false;
 
 	if (g_is_host) {
-		// Dummy Socket
-		SOCKET d_socket = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, 0);
-		SOCKADDR_IN addr;
-		addr.sin_family = AF_INET;
-		addr.sin_port = htons(HOST_PORT);
-		inet_pton(AF_INET, HOST_ADDRESS, &addr.sin_addr);
-		WSAConnect(d_socket, reinterpret_cast<const sockaddr*>(&addr), sizeof(SOCKADDR_IN), NULL, NULL, NULL, NULL);
-		closesocket(d_socket);
-
 		// Join Server Thread
 		g_s_thread.join();
 
@@ -166,7 +161,7 @@ void server_thread() {
 
 		// WSASend
 		exec_ms = std::chrono::duration_cast<std::chrono::milliseconds>(curr_t - last_packet_t).count();
-		if (50 <= exec_ms) {
+		if (16 <= exec_ms) {
 			/*
 				WSASend
 			*/
@@ -189,16 +184,21 @@ void accept_thread() {
 	INT addr_size = sizeof(SOCKADDR_IN);
 
 	// Accept Loop
-	while (true) {
+	while (g_running) {
 		// WSAAccept
 		auto c_socket = WSAAccept(g_s_socket, reinterpret_cast<sockaddr*>(&addr), &addr_size, NULL, NULL);
-		if (INVALID_SOCKET == c_socket) { UE_LOG(LogTemp, Warning, TEXT("WSAAccept Failed")); }
-		else { UE_LOG(LogTemp, Warning, TEXT("WSAAccept Succeed")); }
-
-		if (!g_running) {
-			closesocket(c_socket);
-			break;
+		if (INVALID_SOCKET == c_socket) { 
+			int err = WSAGetLastError();
+			if (WSAEWOULDBLOCK == err) {
+				SleepEx(1, TRUE); 
+				continue;
+			}
+			else {
+				UE_LOG(LogTemp, Error, TEXT("WSAAccept Failed : %d"), err);
+				break;
+			}
 		}
+		else { UE_LOG(LogTemp, Warning, TEXT("WSAAccept Succeed")); }
 
 		// Create SESSION
 		for (char client_id = 0; client_id < MAX_CLIENTS; ++client_id) {
@@ -215,7 +215,6 @@ void accept_thread() {
 				p.yaw = c->m_yaw;
 				p.vx = c->m_velocity.X; p.vy = c->m_velocity.Y; p.vz = c->m_velocity.Z;
 				p.hp = c->m_hp;
-				p.animation_state = c->m_animation_state;
 				p.current_element = c->m_current_element;
 				g_clients[client_id]->do_send(&p);
 
@@ -238,7 +237,6 @@ void accept_thread() {
 							p.yaw = c->m_yaw;
 							p.vx = c->m_velocity.X; p.vy = c->m_velocity.Y; p.vz = c->m_velocity.Z;
 							p.hp = c->m_hp;
-							p.animation_state = c->m_animation_state;
 							p.current_element = c->m_current_element;
 							g_clients[client_id]->do_send(&p);
 						}
@@ -252,11 +250,16 @@ void accept_thread() {
 	closesocket(g_s_socket);
 }
 
+
+
+
+
 //////////////////////////////////////////////////
 // Host CALLBACK
 void h_process_packet(char* packet) {
 	char packet_type = packet[1];
 	//UE_LOG(LogTemp, Warning, TEXT("[Host] Received Packet Type : %d"), packet_type);
+
 	switch (packet_type) {
 	case C2H_PLAYER_VECTOR_PACKET: {
 		player_vector_packet* p = reinterpret_cast<player_vector_packet*>(packet);
@@ -279,7 +282,7 @@ void h_process_packet(char* packet) {
 			if (p->id != other_id) {
 				if (g_clients[other_id]) {
 					g_clients[other_id]->do_send(p);
-					//UE_LOG(LogTemp, Warning, TEXT("[Host] Send Player %d's Stopped Packet to Player %d"), p->id, other_id);
+					//UE_LOG(LogTemp, Warning, TEXT("[Host] Send Player %d's Stop Packet to Player %d"), p->id, other_id);
 				}
 			}
 		}
@@ -307,7 +310,7 @@ void h_process_packet(char* packet) {
 			if (p->id != other_id) {
 				if (g_clients[other_id]) {
 					g_clients[other_id]->do_send(p);
-					//UE_LOG(LogTemp, Warning, TEXT("[Host] Send Player %d's Jump Start Packet to Player %d"), p->id, other_id);
+					//UE_LOG(LogTemp, Warning, TEXT("[Host] Send Player %d's Jump Packet to Player %d"), p->id, other_id);
 				}
 			}
 		}
@@ -329,7 +332,9 @@ void h_process_packet(char* packet) {
 	}
 }
 
-void CALLBACK h_recv_callback(DWORD err, DWORD num_bytes, LPWSAOVERLAPPED p_over, DWORD flags) {
+extern void CALLBACK h_recv_callback(DWORD err, DWORD num_bytes, LPWSAOVERLAPPED p_over, DWORD flags) {
+	//UE_LOG(LogTemp, Warning, TEXT("[Host] h_recv_callback"));
+
 	SESSION* o = reinterpret_cast<SESSION*>(p_over);
 	if (!o) { return; }
 	//UE_LOG(LogTemp, Warning, TEXT("[Host] Received Packet from Player %d"), o->m_id);
@@ -348,7 +353,6 @@ void CALLBACK h_recv_callback(DWORD err, DWORD num_bytes, LPWSAOVERLAPPED p_over
 				g_clients[other_id]->do_send(&p);
 			}
 		}
-
 		return;
 	}
 
@@ -376,16 +380,23 @@ void CALLBACK h_recv_callback(DWORD err, DWORD num_bytes, LPWSAOVERLAPPED p_over
 }
 
 
-void CALLBACK h_send_callback(DWORD err, DWORD num_bytes, LPWSAOVERLAPPED p_over, DWORD flags) {
+extern void CALLBACK h_send_callback(DWORD err, DWORD num_bytes, LPWSAOVERLAPPED p_over, DWORD flags) {
+	//UE_LOG(LogTemp, Warning, TEXT("[Host] h_send_callback"));
+	
 	EXP_OVER* p = reinterpret_cast<EXP_OVER*>(p_over);
 	delete p;
 }
+
+
+
+
 
 //////////////////////////////////////////////////
 // Client CALLBACK
 void c_process_packet(char* packet) {
 	char packet_type = packet[1];
 	//UE_LOG(LogTemp, Warning, TEXT("[Client] Received Packet Type : %d"), packet_type);
+
 	switch (packet_type) {
 	case H2C_PLAYER_INFO_PACKET: {
 		hc_player_info_packet* p = reinterpret_cast<hc_player_info_packet*>(packet);
@@ -411,7 +422,7 @@ void c_process_packet(char* packet) {
 		UWorld* World = GEngine->GetWorldFromContextObjectChecked(GEngine->GameViewport);
 		if (!World) return;
 	
-		FVector SpawnLocation(40000, -40000, 1000); // 초기 위치 설정
+		FVector SpawnLocation(37'975.0f, -40'000.0f, 950.0f); // 초기 위치 설정
 		FRotator SpawnRotation = FRotator::ZeroRotator;
 	
 		FActorSpawnParameters Params;
@@ -476,7 +487,7 @@ void c_process_packet(char* packet) {
 		}
 
 		g_players[p->id] = NewPlayer;
-		//UE_LOG(LogTemp, Warning, TEXT("[Client] Spawned Player %d and Stored in g_players"), p->id);
+		UE_LOG(LogTemp, Warning, TEXT("[Client] Spawned Player %d and Stored in g_players"), p->id);
 		break;
 	}
 
@@ -504,28 +515,28 @@ void c_process_packet(char* packet) {
 		FVector Position(p->x, p->y, p->z);
 		g_players[p->id]->SetActorLocation(Position, false);
 		g_players[p->id]->set_velocity(0.0f, 0.0f, 0.0f);
-		//UE_LOG(LogTemp, Warning, TEXT("[Client] Player %d Stopped"), p->id);
+		//UE_LOG(LogTemp, Warning, TEXT("[Client] Received Player %d's Stop Packet"), p->id);
 		break;
 	}
 
 	case H2C_PLAYER_DIRECTION_PACKET: {
 		player_rotation_packet* p = reinterpret_cast<player_rotation_packet*>(packet);
 		g_players[p->id]->rotate(p->yaw);
-		//UE_LOG(LogTemp, Warning, TEXT("[Client] Player %d Rotated"), p->id);
+		//UE_LOG(LogTemp, Warning, TEXT("[Client] Received Player %d's Rotation Packet"), p->id);
 		break;
 	}
 
 	case H2C_PLAYER_JUMP_START_PACKET: {
 		player_jump_packet* p = reinterpret_cast<player_jump_packet*>(packet);
 		g_players[p->id]->LaunchCharacter(FVector(0, 0, 800), false, true);
-		//UE_LOG(LogTemp, Warning, TEXT("[Client] Player %d Jump Started"), p->id);
+		//UE_LOG(LogTemp, Warning, TEXT("[Client] Received Player %d's Jump Packet"), p->id);
 		break;
 	}
 
 	case H2C_PLAYER_SKILL_PACKET: {
 		player_skill_packet* p = reinterpret_cast<player_skill_packet*>(packet);
 		g_players[p->id]->use_skill(p->skill_type, FVector(p->x, p->y, p->z));
-		UE_LOG(LogTemp, Warning, TEXT("[Client] Player %d Used Skill %d"), p->id, p->skill_type);
+		//UE_LOG(LogTemp, Warning, TEXT("[Client] Received Player %d's Skill Packet"), p->id);
 		break;
 	}
 	}

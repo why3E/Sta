@@ -376,7 +376,17 @@ void h_process_packet(char* packet) {
 		hc_p.packet_size = sizeof(hc_player_skill_rotator_packet);
 		hc_p.packet_type = H2C_PLAYER_SKILL_ROTATOR_PACKET;
 		hc_p.player_id = ch_p->player_id;
-		hc_p.skill_id = g_skill_cnt.fetch_add(5);
+
+		switch (ch_p->skill_type) {
+		case SKILL_FIRE_WALL:
+			hc_p.skill_id = g_skill_cnt.fetch_add(5);
+			break;
+
+		default:
+			hc_p.skill_id = g_skill_cnt++;
+			break;
+		}
+
 		hc_p.skill_type = ch_p->skill_type;
 		hc_p.x = ch_p->x; hc_p.y = ch_p->y; hc_p.z = ch_p->z;
 		hc_p.pitch = ch_p->pitch; hc_p.yaw = ch_p->yaw; hc_p.roll = ch_p->roll;

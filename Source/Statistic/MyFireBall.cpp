@@ -81,22 +81,6 @@ void AMyFireBall::Fire(FVector TargetLocation)
         LaunchDirection = (TargetLocation - GetActorLocation()).GetSafeNormal();
     }
 
-    // Send Fire Ball Packet
-    APlayerCharacter* player = Cast<APlayerCharacter>(GetOwner());
-    if (player->get_is_player()) {
-        player_skill_packet p;
-        p.packet_size = sizeof(player_skill_packet);
-        p.packet_type = C2H_PLAYER_SKILL_PACKET;
-        p.id = player->get_id();
-        p.skill_type = SKILL_FIRE_BALL;
-        p.x = LaunchDirection.X; p.y = LaunchDirection.Y; p.z = LaunchDirection.Z;
-        player->do_send(&p);
-        //UE_LOG(LogTemp, Warning, TEXT("[Client %d] Send Fire Skill Packet to Host"), p.id);
-    }
-    else {
-        LaunchDirection = player->get_skill_velocity();
-    }
-
     // 방향 지정 및 Projectile Movement Component 활성화
     MovementComponent->Velocity = LaunchDirection * MovementComponent->InitialSpeed;
     MovementComponent->Activate();
@@ -107,13 +91,28 @@ void AMyFireBall::Fire(FVector TargetLocation)
 
 void AMyFireBall::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-    if (bIsHit) return; // 이미 충돌 처리된 경우 무시
-    if (Owner == OtherActor) return; // 발사체의 소유자와 충돌한 경우 무시
+    if (!g_is_host || bIsHit || (Owner == OtherActor)) { return; } // 이미 충돌했거나 발사체의 소유자와 충돌한 경우 무시
 
     // TODO: 데미지 전달 로직 추가
     UE_LOG(LogTemp, Warning, TEXT("Hit Actor: %s"), *OtherActor->GetName());
     UE_LOG(LogTemp, Warning, TEXT("Hit Component: %s"), *OverlappedComp->GetName());
 
+    for (const auto& [id, skill] : g_skills) {
+        if (skill && (skill == OtherActor)) {
+            collision_packet p;
+            p.packet_size = sizeof(collision_packet);
+            p.packet_type = C2H_COLLISION_PACKET;
+            p.collision_type = SKILL_SKILL_COLLISION;
+            p.attacker_id = m_id;
+            p.victim_id = id;
+
+            Cast<APlayerCharacter>(Owner)->do_send(&p);
+            return;
+        }
+    }
+}
+
+void AMyFireBall::Overlap() {
     // 나이아가라 파티클 시스템 비활성화
     if (FireBallNiagaraComponent)
     {
@@ -126,6 +125,7 @@ void AMyFireBall::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* Ot
         UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), HitEffectNiagaraSystem, GetActorLocation());
     }
 
+    /*
     if (OtherActor->Implements<UReceiveDamageInterface>())
     {
         FSkillInfo Info;
@@ -142,6 +142,7 @@ void AMyFireBall::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* Ot
             UE_LOG(LogTemp, Warning, TEXT("Skill hit applied to: %s"), *OtherActor->GetName());
         }
     }
+    */
 
     // 충돌 상태 설정
     bIsHit = true;

@@ -75,39 +75,38 @@ void AMyWindCutter::Fire(FVector TargetLocation)
         LaunchDirection = (TargetLocation - GetActorLocation()).GetSafeNormal();
     }
 
-    // Send Wind Cutter Packet
-    APlayerCharacter* player = Cast<APlayerCharacter>(GetOwner());
-    if (player->get_is_player()) {
-        player_skill_packet p;
-        p.packet_size = sizeof(player_skill_packet);
-        p.packet_type = C2H_PLAYER_SKILL_PACKET;
-        p.id = player->get_id();
-        p.skill_type = SKILL_WIND_CUTTER;
-        p.x = LaunchDirection.X; p.y = LaunchDirection.Y; p.z = LaunchDirection.Z;
-        player->do_send(&p);
-        //UE_LOG(LogTemp, Warning, TEXT("[Client %d] Send Wind Cutter Packet to Host"), p.id);
-    }
-    else {
-        LaunchDirection = player->get_skill_velocity();
-    }
-
     // 방향 지정 및 Projectile Movement Component 활성화
     MovementComponent->Velocity = LaunchDirection * MovementComponent->InitialSpeed;
     MovementComponent->Activate();
-
+    
     // 3초 후 자동 삭제
     SetLifeSpan(3.0f);
 }
 
 void AMyWindCutter::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-    if (bIsHit) return; // 이미 충돌 처리된 경우 무시
-    if (Owner == OtherActor) return; // 발사체의 소유자와 충돌한 경우 무시
+    if (!g_is_host || bIsHit || (Owner == OtherActor)) { return; } // 이미 충돌했거나 발사체의 소유자와 충돌한 경우 무시
 
     // 충돌한 액터 로그 출력
     UE_LOG(LogTemp, Warning, TEXT("Hit Actor: %s"), *OtherActor->GetName());
     UE_LOG(LogTemp, Warning, TEXT("Hit Component: %s"), *OverlappedComp->GetName());
+    
+    for (const auto& [id, skill] : g_skills) {
+        if (skill && (skill == OtherActor)) {
+            collision_packet p;
+            p.packet_size = sizeof(collision_packet);
+            p.packet_type = C2H_COLLISION_PACKET;
+            p.collision_type = SKILL_SKILL_COLLISION;
+            p.attacker_id = m_id;
+            p.victim_id = id;
 
+            Cast<APlayerCharacter>(Owner)->do_send(&p);
+            return;
+        }
+    }
+}
+
+void AMyWindCutter::Overlap() {
     // 나이아가라 파티클 시스템 비활성화
     if (WindCutterNiagaraComponent)
     {
@@ -119,7 +118,8 @@ void AMyWindCutter::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* 
     {
         UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), HitEffectNiagaraSystem, GetActorLocation());
     }
-
+    
+    /*
     // 데미지 전달
     if (OtherActor->Implements<UReceiveDamageInterface>())
     {
@@ -137,6 +137,7 @@ void AMyWindCutter::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* 
             UE_LOG(LogTemp, Warning, TEXT("Skill hit applied to: %s"), *OtherActor->GetName());
         }
     }
+    */
 
     // 충돌 상태 설정
     bIsHit = true;

@@ -4,10 +4,11 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "MySkillBase.h"
 #include "MyFireBall.generated.h"
 
 UCLASS()
-class STATISTIC_API AMyFireBall : public AActor
+class STATISTIC_API AMyFireBall : public AMySkillBase
 {
 	GENERATED_BODY()
 	
@@ -29,6 +30,7 @@ protected:
     // 콜리전 처리 함수
     UFUNCTION()
     void OnBeginOverlap(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+    virtual void Overlap();
 
     // 콜리전 컴포넌트
     UPROPERTY(VisibleAnywhere, Category = "Collision", meta = (AllowPrivateAccess = "true"))

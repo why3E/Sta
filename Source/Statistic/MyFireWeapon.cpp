@@ -4,6 +4,7 @@
 #include "MyFireWeapon.h"
 #include "MyFireBall.h"
 #include "MyFireSkill.h"
+#include "PlayerCharacter.h"
 #include "GameFramework/Character.h"
 #include "Components/PoseableMeshComponent.h"
 #include "Camera/CameraComponent.h"
@@ -48,9 +49,11 @@ void AMyFireWeapon::SpawnFireBall(FVector ImpactPoint)
 		if (OwnerCharacter)
         {
             UE_LOG(LogTemp, Warning, TEXT("PlayerCharacter Spawned"));
+            TempFireBall->SetID(Cast<APlayerCharacter>(OwnerCharacter)->get_skill_id());
             TempFireBall->SetOwner(OwnerCharacter);
             TempFireBall->AttachToComponent(OwnerCharacter->GetMesh(), FAttachmentTransformRules::KeepRelativeTransform, FireBallSocket);
             TempFireBall->ActivateNiagara();
+            g_skills.emplace(Cast<APlayerCharacter>(OwnerCharacter)->get_skill_id(), TempFireBall);
         }
         else
         {
@@ -58,7 +61,6 @@ void AMyFireWeapon::SpawnFireBall(FVector ImpactPoint)
         }
 		FireLocation = ImpactPoint;
 	}
-	
 }
 
 void AMyFireWeapon::ShootFireBall()
@@ -113,8 +115,10 @@ void AMyFireWeapon::SpawnFireSkill(FVector TargetLocation, FRotator TargetRotati
         AMyFireSkill* FireSkill = GetWorld()->SpawnActor<AMyFireSkill>(FireSkillClass, SpawnLocation, TargetRotation, SpawnParams);
         if (FireSkill)
         {
+            FireSkill->SetID(Cast<APlayerCharacter>(OwnerCharacter)->get_skill_id());
             FireSkill->SetOwner(OwnerCharacter);
             FireSkill->SpawnFireWall(SpawnLocation, TargetRotation);
+            g_skills.emplace(i + Cast<APlayerCharacter>(OwnerCharacter)->get_skill_id(), FireSkill);
 
             UE_LOG(LogTemp, Warning, TEXT("FireSkill %d spawned at location: %s"), i + 1, *SpawnLocation.ToString());
         }

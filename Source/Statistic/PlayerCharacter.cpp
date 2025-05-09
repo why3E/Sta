@@ -26,10 +26,9 @@ APlayerCharacter::APlayerCharacter()
 	m_yaw = 0.0f;
 	m_velocity = FVector(0.0f, 0.0f, 0.0f);
 	m_hp = 100;
-	m_current_element = WIND_ELEMENT;
+	m_current_element = ELEMENT_WIND;
 
-	m_skill_velocity = FVector(0.0f, 0.0f, 0.0f);
-	m_skill_location = FVector(0.0f, 0.0f, 0.0f);
+	m_skill_id = 0;
 
 	m_is_player = false;
 	m_was_moving = false;
@@ -139,9 +138,10 @@ APlayerCharacter::APlayerCharacter()
 		bIsDash = false;
 	}
 
-    // 기본 클래스 타입 설정
+
     LeftClassType = EClassType::CT_None;
 	RightClassType = EClassType::CT_None;
+
     // 초기 캐싱된 데이터 설정
     CurrentLeftMontage = nullptr;
     CurrentLeftComboData = nullptr;
@@ -183,10 +183,8 @@ void APlayerCharacter::BeginPlay()
 			EnableInput(PlayerController);
 		}
 	}
-
 	
 	ChangeClass(EClassType::CT_Fire, true);
-	
 }
 
 void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -298,9 +296,9 @@ void APlayerCharacter::BasicLook(const FInputActionValue& Value)
 	if (YawDiff > 30.0f) { 
 		m_yaw = CurrentYaw;
 
-		player_rotation_packet p;
-		p.packet_size = sizeof(player_rotation_packet);
-		p.packet_type = C2H_PLAYER_DIRECTION_PACKET;
+		player_rotate_packet p;
+		p.packet_size = sizeof(player_rotate_packet);
+		p.packet_type = C2H_PLAYER_ROTATE_PACKET;
 		p.id = m_id;
 		p.yaw = CurrentYaw;
 
@@ -316,7 +314,7 @@ void APlayerCharacter::StartJump()
 	if (!(GetCharacterMovement()->IsFalling())) {
 		player_jump_packet p;
 		p.packet_size = sizeof(player_jump_packet);
-		p.packet_type = C2H_PLAYER_JUMP_START_PACKET;
+		p.packet_type = C2H_PLAYER_JUMP_PACKET;
 		p.id = m_id;
 
 		do_send(&p);
@@ -352,20 +350,67 @@ void APlayerCharacter::BasicAttack()
     {
 		UE_LOG(LogTemp, Error, TEXT("CurrentImpactPoint: %s"), *CurrentImpactPoint.ToString());
 		UE_LOG(LogTemp, Error, TEXT("CurrentImpactRot: %s"), *CurrentImpactRot.ToString());
-        SkillAttack();
-		bIsDrawingCircle = false;
-        GetWorld()->GetTimerManager().ClearTimer(CircleUpdateTimerHandle);
+
+		// Send Skill Packet 
+		if (get_is_player()) {
+			switch (ClassType) {
+			case EClassType::CT_Wind: {
+				ch_player_skill_vector_packet p;
+				p.packet_size = sizeof(ch_player_skill_vector_packet);
+				p.packet_type = C2H_PLAYER_SKILL_VECTOR_PACKET;
+				p.player_id = m_id;
+				p.x = CurrentImpactPoint.X; p.y = CurrentImpactPoint.Y; p.z = CurrentImpactPoint.Z;
+				p.skill_type = SKILL_WIND_TORNADO;
+				
+				do_send(&p);
+				break;
+			}
+
+			case EClassType::CT_Fire:
+				ch_player_skill_rotator_packet p;
+				p.packet_size = sizeof(ch_player_skill_rotator_packet);
+				p.packet_type = C2H_PLAYER_SKILL_ROTATOR_PACKET;
+				p.player_id = m_id;
+				p.x = CurrentImpactPoint.X; p.y = CurrentImpactPoint.Y; p.z = CurrentImpactPoint.Z;
+				p.pitch = CurrentImpactRot.Pitch; p.yaw = CurrentImpactRot.Yaw; p.roll = CurrentImpactRot.Roll;
+				p.skill_type = SKILL_FIRE_WALL;
+				
+				do_send(&p);
+				break;
+			}
+			//UE_LOG(LogTemp, Warning, TEXT("[Client %d] Send Skill Packet to Host"), p.id);
+		}
         return;
     }
 
 	if (CurrentComboCount == 0)
 	{
-		GetFireTargetLocation();
-		UE_LOG(LogTemp, Error, TEXT("FireLocation: %s"), *FireLocation.ToString());
-		ComboStart();
+		// Send Skill Packet
+		if (get_is_player()) {
+			GetFireTargetLocation();
+			UE_LOG(LogTemp, Error, TEXT("FireLocation: %s"), *FireLocation.ToString());
+
+			ch_player_skill_vector_packet p;
+			p.packet_size = sizeof(ch_player_skill_vector_packet);
+			p.packet_type = C2H_PLAYER_SKILL_VECTOR_PACKET;
+			p.player_id = m_id;
+			p.x = FireLocation.X; p.y = FireLocation.Y; p.z = FireLocation.Z;
+
+			switch (ClassType) {
+			case EClassType::CT_Wind:
+				p.skill_type = SKILL_WIND_CUTTER;
+				break;
+
+			case EClassType::CT_Fire:
+				p.skill_type = SKILL_FIRE_BALL;
+				break;
+			}
+
+			do_send(&p);
+			//UE_LOG(LogTemp, Warning, TEXT("[Client %d] Send Attack Packet to Host"), p.player_id);
+		}
 		return;
 	}
-	
 	
 	// * 콤보 타이머가 종료되지 않은 상태라면 콤보 입력 체크
 	if (ComboTimerHandle.IsValid())
@@ -690,7 +735,6 @@ void APlayerCharacter::EquipWeapon(AMyWeapon* Weapon, bool bIsLeftType)
 void APlayerCharacter::Tick(float DeltaTime) {
 	Super::Tick(DeltaTime);
 
-	//if (Controller && IsLocallyControlled()) {
 	if (m_is_player) {
 		// Stop
 		if (m_was_moving) {
@@ -702,9 +746,9 @@ void APlayerCharacter::Tick(float DeltaTime) {
 
 				FVector Position = GetActorLocation();
 
-				player_stopped_packet p;
-				p.packet_size = sizeof(player_stopped_packet);
-				p.packet_type = C2H_PLAYER_STOPPED_PACKET;
+				player_stop_packet p;
+				p.packet_size = sizeof(player_stop_packet);
+				p.packet_type = C2H_PLAYER_STOP_PACKET;
 				p.id = m_id;
 				p.x = Position.X; p.y = Position.Y; p.z = Position.Z;
 
@@ -845,26 +889,73 @@ void APlayerCharacter::GetFireTargetLocation()
 	FRotator ActorRot = GetActorRotation();
 	FRotator ControlRot = GetControlRotation();
 	SetActorRotation(FRotator(ActorRot.Pitch, ControlRot.Yaw, ActorRot.Roll));
-
 }
 
 void APlayerCharacter::ChangeClassTest()
 {
-	switch (LeftClassType)
+	player_change_element_packet p;
+	p.packet_size = sizeof(player_change_element_packet);
+	p.packet_type = C2H_PLAYER_CHANGE_ELEMENT_PACKET;
+	p.id = m_id;
+
+	do_send(&p);
+
+	change_element();
+}
+
+void APlayerCharacter::use_skill(unsigned short skill_id, char skill_type, FVector v) {
+	switch (skill_type) {
+	case SKILL_WIND_CUTTER:
+		m_skill_id = skill_id;
+		FireLocation = v;
+		ComboStart();
+		break;
+
+	case SKILL_WIND_TORNADO:
+		m_skill_id = skill_id;
+		CurrentImpactPoint = v;
+		SkillAttack();
+		bIsDrawingCircle = false;
+		GetWorld()->GetTimerManager().ClearTimer(CircleUpdateTimerHandle);
+		break;
+
+	case SKILL_FIRE_BALL:
+		m_skill_id = skill_id;
+		FireLocation = v;
+		ComboStart();
+		break;
+	}
+}
+
+void APlayerCharacter::use_skill(unsigned short skill_id, char skill_type, FVector v, FRotator r) {
+	switch (skill_type) {
+	case SKILL_FIRE_WALL:
+		m_skill_id = skill_id;
+		CurrentImpactPoint = v;
+		CurrentImpactRot = r;
+		SkillAttack();
+		bIsDrawingCircle = false;
+		GetWorld()->GetTimerManager().ClearTimer(CircleUpdateTimerHandle);
+		break;
+	}
+}
+
+void APlayerCharacter::change_element() {
+	switch (ClassType)
 	{
 	case EClassType::CT_Wind:
-		ChangeClass(EClassType::CT_Fire,1);
 		UE_LOG(LogTemp, Warning, TEXT("Class changed to Fire"));
+		ChangeClass(EClassType::CT_Fire,1);
 		break;
 
 	case EClassType::CT_Stone:
-		ChangeClass(EClassType::CT_Wind,1);
 		UE_LOG(LogTemp, Warning, TEXT("Class changed to Wind"));
+		ChangeClass(EClassType::CT_Wind,1);
 		break;
 
 	case EClassType::CT_Fire:
-		ChangeClass(EClassType::CT_Wind,1);
-		UE_LOG(LogTemp, Warning, TEXT("Class changed to Wind"));
+		UE_LOG(LogTemp, Warning, TEXT("Class changed to Stone"));
+		ChangeClass(EClassType::CT_Stone,1);
 		break;
 
 	default:
@@ -872,7 +963,7 @@ void APlayerCharacter::ChangeClassTest()
 		break;
 	}
 }
-
+		
 void APlayerCharacter::rotate(float yaw) {
 	FRotator NewRotation = GetActorRotation();
 	NewRotation.Yaw = yaw;
@@ -898,38 +989,4 @@ void APlayerCharacter::do_send(void* buff) {
 void send_callback(DWORD err, DWORD num_bytes, LPWSAOVERLAPPED p_over, DWORD flags) {
 	EXP_OVER* p = reinterpret_cast<EXP_OVER*>(p_over);
 	delete p;
-}
-
-void APlayerCharacter::use_skill(char skill_type, FVector v) {
-	switch (skill_type) {
-	case SKILL_WIND_CUTTER:
-		CurrentLeftMontage = WindComboMontage;
-		CurrentLeftComboData = WindComboData;
-		m_skill_velocity = v;
-		ComboStart();
-		break;
-
-	case SKILL_WIND_TORNADO:
-		CurrentLeftMontage = WindComboMontage;
-		CurrentLeftComboData = WindComboData;
-		CurrentLeftMontageSectionName = TEXT("WindSkill");
-		m_skill_location = v;
-		SkillAttack();
-		break;
-
-	case SKILL_FIRE_BALL:
-		CurrentLeftMontage = FireComboMontage;
-		CurrentLeftComboData = FireComboData;
-		m_skill_velocity = v;
-		ComboStart();
-		break;
-
-	case SKILL_FIRE_WALL:
-		CurrentLeftMontage = FireComboMontage;
-		CurrentLeftComboData = FireComboData;
-		CurrentLeftMontageSectionName = TEXT("FireSkill");
-		m_skill_location = v;
-		SkillAttack();
-		break;
-	}
 }

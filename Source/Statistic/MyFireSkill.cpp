@@ -42,24 +42,6 @@ void AMyFireSkill::Tick(float DeltaTime)
 
 void AMyFireSkill::SpawnFireWall(FVector Location, FRotator Rotation)
 {
-    // Send Wind Skill Packet 
-    APlayerCharacter* player = Cast<APlayerCharacter>(GetOwner());
-    if (player->get_is_player()) {
-        Location.Z += 75.0f;
-
-        player_skill_packet p;
-        p.packet_size = sizeof(player_skill_packet);
-        p.packet_type = C2H_PLAYER_SKILL_PACKET;
-        p.id = player->get_id();
-        p.skill_type = SKILL_FIRE_WALL;
-        p.x = Location.X; p.y = Location.Y; p.z = Location.Z;
-        player->do_send(&p);
-        //UE_LOG(LogTemp, Warning, TEXT("[Client %d] Send Fire Ball Packet to Host"), p.id);
-    }
-    else {
-        Location = player->get_skill_location();
-    }
-
     // 위치와 회전 설정
     SetActorLocation(Location);
     SetActorRotation(Rotation);
@@ -88,6 +70,8 @@ void AMyFireSkill::PostInitializeComponents()
 
 void AMyFireSkill::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
+    if (!g_is_host) { return; }
+    
     if (OtherActor && OtherActor != this)
     {
         // 같은 클래스라면 무시
@@ -99,6 +83,10 @@ void AMyFireSkill::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* O
 
         UE_LOG(LogTemp, Warning, TEXT("Fire Wall hit actor: %s"), *OtherActor->GetName());
     }
+}
+
+void AMyFireSkill::Overlap() {
+
 }
 
 void AMyFireSkill::CheckOverlappingActors()

@@ -1,6 +1,8 @@
 #include "SESSION.h"
 
 SOCKET g_h_socket;
+std::atomic<bool> g_is_host;
+std::unordered_map<unsigned short, AMySkillBase*> g_skills;
 
 //////////////////////////////////////////////////
 // EXP_OVER
@@ -29,7 +31,7 @@ SESSION::SESSION(long long id, SOCKET c_socket,
 	m_yaw = 0.0f;
 	m_velocity = FVector(0.0f, 0.0f, 0.0f);
 	m_hp = 100;
-	m_current_element = WIND_ELEMENT;
+	m_current_element = ELEMENT_WIND;
 
 	m_recv_callback = h_recv_callback;
 	m_send_callback = h_send_callback; 

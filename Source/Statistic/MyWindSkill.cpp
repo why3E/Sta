@@ -25,15 +25,13 @@ AMyWindSkill::AMyWindSkill()
 	 WindTonadoNiagaraComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("WindTonadoNiagaraComponent"));
 	 WindTonadoNiagaraComponent->SetupAttachment(CollisionComponent);
 	 WindTonadoNiagaraComponent->SetVisibility(true); 
-
 }
 
 // Called when the game starts or when spawned
 void AMyWindSkill::BeginPlay()
 {
 	Super::BeginPlay();
-  GetWorld()->GetTimerManager().SetTimer(CheckOverlapTimerHandle, this, &AMyWindSkill::CheckOverlappingActors, 1.0f, true);
-
+    GetWorld()->GetTimerManager().SetTimer(CheckOverlapTimerHandle, this, &AMyWindSkill::CheckOverlappingActors, 1.0f, true);
 }
 
 // Called every frame
@@ -44,24 +42,6 @@ void AMyWindSkill::Tick(float DeltaTime)
 
 void AMyWindSkill::SpawnWindTonado(FVector Location)
 {
-    // Send Wind Skill Packet 
-    APlayerCharacter* player = Cast<APlayerCharacter>(GetOwner());
-    if (player->get_is_player()) {
-        Location.Z += 375.0f;
-        
-        player_skill_packet p;
-        p.packet_size = sizeof(player_skill_packet);
-        p.packet_type = C2H_PLAYER_SKILL_PACKET;
-        p.id = player->get_id();
-        p.skill_type = SKILL_WIND_TORNADO;
-        p.x = Location.X; p.y = Location.Y; p.z = Location.Z;
-        player->do_send(&p);
-        //UE_LOG(LogTemp, Warning, TEXT("[Client %d] Send Wind Skill Packet to Host"), p.id);
-    }
-    else {
-        Location = player->get_skill_location();
-    }
-
     SetActorLocation(Location);
 
     // 나이아가라 파티클 활성화
@@ -86,6 +66,8 @@ void AMyWindSkill::PostInitializeComponents()
 
 void AMyWindSkill::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
+    if (!g_is_host) { return; } 
+
     if (OtherActor && OtherActor != this)
     {
         // 같은 클래스라면 무시
@@ -98,6 +80,9 @@ void AMyWindSkill::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* O
     }
 }
 
+void AMyWindSkill::Overlap() {
+
+}
 
 void AMyWindSkill::CheckOverlappingActors()
 {

@@ -40,7 +40,7 @@ void AMyFireSkill::Tick(float DeltaTime)
     Super::Tick(DeltaTime);
 }
 
-void AMyFireSkill::SpawnFireWall(FVector Location)
+void AMyFireSkill::SpawnFireWall(FVector Location, FRotator Rotation)
 {
     // Send Wind Skill Packet 
     APlayerCharacter* player = Cast<APlayerCharacter>(GetOwner());
@@ -62,6 +62,7 @@ void AMyFireSkill::SpawnFireWall(FVector Location)
 
     // 위치와 회전 설정
     SetActorLocation(Location);
+    SetActorRotation(Rotation);
 
     // 나이아가라 파티클 활성화
     if (FireWallEffect)

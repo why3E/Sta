@@ -469,21 +469,6 @@ void c_process_packet(char* packet) {
 			return;
 		}
 
-			UClass* AnimClass = LoadClass<UAnimInstance>(
-				nullptr,
-				TEXT("/Game/player_anim/MyPlayerAnim.MyPlayerAnim_C")
-			);
-	
-			if (AnimClass)
-			{
-				NewPlayer->GetMesh()->SetAnimInstanceClass(AnimClass);
-				NewPlayer->GetMesh()->SetAnimationMode(EAnimationMode::AnimationBlueprint);
-				NewPlayer->GetMesh()->SetComponentTickEnabled(true);
-				NewPlayer->GetMesh()->bPauseAnims = false;
-				NewPlayer->GetMesh()->bNoSkeletonUpdate = false;
-	
-				UE_LOG(LogTemp, Warning, TEXT("AnimInstance Set: %s"), *AnimClass->GetName());
-				
 		APlayerCharacter* NewPlayer = World->SpawnActor<APlayerCharacter>(
 			PlayerBPClass,
 			SpawnLocation,
@@ -502,16 +487,36 @@ void c_process_packet(char* packet) {
 		);
 
 		if (NewAI) {
-			NewAI->Possess(NewPlayer);  
+			NewAI->Possess(NewPlayer);
 			UE_LOG(LogTemp, Warning, TEXT("AIController Possessed Avatar"));
 		}
 		else {
 			UE_LOG(LogTemp, Error, TEXT("Failed to spawn AIController"));
 		}
 
+		UClass* AnimClass = LoadClass<UAnimInstance>(
+			nullptr,
+			TEXT("/Game/player_anim/MyPlayerAnim.MyPlayerAnim_C")
+		);
+	
+		if (AnimClass)
+		{
+			NewPlayer->GetMesh()->SetAnimInstanceClass(AnimClass);
+			NewPlayer->GetMesh()->SetAnimationMode(EAnimationMode::AnimationBlueprint);
+			NewPlayer->GetMesh()->SetComponentTickEnabled(true);
+			NewPlayer->GetMesh()->bPauseAnims = false;
+			NewPlayer->GetMesh()->bNoSkeletonUpdate = false;
+	
+			UE_LOG(LogTemp, Warning, TEXT("AnimInstance Set: %s"), *AnimClass->GetName());
+		}
+		else
+		{
+			UE_LOG(LogTemp, Error, TEXT("Failed to Load AnimBP"));
+		}
+
 
 		g_players[p->id] = NewPlayer;
-		UE_LOG(LogTemp, Warning, TEXT("[Client] Spawned Player %d and Stored in g_players"), p->id);
+		//UE_LOG(LogTemp, Warning, TEXT("[Client] Spawned Player %d and Stored in g_players"), p->id);
 		break;
 	}
 

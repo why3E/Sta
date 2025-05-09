@@ -4,17 +4,16 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "MySkillBase.h"
 #include "MyWindCutter.generated.h"
 
-
 UCLASS()
-class STATISTIC_API AMyWindCutter : public AActor
+class STATISTIC_API AMyWindCutter : public AMySkillBase
 {
 	GENERATED_BODY()
 	
 public:
 	AMyWindCutter();
-
 
 protected:
 	// Called when the game starts or when spawned
@@ -26,10 +25,12 @@ public:
 	void Fire(FVector TargetLocation);
 
 	void ActivateNiagara();
+
 protected:
     // 콜리전 처리 함수
     UFUNCTION()
     void OnBeginOverlap(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+    virtual void Overlap();
 
     // 콜리전 컴포넌트
     UPROPERTY(VisibleAnywhere, Category = "Collision", meta = (AllowPrivateAccess = "true"))

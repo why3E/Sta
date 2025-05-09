@@ -2,11 +2,14 @@
 #include "MyWindWeapon.h"
 #include "MyWindSkill.h"
 #include "MyWindCutter.h"
+#include "PlayerCharacter.h"
 #include "GameFramework/Character.h"
 #include "Components/PoseableMeshComponent.h"
 #include "Camera/CameraComponent.h"
 #include "DrawDebugHelpers.h"
 #include "MyPlayerVisualInterface.h"
+
+#include "SESSION.h"
 
 AMyWindWeapon::AMyWindWeapon()
 {
@@ -45,9 +48,11 @@ void AMyWindWeapon::SpawnWindCutter(FVector ImpactPoint)
 		if (OwnerCharacter)
         {
             UE_LOG(LogTemp, Warning, TEXT("PlayerCharacter Spawned"));
+            TempWindCutter->SetID(Cast<APlayerCharacter>(OwnerCharacter)->get_skill_id());
             TempWindCutter->SetOwner(OwnerCharacter);
             TempWindCutter->AttachToComponent(OwnerCharacter->GetMesh(), FAttachmentTransformRules::KeepRelativeTransform, WindCutterSocket);
             TempWindCutter->ActivateNiagara();
+            g_skills.emplace(Cast<APlayerCharacter>(OwnerCharacter)->get_skill_id(), TempWindCutter);
         }
         else
         {
@@ -84,8 +89,11 @@ void AMyWindWeapon::SpawnWindSkill(FVector TargetLocation)
     AMyWindSkill* WindSkill = GetWorld()->SpawnActor<AMyWindSkill>(WindSkillClass, TargetLocation, FRotator::ZeroRotator, SpawnParams);
     if (WindSkill)
     {
-		WindSkill->SetOwner(OwnerCharacter);
+        WindSkill->SetID(Cast<APlayerCharacter>(OwnerCharacter)->get_skill_id());
+        WindSkill->SetOwner(OwnerCharacter);
 		WindSkill->SpawnWindTonado(TargetLocation);
+        g_skills.emplace(Cast<APlayerCharacter>(OwnerCharacter)->get_skill_id(), WindSkill);
+
         UE_LOG(LogTemp, Warning, TEXT("WindSkill spawned at location: %s"), *TargetLocation.ToString());
     }
     else

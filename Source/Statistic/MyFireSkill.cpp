@@ -70,6 +70,8 @@ void AMyFireSkill::PostInitializeComponents()
 
 void AMyFireSkill::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
+    if (!g_is_host) { return; }
+    
     if (OtherActor && OtherActor != this)
     {
         // 같은 클래스라면 무시
@@ -81,6 +83,10 @@ void AMyFireSkill::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* O
 
         UE_LOG(LogTemp, Warning, TEXT("Fire Wall hit actor: %s"), *OtherActor->GetName());
     }
+}
+
+void AMyFireSkill::Overlap() {
+
 }
 
 void AMyFireSkill::CheckOverlappingActors()

@@ -5,10 +5,11 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "NiagaraComponent.h"
+#include "MySkillBase.h"
 #include "MyWindSkill.generated.h"
 
 UCLASS()
-class STATISTIC_API AMyWindSkill : public AActor
+class STATISTIC_API AMyWindSkill : public AMySkillBase
 {
 	GENERATED_BODY()
 	
@@ -50,6 +51,8 @@ private:
     // 충돌 처리 함수
     UFUNCTION()
     void OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+    virtual void Overlap();
+
 private:
     FTimerHandle CheckOverlapTimerHandle; // 타이머 핸들
 

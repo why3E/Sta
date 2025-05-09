@@ -2,7 +2,12 @@
 
 #include "Common.h"
 
-extern SOCKET	g_h_socket;
+class AMySkillBase;
+class ACharacter;
+
+extern SOCKET g_h_socket;
+extern std::atomic<bool> g_is_host;
+extern std::unordered_map<unsigned short, AMySkillBase*> g_skills;
 
 //////////////////////////////////////////////////
 // EXP_OVER

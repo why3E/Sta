@@ -3,10 +3,11 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "NiagaraComponent.h"
+#include "MySkillBase.h"
 #include "MyFireSkill.generated.h"
 
 UCLASS()
-class STATISTIC_API AMyFireSkill : public AActor
+class STATISTIC_API AMyFireSkill : public AMySkillBase
 {
     GENERATED_BODY()
 
@@ -44,6 +45,7 @@ private:
     // 충돌 처리 함수
     UFUNCTION()
     void OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+    virtual void Overlap();
     FTimerHandle CheckOverlapTimerHandle; // 타이머 핸들
 
     void CheckOverlappingActors(); // 충돌 중인 액터 확인 함수

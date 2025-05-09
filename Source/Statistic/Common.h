@@ -4,6 +4,7 @@
 #include <iostream>
 #include <mutex>
 #include <queue>
+#include <unordered_map>
 
 //////////////////////////////////////////////////
 // Lobby
@@ -33,6 +34,7 @@ constexpr char H2C_PLAYER_JUMP_PACKET = 24;
 constexpr char H2C_PLAYER_SKILL_VECTOR_PACKET = 25;
 constexpr char H2C_PLAYER_SKILL_ROTATOR_PACKET = 26;
 constexpr char H2C_PLAYER_CHANGE_ELEMENT_PACKET = 27;
+constexpr char H2C_COLLISION_PACKET = 28;
 
 constexpr char C2H_PLAYER_VECTOR_PACKET = 41;
 constexpr char C2H_PLAYER_STOP_PACKET = 42;
@@ -41,6 +43,7 @@ constexpr char C2H_PLAYER_JUMP_PACKET = 44;
 constexpr char C2H_PLAYER_SKILL_VECTOR_PACKET = 45;
 constexpr char C2H_PLAYER_SKILL_ROTATOR_PACKET = 46;
 constexpr char C2H_PLAYER_CHANGE_ELEMENT_PACKET = 47;
+constexpr char C2H_COLLISION_PACKET = 48;
 
 
 
@@ -51,6 +54,8 @@ constexpr char SKILL_WIND_CUTTER = 1;
 constexpr char SKILL_WIND_TORNADO = 2;
 constexpr char SKILL_FIRE_BALL = 3;
 constexpr char SKILL_FIRE_WALL = 4;
+
+constexpr char SKILL_SKILL_COLLISION = 1;
 
 constexpr char MAX_CLIENTS = 4;
 
@@ -110,21 +115,6 @@ struct hc_player_leave_packet {
 	unsigned char packet_size;
 	char packet_type;
 	char id;
-};
-
-struct hc_item_packet {
-	unsigned char packet_size;
-	char packet_type;
-};
-
-struct hc_skill_packet {
-	unsigned char packet_size;
-	char packet_type;
-};
-
-struct hc_monster_packet {
-	unsigned char packet_size;
-	char packet_type;
 };
 
 struct player_vector_packet {
@@ -195,6 +185,14 @@ struct player_change_element_packet {
 	unsigned char packet_size;
 	char packet_type;
 	char id;
+};
+
+struct collision_packet {
+	unsigned char packet_size;
+	char packet_type;
+	char collision_type;
+	unsigned char attacker_id;
+	unsigned char victim_id;
 };
 
 #pragma pack(pop)

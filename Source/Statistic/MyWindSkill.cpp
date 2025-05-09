@@ -25,15 +25,13 @@ AMyWindSkill::AMyWindSkill()
 	 WindTonadoNiagaraComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("WindTonadoNiagaraComponent"));
 	 WindTonadoNiagaraComponent->SetupAttachment(CollisionComponent);
 	 WindTonadoNiagaraComponent->SetVisibility(true); 
-
 }
 
 // Called when the game starts or when spawned
 void AMyWindSkill::BeginPlay()
 {
 	Super::BeginPlay();
-  GetWorld()->GetTimerManager().SetTimer(CheckOverlapTimerHandle, this, &AMyWindSkill::CheckOverlappingActors, 1.0f, true);
-
+    GetWorld()->GetTimerManager().SetTimer(CheckOverlapTimerHandle, this, &AMyWindSkill::CheckOverlappingActors, 1.0f, true);
 }
 
 // Called every frame
@@ -68,6 +66,8 @@ void AMyWindSkill::PostInitializeComponents()
 
 void AMyWindSkill::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
+    if (!g_is_host) { return; } 
+
     if (OtherActor && OtherActor != this)
     {
         // 같은 클래스라면 무시
@@ -80,6 +80,9 @@ void AMyWindSkill::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* O
     }
 }
 
+void AMyWindSkill::Overlap() {
+
+}
 
 void AMyWindSkill::CheckOverlappingActors()
 {

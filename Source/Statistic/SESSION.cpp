@@ -1,6 +1,8 @@
 #include "SESSION.h"
 
 SOCKET g_h_socket;
+std::atomic<bool> g_is_host;
+std::unordered_map<unsigned short, AMySkillBase*> g_skills;
 
 //////////////////////////////////////////////////
 // EXP_OVER

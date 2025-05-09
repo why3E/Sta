@@ -2,6 +2,7 @@
 
 #include "MyPlayerController.h"
 #include "PlayerCharacter.h"
+#include "MySkillBase.h"
 #include "Kismet/GameplayStatics.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "AIController.h"
@@ -23,7 +24,6 @@ SOCKET g_s_socket;
 std::array<std::unique_ptr<SESSION>, MAX_CLIENTS> g_clients;
 std::thread g_s_thread;
 
-std::atomic<bool> g_is_host;
 std::atomic<bool> g_running;
 std::atomic<unsigned short> g_skill_cnt;
 
@@ -88,6 +88,8 @@ void AMyPlayerController::EndPlay(const EEndPlayReason::Type EndPlayReason)
 void AMyPlayerController::InitSocket()
 {
 	g_is_host = true;
+	g_skills.clear();
+
 	g_running = true;
 	g_skill_cnt = 0;
 
@@ -356,7 +358,7 @@ void h_process_packet(char* packet) {
 		hc_p.packet_size = sizeof(hc_player_skill_vector_packet);
 		hc_p.packet_type = H2C_PLAYER_SKILL_VECTOR_PACKET;
 		hc_p.player_id = ch_p->player_id;
-		hc_p.skill_id = ++g_skill_cnt;
+		hc_p.skill_id = g_skill_cnt++;
 		hc_p.skill_type = ch_p->skill_type;
 		hc_p.x = ch_p->x; hc_p.y = ch_p->y; hc_p.z = ch_p->z;
 		for (char client_id = 0; client_id < MAX_CLIENTS; ++client_id) {
@@ -374,7 +376,7 @@ void h_process_packet(char* packet) {
 		hc_p.packet_size = sizeof(hc_player_skill_rotator_packet);
 		hc_p.packet_type = H2C_PLAYER_SKILL_ROTATOR_PACKET;
 		hc_p.player_id = ch_p->player_id;
-		hc_p.skill_id = ++g_skill_cnt;
+		hc_p.skill_id = g_skill_cnt.fetch_add(5);
 		hc_p.skill_type = ch_p->skill_type;
 		hc_p.x = ch_p->x; hc_p.y = ch_p->y; hc_p.z = ch_p->z;
 		hc_p.pitch = ch_p->pitch; hc_p.yaw = ch_p->yaw; hc_p.roll = ch_p->roll;
@@ -394,8 +396,20 @@ void h_process_packet(char* packet) {
 			if (p->id != other_id) {
 				if (g_clients[other_id]) {
 					g_clients[other_id]->do_send(p);
-					//UE_LOG(LogTemp, Warning, TEXT("[Host] Send Player %d's Skill Packet to Player %d"), p->id, player_id);
+					//UE_LOG(LogTemp, Warning, TEXT("[Host] Send Player %d's Skill Packet to Player %d"), p->id, other_id);
 				}
+			}
+		}
+		break;
+	}
+
+	case C2H_COLLISION_PACKET: {
+		collision_packet* p = reinterpret_cast<collision_packet*>(packet);
+		p->packet_type = H2C_COLLISION_PACKET;
+		for (char other_id = 0; other_id < MAX_CLIENTS; ++other_id) {
+			if (g_clients[other_id]) {
+				g_clients[other_id]->do_send(p);
+				//UE_LOG(LogTemp, Warning, TEXT("[Host] Send Collision Packet to Player %d"), other_id);
 			}
 		}
 		break;
@@ -477,8 +491,9 @@ void c_process_packet(char* packet) {
 
 		APlayerCharacter* MyPlayer = Cast<APlayerCharacter>(UGameplayStatics::GetPlayerCharacter(World, 0));
 		if (MyPlayer) {
-			MyPlayer->set_is_player(true);
 			MyPlayer->set_id(p->id);
+			MyPlayer->set_is_player(true);
+
 			g_players[p->id] = MyPlayer;
 
 			//UE_LOG(LogTemp, Warning, TEXT("[Client] Registered Local Player (ID: %d) in g_players"), p->id);
@@ -622,6 +637,18 @@ void c_process_packet(char* packet) {
 		player_change_element_packet* p = reinterpret_cast<player_change_element_packet*>(packet);
 		g_players[p->id]->change_element();
 		//UE_LOG(LogTemp, Warning, TEXT("[Client] Received Player %d's Skill Packet"), p->player_id);
+		break;
+	}
+
+	case H2C_COLLISION_PACKET: {
+		collision_packet* p = reinterpret_cast<collision_packet*>(packet);
+		switch (p->collision_type) {
+		case SKILL_SKILL_COLLISION:
+			if (g_skills.count(p->attacker_id)) g_skills[p->attacker_id]->Overlap();
+			if (g_skills.count(p->victim_id)) g_skills[p->victim_id]->Overlap();
+			break;
+		}
+		//UE_LOG(LogTemp, Warning, TEXT("[Client] Received Collision Packet"));
 		break;
 	}
 	}

@@ -203,8 +203,8 @@ public:
 	void do_send(void* buff);
 
 	char get_id() { return m_id; }
+	unsigned short get_skill_id() { return m_skill_id; }
 	bool get_is_player() { return m_is_player; }
-	FVector get_skill_direction() { return FireLocation; }
 
 	void set_id(char id) { m_id = id; }
 	void set_velocity(float x, float y, float z) { m_velocity.X = x; m_velocity.Y = y; m_velocity.Z = z; }

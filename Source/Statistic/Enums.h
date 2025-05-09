@@ -10,6 +10,7 @@ enum class EClassType : uint8
     CT_Fire,
     CT_Ice,
     CT_Stone,
+    CT_None,
 };
 
 USTRUCT(BlueprintType)

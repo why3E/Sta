@@ -309,7 +309,7 @@ void h_process_packet(char* packet) {
 	}
 
 	case C2H_PLAYER_STOP_PACKET: {
-		player_stopped_packet* p = reinterpret_cast<player_stopped_packet*>(packet);
+		player_stop_packet* p = reinterpret_cast<player_stop_packet*>(packet);
 		p->packet_type = H2C_PLAYER_STOP_PACKET;
 		for (char other_id = 0; other_id < MAX_CLIENTS; ++other_id) {
 			if (p->id != other_id) {
@@ -322,9 +322,9 @@ void h_process_packet(char* packet) {
 		break;
 	}
 
-	case C2H_PLAYER_DIRECTION_PACKET: {
-		player_rotation_packet* p = reinterpret_cast<player_rotation_packet*>(packet);
-		p->packet_type = H2C_PLAYER_DIRECTION_PACKET;
+	case C2H_PLAYER_ROTATE_PACKET: {
+		player_rotate_packet* p = reinterpret_cast<player_rotate_packet*>(packet);
+		p->packet_type = H2C_PLAYER_ROTATE_PACKET;
 		for (char other_id = 0; other_id < MAX_CLIENTS; ++other_id) {
 			if (p->id != other_id) {
 				if (g_clients[other_id]) {
@@ -350,16 +350,55 @@ void h_process_packet(char* packet) {
 		break;
 	}
 
-	case C2H_PLAYER_SKILL_PACKET: {
-		player_skill_packet* p = reinterpret_cast<player_skill_packet*>(packet);
-		p->packet_type = H2C_PLAYER_SKILL_PACKET;
-		p->skill_id = ++g_skill_cnt;
-		for (char player_id = 0; player_id < MAX_CLIENTS; ++player_id) {
-			if (g_clients[player_id]) {
-				g_clients[player_id]->do_send(p);
-				UE_LOG(LogTemp, Warning, TEXT("[Host] Send Player %d's Skill Packet to Player %d"), p->player_id, player_id);
+	case C2H_PLAYER_SKILL_VECTOR_PACKET: {
+		ch_player_skill_vector_packet* ch_p = reinterpret_cast<ch_player_skill_vector_packet*>(packet);
+		hc_player_skill_vector_packet hc_p;
+		hc_p.packet_size = sizeof(hc_player_skill_vector_packet);
+		hc_p.packet_type = H2C_PLAYER_SKILL_VECTOR_PACKET;
+		hc_p.player_id = ch_p->player_id;
+		hc_p.skill_id = ++g_skill_cnt;
+		hc_p.skill_type = ch_p->skill_type;
+		hc_p.x = ch_p->x; hc_p.y = ch_p->y; hc_p.z = ch_p->z;
+		for (char client_id = 0; client_id < MAX_CLIENTS; ++client_id) {
+			if (g_clients[client_id]) {
+				g_clients[client_id]->do_send(&hc_p);
+				//UE_LOG(LogTemp, Warning, TEXT("[Host] Send Player %d's Skill Packet to Player %d"), p->player_id, client_id);
 			}
 		}
+		break;
+	}
+
+	case C2H_PLAYER_SKILL_ROTATOR_PACKET: {
+		ch_player_skill_rotator_packet* ch_p = reinterpret_cast<ch_player_skill_rotator_packet*>(packet);
+		hc_player_skill_rotator_packet hc_p;
+		hc_p.packet_size = sizeof(hc_player_skill_rotator_packet);
+		hc_p.packet_type = H2C_PLAYER_SKILL_ROTATOR_PACKET;
+		hc_p.player_id = ch_p->player_id;
+		hc_p.skill_id = ++g_skill_cnt;
+		hc_p.skill_type = ch_p->skill_type;
+		hc_p.x = ch_p->x; hc_p.y = ch_p->y; hc_p.z = ch_p->z;
+		hc_p.pitch = ch_p->pitch; hc_p.yaw = ch_p->yaw; hc_p.roll = ch_p->roll;
+		for (char client_id = 0; client_id < MAX_CLIENTS; ++client_id) {
+			if (g_clients[client_id]) {
+				g_clients[client_id]->do_send(&hc_p);
+				//UE_LOG(LogTemp, Warning, TEXT("[Host] Send Player %d's Skill Packet to Player %d"), p->player_id, client_id);
+			}
+		}
+		break;
+	}
+
+	case C2H_PLAYER_CHANGE_ELEMENT_PACKET: {
+		player_change_element_packet* p = reinterpret_cast<player_change_element_packet*>(packet);
+		p->packet_type = H2C_PLAYER_CHANGE_ELEMENT_PACKET;
+		for (char other_id = 0; other_id < MAX_CLIENTS; ++other_id) {
+			if (p->id != other_id) {
+				if (g_clients[other_id]) {
+					g_clients[other_id]->do_send(p);
+					//UE_LOG(LogTemp, Warning, TEXT("[Host] Send Player %d's Skill Packet to Player %d"), p->id, player_id);
+				}
+			}
+		}
+		break;
 	}
 	}
 }
@@ -372,7 +411,7 @@ extern void CALLBACK h_recv_callback(DWORD err, DWORD num_bytes, LPWSAOVERLAPPED
 	//UE_LOG(LogTemp, Warning, TEXT("[Host] Received Packet from Player %d"), o->m_id);
 
 	if ((0 != err) || (0 == num_bytes)) {
-		UE_LOG(LogTemp, Warning, TEXT("[Host] Player %d DIsconnected"), o->m_id);
+		UE_LOG(LogTemp, Warning, TEXT("[Host] Player %d Disconnected"), o->m_id);
 
 		hc_player_leave_packet p;
 		p.packet_size = sizeof(hc_player_leave_packet);
@@ -543,7 +582,7 @@ void c_process_packet(char* packet) {
 	}
 
 	case H2C_PLAYER_STOP_PACKET: {
-		player_stopped_packet* p = reinterpret_cast<player_stopped_packet*>(packet);
+		player_stop_packet* p = reinterpret_cast<player_stop_packet*>(packet);
 		FVector Position(p->x, p->y, p->z);
 		g_players[p->id]->SetActorLocation(Position, false);
 		g_players[p->id]->set_velocity(0.0f, 0.0f, 0.0f);
@@ -551,8 +590,8 @@ void c_process_packet(char* packet) {
 		break;
 	}
 
-	case H2C_PLAYER_DIRECTION_PACKET: {
-		player_rotation_packet* p = reinterpret_cast<player_rotation_packet*>(packet);
+	case H2C_PLAYER_ROTATE_PACKET: {
+		player_rotate_packet* p = reinterpret_cast<player_rotate_packet*>(packet);
 		g_players[p->id]->rotate(p->yaw);
 		//UE_LOG(LogTemp, Warning, TEXT("[Client] Received Player %d's Rotation Packet"), p->id);
 		break;
@@ -565,10 +604,24 @@ void c_process_packet(char* packet) {
 		break;
 	}
 
-	case H2C_PLAYER_SKILL_PACKET: {
-		player_skill_packet* p = reinterpret_cast<player_skill_packet*>(packet);
+	case H2C_PLAYER_SKILL_VECTOR_PACKET: {
+		hc_player_skill_vector_packet* p = reinterpret_cast<hc_player_skill_vector_packet*>(packet);
 		g_players[p->player_id]->use_skill(p->skill_id, p->skill_type, FVector(p->x, p->y, p->z));
-		UE_LOG(LogTemp, Warning, TEXT("[Client] Received Player %d's Skill Packet"), p->player_id);
+		//UE_LOG(LogTemp, Warning, TEXT("[Client] Received Player %d's Skill Packet"), p->player_id);
+		break;
+	}
+
+	case H2C_PLAYER_SKILL_ROTATOR_PACKET: {
+		hc_player_skill_rotator_packet* p = reinterpret_cast<hc_player_skill_rotator_packet*>(packet);
+		g_players[p->player_id]->use_skill(p->skill_id, p->skill_type, FVector(p->x, p->y, p->z), FRotator(p->pitch, p->yaw, p->roll));
+		//UE_LOG(LogTemp, Warning, TEXT("[Client] Received Player %d's Skill Packet"), p->player_id);
+		break;
+	}
+
+	case H2C_PLAYER_CHANGE_ELEMENT_PACKET: {
+		player_change_element_packet* p = reinterpret_cast<player_change_element_packet*>(packet);
+		g_players[p->id]->change_element();
+		//UE_LOG(LogTemp, Warning, TEXT("[Client] Received Player %d's Skill Packet"), p->player_id);
 		break;
 	}
 	}

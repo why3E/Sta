@@ -26,7 +26,7 @@ APlayerCharacter::APlayerCharacter()
 	m_yaw = 0.0f;
 	m_velocity = FVector(0.0f, 0.0f, 0.0f);
 	m_hp = 100;
-	m_current_element = WIND_ELEMENT;
+	m_current_element = ELEMENT_WIND;
 
 	m_skill_id = 0;
 
@@ -138,7 +138,7 @@ APlayerCharacter::APlayerCharacter()
 	}
 
     // 기본 클래스 타입 설정
-    ClassType = EClassType::CT_Fire;
+    ClassType = EClassType::CT_Wind;
 
     // 초기 캐싱된 데이터 설정
     CurrentMontage = nullptr;
@@ -296,9 +296,9 @@ void APlayerCharacter::BasicLook(const FInputActionValue& Value)
 	if (YawDiff > 30.0f) { 
 		m_yaw = CurrentYaw;
 
-		player_rotation_packet p;
-		p.packet_size = sizeof(player_rotation_packet);
-		p.packet_type = C2H_PLAYER_DIRECTION_PACKET;
+		player_rotate_packet p;
+		p.packet_size = sizeof(player_rotate_packet);
+		p.packet_type = C2H_PLAYER_ROTATE_PACKET;
 		p.id = m_id;
 		p.yaw = CurrentYaw;
 
@@ -351,9 +351,35 @@ void APlayerCharacter::BasicAttack()
 		UE_LOG(LogTemp, Error, TEXT("CurrentImpactPoint: %s"), *CurrentImpactPoint.ToString());
 		UE_LOG(LogTemp, Error, TEXT("CurrentImpactRot: %s"), *CurrentImpactRot.ToString());
 
-        SkillAttack();
-		bIsDrawingCircle = false;
-        GetWorld()->GetTimerManager().ClearTimer(CircleUpdateTimerHandle);
+		// Send Skill Packet 
+		if (get_is_player()) {
+			switch (ClassType) {
+			case EClassType::CT_Wind: {
+				ch_player_skill_vector_packet p;
+				p.packet_size = sizeof(ch_player_skill_vector_packet);
+				p.packet_type = C2H_PLAYER_SKILL_VECTOR_PACKET;
+				p.player_id = m_id;
+				p.x = CurrentImpactPoint.X; p.y = CurrentImpactPoint.Y; p.z = CurrentImpactPoint.Z;
+				p.skill_type = SKILL_WIND_TORNADO;
+				
+				do_send(&p);
+				break;
+			}
+
+			case EClassType::CT_Fire:
+				ch_player_skill_rotator_packet p;
+				p.packet_size = sizeof(ch_player_skill_rotator_packet);
+				p.packet_type = C2H_PLAYER_SKILL_ROTATOR_PACKET;
+				p.player_id = m_id;
+				p.x = CurrentImpactPoint.X; p.y = CurrentImpactPoint.Y; p.z = CurrentImpactPoint.Z;
+				p.pitch = CurrentImpactRot.Pitch; p.yaw = CurrentImpactRot.Yaw; p.roll = CurrentImpactRot.Roll;
+				p.skill_type = SKILL_FIRE_WALL;
+				
+				do_send(&p);
+				break;
+			}
+			//UE_LOG(LogTemp, Warning, TEXT("[Client %d] Send Skill Packet to Host"), p.id);
+		}
         return;
     }
 
@@ -364,11 +390,11 @@ void APlayerCharacter::BasicAttack()
 			GetFireTargetLocation();
 			UE_LOG(LogTemp, Error, TEXT("FireLocation: %s"), *FireLocation.ToString());
 
-			player_skill_packet p;
-			p.packet_size = sizeof(player_skill_packet);
-			p.packet_type = C2H_PLAYER_SKILL_PACKET;
+			ch_player_skill_vector_packet p;
+			p.packet_size = sizeof(ch_player_skill_vector_packet);
+			p.packet_type = C2H_PLAYER_SKILL_VECTOR_PACKET;
 			p.player_id = m_id;
-			p.skill_id = 0;
+			p.x = FireLocation.X; p.y = FireLocation.Y; p.z = FireLocation.Z;
 
 			switch (ClassType) {
 			case EClassType::CT_Wind:
@@ -380,9 +406,8 @@ void APlayerCharacter::BasicAttack()
 				break;
 			}
 
-			p.x = FireLocation.X; p.y = FireLocation.Y; p.z = FireLocation.Z;
 			do_send(&p);
-			UE_LOG(LogTemp, Warning, TEXT("[Client %d] Send Skill Packet to Host"), p.player_id);
+			//UE_LOG(LogTemp, Warning, TEXT("[Client %d] Send Attack Packet to Host"), p.player_id);
 		}
 		return;
 	}
@@ -687,8 +712,8 @@ void APlayerCharacter::Tick(float DeltaTime) {
 
 				FVector Position = GetActorLocation();
 
-				player_stopped_packet p;
-				p.packet_size = sizeof(player_stopped_packet);
+				player_stop_packet p;
+				p.packet_size = sizeof(player_stop_packet);
 				p.packet_type = C2H_PLAYER_STOP_PACKET;
 				p.id = m_id;
 				p.x = Position.X; p.y = Position.Y; p.z = Position.Z;
@@ -834,21 +859,69 @@ void APlayerCharacter::GetFireTargetLocation()
 
 void APlayerCharacter::ChangeClassTest()
 {
+	player_change_element_packet p;
+	p.packet_size = sizeof(player_change_element_packet);
+	p.packet_type = C2H_PLAYER_CHANGE_ELEMENT_PACKET;
+	p.id = m_id;
+
+	do_send(&p);
+
+	change_element();
+}
+
+void APlayerCharacter::use_skill(unsigned short skill_id, char skill_type, FVector v) {
+	switch (skill_type) {
+	case SKILL_WIND_CUTTER:
+		m_skill_id = skill_id;
+		FireLocation = v;
+		ComboStart();
+		break;
+
+	case SKILL_WIND_TORNADO:
+		m_skill_id = skill_id;
+		CurrentImpactPoint = v;
+		SkillAttack();
+		bIsDrawingCircle = false;
+		GetWorld()->GetTimerManager().ClearTimer(CircleUpdateTimerHandle);
+		break;
+
+	case SKILL_FIRE_BALL:
+		m_skill_id = skill_id;
+		FireLocation = v;
+		ComboStart();
+		break;
+	}
+}
+
+void APlayerCharacter::use_skill(unsigned short skill_id, char skill_type, FVector v, FRotator r) {
+	switch (skill_type) {
+	case SKILL_FIRE_WALL:
+		m_skill_id = skill_id;
+		CurrentImpactPoint = v;
+		CurrentImpactRot = r;
+		SkillAttack();
+		bIsDrawingCircle = false;
+		GetWorld()->GetTimerManager().ClearTimer(CircleUpdateTimerHandle);
+		break;
+	}
+}
+
+void APlayerCharacter::change_element() {
 	switch (ClassType)
 	{
 	case EClassType::CT_Wind:
-		ChangeClass(EClassType::CT_Fire);
 		UE_LOG(LogTemp, Warning, TEXT("Class changed to Fire"));
+		ChangeClass(EClassType::CT_Fire);
 		break;
 
 	case EClassType::CT_Stone:
-		ChangeClass(EClassType::CT_Wind);
 		UE_LOG(LogTemp, Warning, TEXT("Class changed to Wind"));
+		ChangeClass(EClassType::CT_Wind);
 		break;
 
 	case EClassType::CT_Fire:
-		ChangeClass(EClassType::CT_Stone);
 		UE_LOG(LogTemp, Warning, TEXT("Class changed to Stone"));
+		ChangeClass(EClassType::CT_Stone);
 		break;
 
 	default:
@@ -856,31 +929,7 @@ void APlayerCharacter::ChangeClassTest()
 		break;
 	}
 }
-
-void APlayerCharacter::use_skill(unsigned short skill_id, char skill_type, FVector v) {
-	switch (skill_type) {
-	case SKILL_WIND_CUTTER:
-		UE_LOG(LogTemp, Warning, TEXT("[Client] Player %d : Skill %d, ID %d"), m_id, skill_type, skill_id);
-		m_skill_id = skill_id;
-		FireLocation = v;
-		ComboStart();
-		break;
-
-	case SKILL_WIND_TORNADO:
-		SkillAttack();
-		break;
-
-	case SKILL_FIRE_BALL:
-		FireLocation = v;
-		ComboStart();
-		break;
-
-	case SKILL_FIRE_WALL:
-		SkillAttack();
-		break;
-	}
-}
-
+		
 void APlayerCharacter::rotate(float yaw) {
 	FRotator NewRotation = GetActorRotation();
 	NewRotation.Yaw = yaw;

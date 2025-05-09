@@ -211,5 +211,7 @@ public:
 	void set_is_player(bool is_player) { m_is_player = is_player; }
 
 	void use_skill(unsigned short skill_id, char skill_type, FVector v);
+	void use_skill(unsigned short skill_id, char skill_type, FVector v, FRotator r);
+	void change_element();
 	void rotate(float yaw);
 };

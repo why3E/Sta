@@ -68,41 +68,25 @@ void AMyFireBall::PostInitializeComponents()
 
 void AMyFireBall::Fire(FVector TargetLocation)
 {
-    //FVector LaunchDirection;
+    FVector LaunchDirection;
 	
-    //// 방향 계산
-    //if ((TargetLocation - Owner->GetActorLocation()).Length() < 300.0f)
-    //{
-    //    LaunchDirection = (TargetLocation - GetActorLocation()).GetSafeNormal();
-    //    LaunchDirection.Z = 0.0f;
-    //}
-    //else
-    //{
-    //    LaunchDirection = (TargetLocation - GetActorLocation()).GetSafeNormal();
-    //}
+    // 방향 계산
+    if ((TargetLocation - Owner->GetActorLocation()).Length() < 300.0f)
+    {
+        LaunchDirection = (TargetLocation - GetActorLocation()).GetSafeNormal();
+        LaunchDirection.Z = 0.0f;
+    }
+    else
+    {
+        LaunchDirection = (TargetLocation - GetActorLocation()).GetSafeNormal();
+    }
 
-    //// Send Fire Ball Packet
-    //APlayerCharacter* player = Cast<APlayerCharacter>(GetOwner());
-    //if (player->get_is_player()) {
-    //    player_skill_packet p;
-    //    p.packet_size = sizeof(player_skill_packet);
-    //    p.packet_type = C2H_PLAYER_SKILL_PACKET;
-    //    p.id = player->get_id();
-    //    p.skill_type = SKILL_FIRE_BALL;
-    //    p.x = LaunchDirection.X; p.y = LaunchDirection.Y; p.z = LaunchDirection.Z;
-    //    player->do_send(&p);
-    //    //UE_LOG(LogTemp, Warning, TEXT("[Client %d] Send Fire Skill Packet to Host"), p.id);
-    //}
-    //else {
-    //    LaunchDirection = player->get_skill_velocity();
-    //}
+    // 방향 지정 및 Projectile Movement Component 활성화
+    MovementComponent->Velocity = LaunchDirection * MovementComponent->InitialSpeed;
+    MovementComponent->Activate();
 
-    //// 방향 지정 및 Projectile Movement Component 활성화
-    //MovementComponent->Velocity = LaunchDirection * MovementComponent->InitialSpeed;
-    //MovementComponent->Activate();
-
-    //// 3초 후 자동 삭제
-    //SetLifeSpan(3.0f);
+    // 3초 후 자동 삭제
+    SetLifeSpan(3.0f);
 }
 
 void AMyFireBall::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)

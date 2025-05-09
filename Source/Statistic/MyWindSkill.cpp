@@ -44,36 +44,18 @@ void AMyWindSkill::Tick(float DeltaTime)
 
 void AMyWindSkill::SpawnWindTonado(FVector Location)
 {
-    //// Send Wind Skill Packet 
-    //APlayerCharacter* player = Cast<APlayerCharacter>(GetOwner());
-    //if (player->get_is_player()) {
-    //    Location.Z += 375.0f;
-    //    
-    //    player_skill_packet p;
-    //    p.packet_size = sizeof(player_skill_packet);
-    //    p.packet_type = C2H_PLAYER_SKILL_PACKET;
-    //    p.id = player->get_id();
-    //    p.skill_type = SKILL_WIND_TORNADO;
-    //    p.x = Location.X; p.y = Location.Y; p.z = Location.Z;
-    //    player->do_send(&p);
-    //    //UE_LOG(LogTemp, Warning, TEXT("[Client %d] Send Wind Skill Packet to Host"), p.id);
-    //}
-    //else {
-    //    Location = player->get_skill_location();
-    //}
+    SetActorLocation(Location);
 
-    //SetActorLocation(Location);
+    // 나이아가라 파티클 활성화
+    if (WindTonadoEffect)
+    {
+        WindTonadoNiagaraComponent->SetAsset(WindTonadoEffect);
+        WindTonadoNiagaraComponent->SetVisibility(true);
+        WindTonadoNiagaraComponent->Activate();
+    }
 
-    //// 나이아가라 파티클 활성화
-    //if (WindTonadoEffect)
-    //{
-    //    WindTonadoNiagaraComponent->SetAsset(WindTonadoEffect);
-    //    WindTonadoNiagaraComponent->SetVisibility(true);
-    //    WindTonadoNiagaraComponent->Activate();
-    //}
-
-    //// 불벽의 지속 시간 설정
-    //SetLifeSpan(WindTonadoDuration);
+    // 불벽의 지속 시간 설정
+    SetLifeSpan(WindTonadoDuration);
 }
 
 void AMyWindSkill::PostInitializeComponents()

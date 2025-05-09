@@ -5,6 +5,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "AIController.h"
+#include "Blueprint/UserWidget.h"
 #include <array>
 #include <thread>
 #include <chrono>
@@ -40,9 +41,36 @@ void CALLBACK c_send_callback(DWORD err, DWORD num_bytes, LPWSAOVERLAPPED p_over
 
 //////////////////////////////////////////////////
 // AMyPlayerController
-void AMyPlayerController::BeginPlay() {
-	Super::BeginPlay();
-	InitSocket();
+void AMyPlayerController::BeginPlay()
+{
+    Super::BeginPlay();
+
+    // 위젯 클래스 로드
+    UClass* HUDWidgetClass = LoadClass<UUserWidget>(
+        nullptr,
+        TEXT("/Game/HUD/WBP_HUD.WBP_HUD_C")
+    );
+
+    if (HUDWidgetClass)
+    {
+        // 위젯 생성 및 뷰포트에 추가
+        UUserWidget* HUD = CreateWidget<UUserWidget>(this, HUDWidgetClass);
+        if (HUD)
+        {
+            HUD->AddToViewport();
+            UE_LOG(LogTemp, Warning, TEXT("HUD Widget successfully added to viewport."));
+        }
+        else
+        {
+            UE_LOG(LogTemp, Error, TEXT("Failed to create HUD Widget."));
+        }
+    }
+    else
+    {
+        UE_LOG(LogTemp, Error, TEXT("Failed to load HUD Widget class."));
+    }
+
+    InitSocket();
 }
 
 void AMyPlayerController::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -429,6 +457,21 @@ void c_process_packet(char* packet) {
 			return;
 		}
 
+			UClass* AnimClass = LoadClass<UAnimInstance>(
+				nullptr,
+				TEXT("/Game/player_anim/MyPlayerAnim.MyPlayerAnim_C")
+			);
+	
+			if (AnimClass)
+			{
+				NewPlayer->GetMesh()->SetAnimInstanceClass(AnimClass);
+				NewPlayer->GetMesh()->SetAnimationMode(EAnimationMode::AnimationBlueprint);
+				NewPlayer->GetMesh()->SetComponentTickEnabled(true);
+				NewPlayer->GetMesh()->bPauseAnims = false;
+				NewPlayer->GetMesh()->bNoSkeletonUpdate = false;
+	
+				UE_LOG(LogTemp, Warning, TEXT("AnimInstance Set: %s"), *AnimClass->GetName());
+				
 		APlayerCharacter* NewPlayer = World->SpawnActor<APlayerCharacter>(
 			PlayerBPClass,
 			SpawnLocation,
@@ -454,26 +497,6 @@ void c_process_packet(char* packet) {
 			UE_LOG(LogTemp, Error, TEXT("Failed to spawn AIController"));
 		}
 
-		// ✅ 애니메이션 블루프린트 수동 설정
-		UClass* AnimClass = LoadClass<UAnimInstance>(
-			nullptr,
-			TEXT("/Game/player_anim/MyPlayerAnim.MyPlayerAnim_C")
-		);
-	
-		if (AnimClass)
-		{
-			NewPlayer->GetMesh()->SetAnimInstanceClass(AnimClass);
-			NewPlayer->GetMesh()->SetAnimationMode(EAnimationMode::AnimationBlueprint);
-			NewPlayer->GetMesh()->SetComponentTickEnabled(true);
-			NewPlayer->GetMesh()->bPauseAnims = false;
-			NewPlayer->GetMesh()->bNoSkeletonUpdate = false;
-	
-			UE_LOG(LogTemp, Warning, TEXT("AnimInstance Set: %s"), *AnimClass->GetName());
-		}
-		else
-		{
-			UE_LOG(LogTemp, Error, TEXT("Failed to Load AnimBP"));
-		}
 
 		g_players[p->id] = NewPlayer;
 		//UE_LOG(LogTemp, Warning, TEXT("[Client] Spawned Player %d and Stored in g_players"), p->id);

@@ -4,14 +4,15 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "ReceiveDamageInterface.h" // Ensure this file defines the ReceiveDamageInterface class or struct
 #include "EnemyCharacter.generated.h"
 
 UCLASS()
-class STATISTIC_API AEnemyCharacter : public ACharacter
+class STATISTIC_API AEnemyCharacter : public ACharacter, public IReceiveDamageInterface // Ensure the interface is prefixed with 'I' if Unreal naming conventions are followed
 {
 	GENERATED_BODY()
 
-public:
+public:	
 	// Sets default values for this character's properties
 	AEnemyCharacter();
 private:
@@ -45,4 +46,12 @@ public:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 	void MeleeAttack();
+
+protected:
+	virtual void ReceiveSkillHit(const FSkillInfo& Info, AActor* Causer) override;
+
+private:
+    // 캐릭터의 체력
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats", Meta = (AllowPrivateAccess = "true"))
+    float HP = 100.0f; // 기본 체력 값
 };

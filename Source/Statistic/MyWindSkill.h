@@ -50,4 +50,9 @@ private:
     // 충돌 처리 함수
     UFUNCTION()
     void OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+private:
+    FTimerHandle CheckOverlapTimerHandle; // 타이머 핸들
+
+    void CheckOverlappingActors(); // 충돌 중인 액터 확인 함수
+    void EndPlay(EEndPlayReason::Type EndPlayReason) override; // 종료 시 호출되는 함수
 };

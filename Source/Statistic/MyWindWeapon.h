@@ -23,24 +23,21 @@ protected:
 
 public:
 	// 생성 및 발사 함수
-	void SpawnWindCutter();
+	void SpawnWindCutter(FVector FireLocation);
 	void ShootWindCutter();
 	void SpawnWindSkill(FVector TargetLocation);
 
 protected:
-	// 타겟 위치를 구하기 위한 함수
-	void SetFireLocation();
 
-	// 에너지볼 클래스
 	UPROPERTY(VisibleAnywhere, Category = "Quiver", meta = (AllowPrivateAccess = "true"))
 	TSubclassOf<AActor> WindCutterClass;
 	UPROPERTY(VisibleAnywhere, Category = "Quiver", meta = (AllowPrivateAccess = "true"))
 	TSubclassOf<AActor> WindSkillClass;
-	// 현재 스폰된 에너지볼 객체
+
 	UPROPERTY()
 	TObjectPtr<class AMyWindCutter> TempWindCutter;
 
-	// 에너지 볼을 스폰하기 위한 소켓
+
 	FName WindCutterSocket;
 
 private:

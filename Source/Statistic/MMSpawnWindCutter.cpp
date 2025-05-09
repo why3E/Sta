@@ -3,6 +3,7 @@
 
 #include "MMSpawnWindCutter.h"
 #include "AnimationWeaponInterface.h"
+#include "ImpactPointInterface.h"
 #include "MyWindWeapon.h"
 #include "MyWindCutter.h"
 
@@ -11,14 +12,18 @@ void UMMSpawnWindCutter::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceB
     Super::Notify(MeshComp, Animation, EventReference);
     if(MeshComp)
     {
-        IAnimationWeaponInterface* WeaponPawn = Cast<IAnimationWeaponInterface>(MeshComp->GetOwner());
-        if (WeaponPawn)
+        IImpactPointInterface* ImpactPointOwner = Cast<IImpactPointInterface>(MeshComp->GetOwner());
+        if (ImpactPointOwner)
         {
-            AMyWindWeapon* Weapon = Cast<AMyWindWeapon>(WeaponPawn->GetWeapon());
-            if (Weapon)
+            FVector FireLocation = ImpactPointOwner->GetFireLocation();
+            IAnimationWeaponInterface* WeaponPawn = Cast<IAnimationWeaponInterface>(MeshComp->GetOwner());
+            if (WeaponPawn)
             {
-                
-                Weapon->SpawnWindCutter(); // 에너지볼 스폰 함수 호출
+                AMyWindWeapon* Weapon = Cast<AMyWindWeapon>(WeaponPawn->GetWeapon());
+                if (Weapon)
+                {
+                    Weapon->SpawnWindCutter(FireLocation); // 에너지볼 스폰 함수 호출
+                }
             }
         }
     }

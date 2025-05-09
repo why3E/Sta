@@ -85,3 +85,18 @@ void AEnemyCharacter::MeleeAttack()
     }
 }
 
+void AEnemyCharacter::ReceiveSkillHit(const FSkillInfo& Info, AActor* Causer)
+{
+    //float Resistance = GetResistanceAgainst(Info.Element);
+    float FinalDamage = Info.Damage;// * (1.0f - Resistance);
+    HP = HP - FinalDamage;
+
+    if (Info.StunTime > 0.0f)
+    {
+        //Stun(Info.StunTime);
+    }
+	
+	UE_LOG(LogTemp, Warning, TEXT("Receive Skill Hit! Damage: %f"), FinalDamage);
+	UE_LOG(LogTemp, Warning, TEXT("Current HP: %f"), HP);
+
+}

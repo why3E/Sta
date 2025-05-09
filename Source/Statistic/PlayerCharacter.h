@@ -12,6 +12,7 @@
 #include "MyPlayerVisualInterface.h"
 #include "ImpactPointInterface.h"
 #include "AnimationWeaponInterface.h"
+#include "ReceiveDamageInterface.h"
 #include "PlayerCharacter.generated.h"
 
 UCLASS()
@@ -53,6 +54,7 @@ protected:
 	void SkillAttack();
 	void QSkill();
 	void ESkill();
+	void ChangeClassTest();
 
 	UPROPERTY(VisibleAnywhere, Category = Input, Meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<class UInputMappingContext> IMC_Basic;
@@ -77,6 +79,9 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, Category = Input, Meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<class UInputAction> IA_ESkill;
+
+	UPROPERTY(VisibleAnywhere, Category = Input, Meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<class UInputAction> IA_ChangeClass;
 
 
 protected:
@@ -205,6 +210,14 @@ private:
 protected:
 	FORCEINLINE virtual FVector GetCurrentImpactPoint() override { return CurrentImpactPoint; }
 	FORCEINLINE virtual FRotator GetCurrentImpactRot() override { return CurrentImpactRot; }
+	FORCEINLINE virtual FVector GetFireLocation() override { return FireLocation; }
+
+private:
+	FVector FireLocation;
+	float TraceDistance = 2000.0f; // 타겟 거리
+protected:
+	// 타겟 위치를 구하기 위한 함수
+	void GetFireTargetLocation();
 };
 
 

@@ -18,4 +18,5 @@ AMyGameMode::AMyGameMode()
     {
         PlayerControllerClass = ControllerClassRef.Class;
     }
+
 }

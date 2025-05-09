@@ -322,6 +322,8 @@ void APlayerCharacter::DashEnd()
 
 void APlayerCharacter::BasicAttack()
 {
+	UE_LOG(LogTemp, Warning, TEXT("FireLocation: %s, CurrentImpactPoint: %s"), *FireLocation.ToString(), *CurrentImpactPoint.ToString());
+
 	if (bIsDrawingCircle)
     {
         SkillAttack();
@@ -332,12 +334,12 @@ void APlayerCharacter::BasicAttack()
 
 	if (CurrentComboCount == 0)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Basic Attack!"));
+		GetFireTargetLocation();
 		ComboStart();
 		return;
 	}
-
-	// 중간 입력 체크
+	
+	
 	// * 콤보 타이머가 종료되지 않은 상태라면 콤보 입력 체크
 	if (ComboTimerHandle.IsValid())
 	{
@@ -710,11 +712,6 @@ void APlayerCharacter::QSkill()
             // 원 업데이트 타이머 시작
             GetWorld()->GetTimerManager().SetTimer(CircleUpdateTimerHandle, this, &APlayerCharacter::UpdateCircle, 0.1f, true);
 
-            UE_LOG(LogTemp, Warning, TEXT("Started drawing circle at: %s"), *CurrentImpactPoint.ToString());
-        }
-        else
-        {
-            UE_LOG(LogTemp, Warning, TEXT("No hit detected."));
         }
     }
 }
@@ -755,4 +752,37 @@ void APlayerCharacter::UpdateCircle()
 void APlayerCharacter::ESkill() {
 	UE_LOG(LogTemp, Warning, TEXT("E Skill!"));
 	
+}
+
+
+void APlayerCharacter::GetFireTargetLocation()
+{
+    // 카메라가 유효한지 확인 (Camera로 수정)
+    if (!Camera) 
+    {
+        FireLocation = GetActorForwardVector() * TraceDistance;
+        return;
+    }
+
+    FVector Start = Camera->GetComponentLocation();
+    FVector End = Start + (Camera->GetForwardVector() * TraceDistance);
+
+    FHitResult HitResult;
+    FCollisionQueryParams Params(SCENE_QUERY_STAT(FireTrace), false, this);
+
+    bool bHit = GetWorld()->LineTraceSingleByChannel(
+        HitResult,
+        Start,
+        End,
+        ECC_Visibility,
+        Params
+    );
+
+    FireLocation = bHit ? HitResult.ImpactPoint : End;
+
+    // 캐릭터의 Yaw를 카메라 Yaw에 맞춤
+    FRotator ActorRot = GetActorRotation();
+    FRotator ControlRot = GetControlRotation();
+    SetActorRotation(FRotator(ActorRot.Pitch, ControlRot.Yaw, ActorRot.Roll));
+
 }

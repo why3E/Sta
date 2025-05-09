@@ -23,13 +23,10 @@ protected:
 
 public:
 	// 생성 및 발사 함수
-	void SpawnFireBall();
+	void SpawnFireBall(FVector ImpactPoint);
 	void ShootFireBall();
 	void SpawnFireSkill(FVector TargetLocation, FRotator TargetRotation);
 protected:
-	// 타겟 위치를 구하기 위한 함수
-	void SetFireLocation();
-
 	// 클래스
 	UPROPERTY(VisibleAnywhere, Category = "Quiver", meta = (AllowPrivateAccess = "true"))
 	TSubclassOf<AActor> FireBallClass;

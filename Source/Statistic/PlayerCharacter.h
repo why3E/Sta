@@ -191,7 +191,14 @@ private:
 protected:
 	FORCEINLINE virtual FVector GetCurrentImpactPoint() override { return CurrentImpactPoint; }
 	FORCEINLINE virtual FRotator GetCurrentImpactRot() override { return CurrentImpactRot; }
+	FORCEINLINE virtual FVector GetFireLocation() override { return FireLocation; }
 
+private:
+	FVector FireLocation;
+	float TraceDistance = 2000.0f; // 타겟 거리
+protected:
+	// 타겟 위치를 구하기 위한 함수
+	void GetFireTargetLocation();
 };
 
 

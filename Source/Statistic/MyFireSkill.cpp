@@ -42,40 +42,40 @@ void AMyFireSkill::Tick(float DeltaTime)
 
 void AMyFireSkill::SpawnFireWall(FVector Location, FRotator Rotation)
 {
-    // Send Wind Skill Packet 
-    APlayerCharacter* player = Cast<APlayerCharacter>(GetOwner());
-    if (player->get_is_player()) {
-        Location.Z += 75.0f;
+    //// Send Wind Skill Packet 
+    //APlayerCharacter* player = Cast<APlayerCharacter>(GetOwner());
+    //if (player->get_is_player()) {
+    //    Location.Z += 75.0f;
 
-        player_skill_packet p;
-        p.packet_size = sizeof(player_skill_packet);
-        p.packet_type = C2H_PLAYER_SKILL_PACKET;
-        p.id = player->get_id();
-        p.skill_type = SKILL_FIRE_WALL;
-        p.x = Location.X; p.y = Location.Y; p.z = Location.Z;
-        player->do_send(&p);
-        //UE_LOG(LogTemp, Warning, TEXT("[Client %d] Send Fire Ball Packet to Host"), p.id);
-    }
-    else {
-        Location = player->get_skill_location();
-    }
+    //    player_skill_packet p;
+    //    p.packet_size = sizeof(player_skill_packet);
+    //    p.packet_type = C2H_PLAYER_SKILL_PACKET;
+    //    p.id = player->get_id();
+    //    p.skill_type = SKILL_FIRE_WALL;
+    //    p.x = Location.X; p.y = Location.Y; p.z = Location.Z;
+    //    player->do_send(&p);
+    //    //UE_LOG(LogTemp, Warning, TEXT("[Client %d] Send Fire Ball Packet to Host"), p.id);
+    //}
+    //else {
+    //    Location = player->get_skill_location();
+    //}
 
-    // 위치와 회전 설정
-    SetActorLocation(Location);
-    SetActorRotation(Rotation);
+    //// 위치와 회전 설정
+    //SetActorLocation(Location);
+    //SetActorRotation(Rotation);
 
-    // 나이아가라 파티클 활성화
-    if (FireWallEffect)
-    {
-        FireWallNiagaraComponent->SetAsset(FireWallEffect);
-        FireWallNiagaraComponent->SetVisibility(true);
-        FireWallNiagaraComponent->Activate();
-    }
+    //// 나이아가라 파티클 활성화
+    //if (FireWallEffect)
+    //{
+    //    FireWallNiagaraComponent->SetAsset(FireWallEffect);
+    //    FireWallNiagaraComponent->SetVisibility(true);
+    //    FireWallNiagaraComponent->Activate();
+    //}
 
-    // 불벽의 지속 시간 설정
-    SetLifeSpan(FireWallDuration);
+    //// 불벽의 지속 시간 설정
+    //SetLifeSpan(FireWallDuration);
 
-    UE_LOG(LogTemp, Warning, TEXT("Fire Wall spawned at location: %s"), *Location.ToString());
+    //UE_LOG(LogTemp, Warning, TEXT("Fire Wall spawned at location: %s"), *Location.ToString());
 }
 
 void AMyFireSkill::PostInitializeComponents()

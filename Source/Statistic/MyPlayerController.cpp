@@ -22,8 +22,10 @@ constexpr char HOST_ADDRESS[] = "127.0.0.1";
 SOCKET g_s_socket;
 std::array<std::unique_ptr<SESSION>, MAX_CLIENTS> g_clients;
 std::thread g_s_thread;
+
 std::atomic<bool> g_is_host;
 std::atomic<bool> g_running;
+std::atomic<unsigned short> g_skill_cnt;
 
 void server_thread();
 void accept_thread();
@@ -85,7 +87,9 @@ void AMyPlayerController::EndPlay(const EEndPlayReason::Type EndPlayReason)
 // Socket
 void AMyPlayerController::InitSocket()
 {
+	g_is_host = true;
 	g_running = true;
+	g_skill_cnt = 0;
 
 	// [Client] : WSAStartup
 	WSADATA WSAData;
@@ -304,9 +308,9 @@ void h_process_packet(char* packet) {
 		break;
 	}
 
-	case C2H_PLAYER_STOPPED_PACKET: {
+	case C2H_PLAYER_STOP_PACKET: {
 		player_stopped_packet* p = reinterpret_cast<player_stopped_packet*>(packet);
-		p->packet_type = H2C_PLAYER_STOPPED_PACKET;
+		p->packet_type = H2C_PLAYER_STOP_PACKET;
 		for (char other_id = 0; other_id < MAX_CLIENTS; ++other_id) {
 			if (p->id != other_id) {
 				if (g_clients[other_id]) {
@@ -332,9 +336,9 @@ void h_process_packet(char* packet) {
 		break;
 	}
 
-	case C2H_PLAYER_JUMP_START_PACKET: {
+	case C2H_PLAYER_JUMP_PACKET: {
 		player_jump_packet* p = reinterpret_cast<player_jump_packet*>(packet);
-		p->packet_type = H2C_PLAYER_JUMP_START_PACKET;
+		p->packet_type = H2C_PLAYER_JUMP_PACKET;
 		for (char other_id = 0; other_id < MAX_CLIENTS; ++other_id) {
 			if (p->id != other_id) {
 				if (g_clients[other_id]) {
@@ -349,12 +353,11 @@ void h_process_packet(char* packet) {
 	case C2H_PLAYER_SKILL_PACKET: {
 		player_skill_packet* p = reinterpret_cast<player_skill_packet*>(packet);
 		p->packet_type = H2C_PLAYER_SKILL_PACKET;
-		for (char other_id = 0; other_id < MAX_CLIENTS; ++other_id) {
-			if (p->id != other_id) {
-				if (g_clients[other_id]) {
-					g_clients[other_id]->do_send(p);
-					//UE_LOG(LogTemp, Warning, TEXT("[Host] Send Player %d's Skill Packet to Player %d"), p->id, other_id);
-				}
+		p->skill_id = ++g_skill_cnt;
+		for (char player_id = 0; player_id < MAX_CLIENTS; ++player_id) {
+			if (g_clients[player_id]) {
+				g_clients[player_id]->do_send(p);
+				UE_LOG(LogTemp, Warning, TEXT("[Host] Send Player %d's Skill Packet to Player %d"), p->player_id, player_id);
 			}
 		}
 	}
@@ -539,7 +542,7 @@ void c_process_packet(char* packet) {
 		break;
 	}
 
-	case H2C_PLAYER_STOPPED_PACKET: {
+	case H2C_PLAYER_STOP_PACKET: {
 		player_stopped_packet* p = reinterpret_cast<player_stopped_packet*>(packet);
 		FVector Position(p->x, p->y, p->z);
 		g_players[p->id]->SetActorLocation(Position, false);
@@ -555,7 +558,7 @@ void c_process_packet(char* packet) {
 		break;
 	}
 
-	case H2C_PLAYER_JUMP_START_PACKET: {
+	case H2C_PLAYER_JUMP_PACKET: {
 		player_jump_packet* p = reinterpret_cast<player_jump_packet*>(packet);
 		g_players[p->id]->LaunchCharacter(FVector(0, 0, 800), false, true);
 		//UE_LOG(LogTemp, Warning, TEXT("[Client] Received Player %d's Jump Packet"), p->id);
@@ -564,8 +567,8 @@ void c_process_packet(char* packet) {
 
 	case H2C_PLAYER_SKILL_PACKET: {
 		player_skill_packet* p = reinterpret_cast<player_skill_packet*>(packet);
-		g_players[p->id]->use_skill(p->skill_type, FVector(p->x, p->y, p->z));
-		//UE_LOG(LogTemp, Warning, TEXT("[Client] Received Player %d's Skill Packet"), p->id);
+		g_players[p->player_id]->use_skill(p->skill_id, p->skill_type, FVector(p->x, p->y, p->z));
+		UE_LOG(LogTemp, Warning, TEXT("[Client] Received Player %d's Skill Packet"), p->player_id);
 		break;
 	}
 	}

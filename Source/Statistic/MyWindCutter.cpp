@@ -80,26 +80,12 @@ void AMyWindCutter::Fire(FVector TargetLocation)
         LaunchDirection = (TargetLocation - GetActorLocation()).GetSafeNormal();
     }
 
-    // Send Wind Cutter Packet
-    APlayerCharacter* player = Cast<APlayerCharacter>(GetOwner());
-    if (player->get_is_player()) {
-        player_skill_packet p;
-        p.packet_size = sizeof(player_skill_packet);
-        p.packet_type = C2H_PLAYER_SKILL_PACKET;
-        p.id = player->get_id();
-        p.skill_type = SKILL_WIND_CUTTER;
-        p.x = LaunchDirection.X; p.y = LaunchDirection.Y; p.z = LaunchDirection.Z;
-        player->do_send(&p);
-        //UE_LOG(LogTemp, Warning, TEXT("[Client %d] Send Wind Cutter Packet to Host"), p.id);
-    }
-    else {
-        LaunchDirection = player->get_skill_velocity();
-    }
-
     // 방향 지정 및 Projectile Movement Component 활성화
+    UE_LOG(LogTemp, Warning, TEXT("[Client] Before Wind Cutter"));
     MovementComponent->Velocity = LaunchDirection * MovementComponent->InitialSpeed;
     MovementComponent->Activate();
-
+    UE_LOG(LogTemp, Warning, TEXT("[Client] Activate Wind Cutter"));
+    
     // 3초 후 자동 삭제
     SetLifeSpan(3.0f);
 }

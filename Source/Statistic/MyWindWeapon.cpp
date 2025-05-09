@@ -37,8 +37,8 @@ void AMyWindWeapon::Tick(float DeltaSeconds)
 
 void AMyWindWeapon::SpawnWindCutter(FVector ImpactPoint)
 {
-	TempWindCutter = Cast<AMyWindCutter>(GetWorld()->SpawnActor(WindCutterClass));
-    
+    TempWindCutter = Cast<AMyWindCutter>(GetWorld()->SpawnActor(WindCutterClass));
+
 	if (TempWindCutter)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("WindCutter Spawned"));

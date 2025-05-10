@@ -206,11 +206,20 @@ struct collision_packet {
 	unsigned char victim_id;
 };
 
-struct skill_create_packet {
+struct ch_skill_create_packet {
 	unsigned char packet_size;
 	char packet_type;
 	char skill_type;
-	unsigned char skill_id;
+	unsigned char old_skill_id;
+	float x, y, z;
+};
+
+struct hc_skill_create_packet {
+	unsigned char packet_size;
+	char packet_type;
+	char skill_type;
+	unsigned char old_skill_id;
+	unsigned char new_skill_id;
 	float x, y, z;
 };
 

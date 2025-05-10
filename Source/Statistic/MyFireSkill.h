@@ -22,8 +22,11 @@ public:
     virtual void Tick(float DeltaTime) override;
 
 	virtual void PostInitializeComponents() override;
+    
     // 불벽 생성 함수
     void SpawnFireWall(FVector Location, FRotator Rotation);
+
+    virtual void Overlap(AActor* OtherActor);
 
 protected:
     // 콜리전 컴포넌트
@@ -53,7 +56,6 @@ private:
     // 충돌 처리 함수
     UFUNCTION()
     void OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
-    virtual void Overlap(AActor* OtherActor);
     FTimerHandle CheckOverlapTimerHandle; // 타이머 핸들
 
     void CheckOverlappingActors(); // 충돌 중인 액터 확인 함수

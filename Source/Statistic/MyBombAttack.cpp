@@ -102,31 +102,22 @@ void AMyBombAttack::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* 
 }
 
 void AMyBombAttack::Overlap(AActor* OtherActor) {
-    
-}
+    if (OtherActor && OtherActor->Implements<UReceiveDamageInterface>()) {
+        FSkillInfo Info;
+        Info.Damage = SkillDamage;
+        Info.Element = SkillElement;
+        Info.StunTime = 1.5f;
+        Info.KnockbackDir = (OtherActor->GetActorLocation() - GetActorLocation()).GetSafeNormal();
 
-void AMyBombAttack::CheckOverlappingActors()
-{
-    TArray<AActor*> CurrentOverlappingActors;
-    CollisionMesh->GetOverlappingActors(CurrentOverlappingActors);
-
-    for (AActor* OtherActor : CurrentOverlappingActors)
-    {
-        if (OtherActor && OtherActor->Implements<UReceiveDamageInterface>())
-        {
-            FSkillInfo Info;
-            Info.Damage = SkillDamage;
-            Info.Element = SkillElement;
-            Info.StunTime = 1.5f;
-            Info.KnockbackDir = (OtherActor->GetActorLocation() - GetActorLocation()).GetSafeNormal();
-
-            IReceiveDamageInterface* DamageReceiver = Cast<IReceiveDamageInterface>(OtherActor);
-            if (DamageReceiver)
-            {
-                DamageReceiver->ReceiveSkillHit(Info, this);
-            }
+        IReceiveDamageInterface* DamageReceiver = Cast<IReceiveDamageInterface>(OtherActor);
+        if (DamageReceiver) {
+            DamageReceiver->ReceiveSkillHit(Info, this);
         }
     }
+}
+
+void AMyBombAttack::CheckOverlappingActors() {
+
 }
 
 void AMyBombAttack::EndPlay(const EEndPlayReason::Type EndPlayReason)

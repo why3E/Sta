@@ -22,6 +22,8 @@ public:
     virtual void Tick(float DeltaTime) override;
     void SpawnBombAttack(FVector ImpactPoint, EClassType MixType);
 
+    virtual void Overlap(AActor* OtherActor);
+
 protected:
     UPROPERTY(VisibleAnywhere, Category = "Collision")
     TObjectPtr<class UStaticMeshComponent> CollisionMesh;
@@ -53,6 +55,5 @@ protected:
         const FHitResult& SweepResult);
 
 private:
-    virtual void Overlap(AActor* OtherActor);
     void CheckOverlappingActors();
 };

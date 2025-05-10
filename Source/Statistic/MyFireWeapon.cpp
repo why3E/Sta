@@ -40,20 +40,35 @@ void AMyFireWeapon::Tick(float DeltaSeconds)
 
 void AMyFireWeapon::SpawnFireBall(FVector ImpactPoint)
 {
-    UE_LOG(LogTemp, Warning, TEXT("SpawnFireBall called"));
 	TempFireBall = Cast<AMyFireBall>(GetWorld()->SpawnActor(FireBallClass));
-    UE_LOG(LogTemp, Warning, TEXT("TempFireBall Spawned"));
-	if (TempFireBall)
+    UE_LOG(LogTemp, Error, TEXT("FireBall %d Spawning"), Cast<APlayerCharacter>(OwnerCharacter)->get_skill_id());
+
+    if (TempFireBall)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("FireBall1 Spawned"));
 		if (OwnerCharacter)
         {
-            UE_LOG(LogTemp, Warning, TEXT("PlayerCharacter Spawned"));
-            TempFireBall->SetID(Cast<APlayerCharacter>(OwnerCharacter)->get_skill_id());
+            unsigned short skill_id = Cast<APlayerCharacter>(OwnerCharacter)->get_skill_id();
+
+            TempFireBall->SetID(skill_id);
             TempFireBall->SetOwner(OwnerCharacter);
             TempFireBall->AttachToComponent(OwnerCharacter->GetMesh(), FAttachmentTransformRules::KeepRelativeTransform, FireBallSocket);
             TempFireBall->ActivateNiagara();
-            g_skills.emplace(Cast<APlayerCharacter>(OwnerCharacter)->get_skill_id(), TempFireBall);
+            UE_LOG(LogTemp, Warning, TEXT("FireBall %d spawniiiing"), skill_id);
+
+            g_skills.emplace(skill_id, TempFireBall);
+            if (g_collisions.count(skill_id)) {
+                while (!g_collisions[skill_id].empty()) {
+                    unsigned short other_id = g_collisions[skill_id].front();
+                    g_collisions[skill_id].pop();
+
+                    if (g_skills.count(other_id)) {
+                        TempFireBall->Overlap(g_skills[other_id]);
+                        g_skills[other_id]->Overlap(g_skills[skill_id]);
+                        UE_LOG(LogTemp, Error, TEXT("Skill %d and %d Collision Succeed!"), skill_id, other_id);
+                    }
+                }
+            }
+            UE_LOG(LogTemp, Warning, TEXT("FireBall %d spawned"), skill_id);
         }
         else
         {
@@ -124,11 +139,27 @@ void AMyFireWeapon::SpawnFireSkill(FVector TargetLocation, FRotator TargetRotati
 
         if (FireSkill)
         {
-            FireSkill->SetID(i + Cast<APlayerCharacter>(OwnerCharacter)->get_skill_id());
+            unsigned short skill_id = Cast<APlayerCharacter>(OwnerCharacter)->get_skill_id();
+
+            FireSkill->SetID(i + skill_id);
             FireSkill->SetOwner(OwnerCharacter);
             FireSkill->SpawnFireWall(SpawnLocation, TargetRotation);
-            g_skills.emplace(i + Cast<APlayerCharacter>(OwnerCharacter)->get_skill_id(), FireSkill);
+
+            g_skills.emplace(i + skill_id, FireSkill);
             UGameplayStatics::FinishSpawningActor(FireSkill, SpawnTransform);
+            
+            if (g_collisions.count(skill_id)) {
+                while (!g_collisions[skill_id].empty()) {
+                    unsigned short other_id = g_collisions[skill_id].front();
+                    g_collisions[skill_id].pop();
+
+                    if (g_skills.count(other_id)) {
+                        FireSkill->Overlap(g_skills[other_id]);
+                        g_skills[other_id]->Overlap(g_skills[skill_id]);
+                        UE_LOG(LogTemp, Error, TEXT("Skill %d and %d Collision Succeed!"), skill_id, other_id);
+                    }
+                }
+            }
             //UE_LOG(LogTemp, Warning, TEXT("FireSkill %d spawned at location: %s"), i + Cast<APlayerCharacter>(OwnerCharacter)->get_skill_id(), *SpawnLocation.ToString());
         }
         else

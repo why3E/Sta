@@ -99,7 +99,7 @@ void AMyWindSkill::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* O
                     p.victim_id = ptr->m_id;
 
                     Cast<APlayerCharacter>(Owner)->do_send(&p);
-                    //UE_LOG(LogTemp, Warning, TEXT("Tonado ID : %d"), m_id);
+                    UE_LOG(LogTemp, Warning, TEXT("Tonado ID : %d"), m_id);
                 }
             }
         }
@@ -133,11 +133,11 @@ void AMyWindSkill::Overlap(AActor* OtherActor) {
 
         FVector SpawnLocation = GetActorLocation();
 
-        skill_create_packet p;
-        p.packet_size = sizeof(skill_create_packet);
+        ch_skill_create_packet p;
+        p.packet_size = sizeof(ch_skill_create_packet);
         p.packet_type = C2H_SKILL_CREATE_PACKET;
         p.skill_type = SKILL_WIND_WIND_TORNADO;
-        p.skill_id = m_id;
+        p.old_skill_id = m_id;
         p.x = SpawnLocation.X; p.y = SpawnLocation.Y; p.z = SpawnLocation.Z;
 
         Cast<APlayerCharacter>(Owner)->do_send(&p);
@@ -180,6 +180,7 @@ void AMyWindSkill::SkillMixWindTonado(EClassType MixType, unsigned short skill_i
 void AMyWindSkill::SpawnMixTonado(unsigned short skill_id)
 {
     FVector SpawnLocation = GetActorLocation();
+    UE_LOG(LogTemp, Error, TEXT("MixTornado %d Spawning"), skill_id);
 
     if (MixWindTonadoClass) {
         FTransform SpawnTransform(FRotator::ZeroRotator, SpawnLocation);
@@ -196,8 +197,22 @@ void AMyWindSkill::SpawnMixTonado(unsigned short skill_id)
             MixWindTonado->SetID(skill_id);
             MixWindTonado->SetOwner(GetOwner());
             MixWindTonado->SetActorLocation(SpawnLocation);
+
             g_skills.emplace(skill_id, MixWindTonado);
             UGameplayStatics::FinishSpawningActor(MixWindTonado, SpawnTransform);
+
+            if (g_collisions.count(skill_id)) {
+                while (!g_collisions[skill_id].empty()) {
+                    unsigned short other_id = g_collisions[skill_id].front();
+                    g_collisions[skill_id].pop();
+
+                    if (g_skills.count(other_id)) {
+                        MixWindTonado->Overlap(g_skills[other_id]);
+                        g_skills[other_id]->Overlap(g_skills[skill_id]);
+                        UE_LOG(LogTemp, Error, TEXT("Skill %d and %d Collision Succeed!"), skill_id, other_id);
+                    }
+                }
+            }
             UE_LOG(LogTemp, Warning, TEXT("MixWindTonado spawned at location: %s with ID : %d"), *SpawnLocation.ToString(), skill_id);
         }
     }

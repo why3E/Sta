@@ -55,9 +55,6 @@ protected:
 	);
 
 private:
-	// 필요 시 확장용 가상 함수
-	virtual void Overlap(AActor* OtherActor);
-
 	// Tick 기반 오버랩 감지
 	void CheckOverlappingActors();
 
@@ -76,7 +73,10 @@ private:
 
 	UPROPERTY(EditAnywhere, Category = "Effects")
 	TObjectPtr<UNiagaraSystem> FireEffect;
+
 public:
+	virtual void Overlap(AActor* OtherActor);
+
 	// MixWindTonado 스킬 사용
 	virtual void SkillMixWindTonado(EClassType MixType, unsigned short skill_id) override;
 };

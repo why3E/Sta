@@ -138,11 +138,11 @@ void AMyWindCutter::Overlap(AActor* OtherActor) {
         // BombAttack
         FVector SpawnLocation = GetActorLocation();
 
-        skill_create_packet p;
-        p.packet_size = sizeof(skill_create_packet);
+        ch_skill_create_packet p;
+        p.packet_size = sizeof(ch_skill_create_packet);
         p.packet_type = C2H_SKILL_CREATE_PACKET;
         p.skill_type = SKILL_WIND_FIRE_BOMB;
-        p.skill_id = m_id;
+        p.old_skill_id = m_id;
         p.x = SpawnLocation.X; p.y = SpawnLocation.Y; p.z = SpawnLocation.Z;
 
         Cast<APlayerCharacter>(Owner)->do_send(&p);
@@ -217,8 +217,23 @@ void AMyWindCutter::MixBombAttack(EClassType MixType, unsigned short skill_id)
         BombAttack->SetID(skill_id);
         BombAttack->SetOwner(GetOwner());
         BombAttack->SpawnBombAttack(SpawnLocation, MixType);
-        g_skills.emplace(skill_id, BombAttack);
+
+        g_skills[skill_id] = BombAttack;
         UGameplayStatics::FinishSpawningActor(BombAttack, SpawnTransform);
+
+        if (g_collisions.count(skill_id)) {
+            while (!g_collisions[skill_id].empty()) {
+                unsigned short other_id = g_collisions[skill_id].front();
+                g_collisions[skill_id].pop();
+
+                if (g_skills.count(other_id)) {
+                    BombAttack->Overlap(g_skills[other_id]);
+                    g_skills[other_id]->Overlap(g_skills[skill_id]);
+                    UE_LOG(LogTemp, Error, TEXT("Skill %d and %d Collision Succeed!"), skill_id, other_id);
+                }
+            }
+        }
+
         UE_LOG(LogTemp, Warning, TEXT("BombAttack spawned at location: %s with MixType: %d"), *SpawnLocation.ToString(), static_cast<int32>(MixType));
     } else {
         UE_LOG(LogTemp, Error, TEXT("Failed to spawn BombAttack at location: %s"), *SpawnLocation.ToString());

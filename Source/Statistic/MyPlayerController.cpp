@@ -93,6 +93,8 @@ void AMyPlayerController::InitSocket()
 {
 	g_is_host = true;
 	g_skills.clear();
+	g_collisions.clear();
+	g_monsters.clear();
 
 	g_s_running = true;
 	g_s_skill_cnt = 0;
@@ -367,6 +369,7 @@ void h_process_packet(char* packet) {
 		hc_p.skill_id = g_s_skill_cnt++;
 		hc_p.skill_type = ch_p->skill_type;
 		hc_p.x = ch_p->x; hc_p.y = ch_p->y; hc_p.z = ch_p->z;
+		hc_p.is_left = ch_p->is_left;
 		for (char client_id = 0; client_id < MAX_CLIENTS; ++client_id) {
 			if (g_s_clients[client_id]) {
 				g_s_clients[client_id]->do_send(&hc_p);
@@ -396,6 +399,7 @@ void h_process_packet(char* packet) {
 		hc_p.skill_type = ch_p->skill_type;
 		hc_p.x = ch_p->x; hc_p.y = ch_p->y; hc_p.z = ch_p->z;
 		hc_p.pitch = ch_p->pitch; hc_p.yaw = ch_p->yaw; hc_p.roll = ch_p->roll;
+		hc_p.is_left = ch_p->is_left;
 		for (char client_id = 0; client_id < MAX_CLIENTS; ++client_id) {
 			if (g_s_clients[client_id]) {
 				g_s_clients[client_id]->do_send(&hc_p);
@@ -425,21 +429,26 @@ void h_process_packet(char* packet) {
 		for (char client_id = 0; client_id < MAX_CLIENTS; ++client_id) {
 			if (g_s_clients[client_id]) {
 				g_s_clients[client_id]->do_send(p);
-				UE_LOG(LogTemp, Warning, TEXT("[Host] Skill %d and %d Collision"), p->attacker_id, p->victim_id);
 			}
 		}
+		//UE_LOG(LogTemp, Warning, TEXT("[Host] Skill %d and %d Collision"), p->attacker_id, p->victim_id);
 		break;
 	}
 
 	case C2H_SKILL_CREATE_PACKET: {
-		skill_create_packet* p = reinterpret_cast<skill_create_packet*>(packet);
-		p->packet_type = H2C_SKILL_CREATE_PACKET;
+		ch_skill_create_packet* ch_p = reinterpret_cast<ch_skill_create_packet*>(packet);
+		hc_skill_create_packet hc_p;
+		hc_p.packet_size = sizeof(hc_skill_create_packet);
+		hc_p.packet_type = H2C_SKILL_CREATE_PACKET;
+		hc_p.skill_type = ch_p->skill_type;
+		hc_p.old_skill_id = ch_p->old_skill_id;
+		hc_p.new_skill_id = g_s_skill_cnt++;
 		for (char client_id = 0; client_id < MAX_CLIENTS; ++client_id) {
 			if (g_s_clients[client_id]) {
-				g_s_clients[client_id]->do_send(p);
-				UE_LOG(LogTemp, Warning, TEXT("[Host] Skill %d Create"), p->skill_id);
+				g_s_clients[client_id]->do_send(&hc_p);
 			}
 		}
+		//UE_LOG(LogTemp, Warning, TEXT("[Host] Skill %d Create"), p->new_skill_id);
 		break;
 	}
 	}
@@ -671,32 +680,35 @@ void c_process_packet(char* packet) {
 		collision_packet* p = reinterpret_cast<collision_packet*>(packet);
 		switch (p->collision_type) {
 		case SKILL_SKILL_COLLISION:
-			//UE_LOG(LogTemp, Warning, TEXT("[Client] Skill %d and %d Collision"), p->attacker_id, p->victim_id);
 			if (g_skills.count(p->attacker_id) && g_skills.count(p->victim_id)) {
 				g_skills[p->attacker_id]->Overlap(g_skills[p->victim_id]);
 				g_skills[p->victim_id]->Overlap(g_skills[p->attacker_id]);
+				//UE_LOG(LogTemp, Error, TEXT("[Client] Skill %d and %d Collision"), p->attacker_id, p->victim_id);
+			} else {
+				g_collisions[p->attacker_id].push(p->victim_id);
+				g_collisions[p->victim_id].push(p->attacker_id);
+				//UE_LOG(LogTemp, Error, TEXT("[Client] Skill %d and %d Delayed"), p->attacker_id, p->victim_id);
 			}
 			break;
 		}
-		//UE_LOG(LogTemp, Warning, TEXT("[Client] Received Collision Packet"));
 		break;
 	}
 
 	case H2C_SKILL_CREATE_PACKET: {
-		skill_create_packet* p = reinterpret_cast<skill_create_packet*>(packet);
+		hc_skill_create_packet* p = reinterpret_cast<hc_skill_create_packet*>(packet);
 		switch (p->skill_type) {
 		case SKILL_WIND_FIRE_BOMB:
-			if (g_skills.count(p->skill_id)) {
-				if (g_skills[p->skill_id]->IsA(AMyWindCutter::StaticClass())) {
-					Cast<AMyWindCutter>(g_skills[p->skill_id])->MixBombAttack(EClassType::CT_Fire, g_s_skill_cnt++);
+			if (g_skills.count(p->old_skill_id)) {
+				if (g_skills[p->old_skill_id]->IsA(AMyWindCutter::StaticClass())) {
+					Cast<AMyWindCutter>(g_skills[p->old_skill_id])->MixBombAttack(EClassType::CT_Fire, p->new_skill_id);
 				}
 			}
 			break;
 
 		case SKILL_WIND_WIND_TORNADO:
-			if (g_skills.count(p->skill_id)) {
-				if (g_skills[p->skill_id]->IsA(AMyWindSkill::StaticClass())) {
-					Cast<AMyWindSkill>(g_skills[p->skill_id])->SpawnMixTonado(g_s_skill_cnt++);
+			if (g_skills.count(p->old_skill_id)) {
+				if (g_skills[p->old_skill_id]->IsA(AMyWindSkill::StaticClass())) {
+					Cast<AMyWindSkill>(g_skills[p->old_skill_id])->SpawnMixTonado(p->new_skill_id);
 				}
 			}
 			break;

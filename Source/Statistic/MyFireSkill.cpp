@@ -94,7 +94,7 @@ void AMyFireSkill::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* O
                     p.victim_id = ptr->m_id;
 
                     Cast<APlayerCharacter>(Owner)->do_send(&p);
-                    //UE_LOG(LogTemp, Warning, TEXT("Wall ID : %d"), m_id);
+                    UE_LOG(LogTemp, Warning, TEXT("Wall ID : %d"), m_id);
                 }
             }
         }

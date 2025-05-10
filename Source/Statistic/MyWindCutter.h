@@ -32,7 +32,6 @@ protected:
     // 콜리전 처리 함수
     UFUNCTION()
     void OnBeginOverlap(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
-    virtual void Overlap(AActor* OtherActor);
 
     // 콜리전 컴포넌트
     UPROPERTY(VisibleAnywhere, Category = "Collision", meta = (AllowPrivateAccess = "true"))
@@ -64,5 +63,7 @@ private:
     float Damage = 10.0f;
 
 public:
+    virtual void Overlap(AActor* OtherActor);
+   
     virtual void MixBombAttack(EClassType MixType, unsigned short skill_id) override;
 };

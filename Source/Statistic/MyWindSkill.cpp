@@ -120,6 +120,16 @@ void AMyWindSkill::CheckOverlappingActors()
                 DamageReceiver->ReceiveSkillHit(Info, this);
             }
         }
+        if (OtherActor->Implements<UMixTonadoInterface>())
+        {
+            IMixTonadoInterface* MixTonado = Cast<IMixTonadoInterface>(OtherActor);
+            if (MixTonado)
+            {
+                MixTonado->SkillMixWindTonado(SkillElement);
+                Destroy();
+            }
+
+        }
     }
 }
 
@@ -142,7 +152,6 @@ void AMyWindSkill::SkillMixWindTonado(EClassType MixType)
         }
         break;
     case EClassType::CT_Wind:
-        UE_LOG(LogTemp, Warning, TEXT("Wind Skill"));
         SpawnMixTonado();
         Destroy();
         break;
@@ -157,7 +166,6 @@ void AMyWindSkill::SpawnMixTonado()
 {
     FVector SpawnLocation = GetActorLocation();
 
-    // ✅ 미리 저장한 블루프린트 레퍼런스로 스폰
     if (MixWindTonadoClass)
     {
         AMyMixWindTonado* MixWindTonado = GetWorld()->SpawnActor<AMyMixWindTonado>(
@@ -169,15 +177,6 @@ void AMyWindSkill::SpawnMixTonado()
         if (MixWindTonado)
         {
             MixWindTonado->SetActorLocation(SpawnLocation);
-            UE_LOG(LogTemp, Warning, TEXT("MixWindTonado spawned at location: %s"), *SpawnLocation.ToString());
         }
-        else
-        {
-            UE_LOG(LogTemp, Error, TEXT("Failed to spawn MixWindTonado!"));
-        }
-    }
-    else
-    {
-        UE_LOG(LogTemp, Error, TEXT("MixWindTonadoClass is null! Check Blueprint reference."));
     }
 }

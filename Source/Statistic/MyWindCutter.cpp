@@ -7,6 +7,7 @@
 #include "NiagaraComponent.h"
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraSystem.h"
+#include "MyBombAttack.h"
 #include "ReceiveDamageInterface.h"
 
 #include "SESSION.h"
@@ -14,6 +15,12 @@
 // Sets default values
 AMyWindCutter::AMyWindCutter()
 {
+    static ConstructorHelpers::FClassFinder<AMyBombAttack> BombBP(TEXT("/Game/Weapon/MyBombAttack.MyBombAttack_C"));
+    if (BombBP.Succeeded())
+    {
+        BombAttackClass = BombBP.Class;
+    }
+
 	// 콜리전 컴포넌트 초기화
     CollisionComponent = CreateDefaultSubobject<UBoxComponent>(TEXT("CollisionComponent"));
     CollisionComponent->SetBoxExtent(FVector(40.0f, 120.0f, 5.0f)); // 박스 크기 설정
@@ -103,16 +110,6 @@ void AMyWindCutter::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* 
             UE_LOG(LogTemp, Warning, TEXT("Skill hit applied to: %s"), *OtherActor->GetName());
         }
     }
-
-    if (OtherActor->Implements<UMixTonadoInterface>())
-    {
-        IMixTonadoInterface* MixTonado = Cast<IMixTonadoInterface>(OtherActor);
-        if (MixTonado)
-        {
-            MixTonado->SkillMixWindTonado(SkillElement);
-            UE_LOG(LogTemp, Warning, TEXT("Cutter hit applied to: %s"), *OtherActor->GetName());
-        }
-    }
     
     for (const auto& [id, skill] : g_skills) {
         if (skill && (skill == OtherActor)) {
@@ -159,5 +156,46 @@ void AMyWindCutter::ActivateNiagara()
     else
     {
         UE_LOG(LogTemp, Error, TEXT("WindCutter Niagara Component is null!"));
+    }
+}
+
+void AMyWindCutter::MixBombAttack(EClassType MixType)
+{
+    if (!BombAttackClass)
+    {
+        UE_LOG(LogTemp, Error, TEXT("BombAttackClass is not set!"));
+        return;
+    }
+
+    // 현재 위치를 기준으로 스폰 위치 계산
+    FVector SpawnLocation = GetActorLocation();
+    FRotator SpawnRotation = GetActorRotation();
+
+    // 지형 높이 확인
+    FHitResult HitResult;
+    FVector Start = SpawnLocation + FVector(0.0f, 0.0f, 500.0f); // 위에서 아래로 라인트레이스
+    FVector End = SpawnLocation - FVector(0.0f, 0.0f, 500.0f);   // 아래로 500 유닛
+
+    if (GetWorld()->LineTraceSingleByChannel(HitResult, Start, End, ECC_Visibility))
+    {
+        // 지형의 충돌 지점 높이로 Z값 조정
+        SpawnLocation.Z = HitResult.ImpactPoint.Z; // 바닥에서 50 유닛 위로 위치 조정
+    }
+    else
+    {
+        UE_LOG(LogTemp, Warning, TEXT("Line trace failed. Using default Z position."));
+        SpawnLocation.Z += 50.0f; // 기본적으로 50 유닛 위로 조정
+    }
+
+    // BombAttack 액터 생성
+    AMyBombAttack* BombAttack = GetWorld()->SpawnActor<AMyBombAttack>(BombAttackClass, SpawnLocation, SpawnRotation);
+    if (BombAttack)
+    {
+        BombAttack->SpawnBombAttack(SpawnLocation, MixType);
+        UE_LOG(LogTemp, Warning, TEXT("BombAttack spawned at location: %s with MixType: %d"), *SpawnLocation.ToString(), static_cast<int32>(MixType));
+    }
+    else
+    {
+        UE_LOG(LogTemp, Error, TEXT("Failed to spawn BombAttack at location: %s"), *SpawnLocation.ToString());
     }
 }

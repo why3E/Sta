@@ -368,12 +368,7 @@ void APlayerCharacter::BasicAttack()
 	//UE_LOG(LogTemp, Error, TEXT("CurrentImpactRot: %s"), *CurrentImpactRot.ToString());
 
 	EClassType ClassType = bIsLeft ? LeftClassType : RightClassType;
-
-	this->CurrentMontage = bIsLeft ? CurrentLeftMontage : CurrentRightMontage;
-	this->CurrentComboData = bIsLeft ? CurrentLeftComboData : CurrentRightComboData;
-	this->CurrentMontageSectionName = bIsLeft ? CurrentLeftMontageSectionName : CurrentRightMontageSectionName;
-	this->CurrentWeapon = bIsLeft ? CurrentLeftWeapon : CurrentRightWeapon;
-
+	
 	if (bIsDrawingCircle)
     {
 		UE_LOG(LogTemp, Error, TEXT("CurrentImpactPoint: %s"), *CurrentImpactPoint.ToString());
@@ -454,6 +449,10 @@ void APlayerCharacter::BasicAttack()
 
 void APlayerCharacter::SkillAttack()
 {
+	this->CurrentMontage = bIsLeft ? CurrentLeftMontage : CurrentRightMontage;
+	this->CurrentComboData = bIsLeft ? CurrentLeftComboData : CurrentRightComboData;
+	this->CurrentMontageSectionName = bIsLeft ? CurrentLeftMontageSectionName : CurrentRightMontageSectionName;
+	this->CurrentWeapon = bIsLeft ? CurrentLeftWeapon : CurrentRightWeapon;
 
     UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 	UE_LOG(LogTemp, Warning, TEXT("AnimInstance: %s"), AnimInstance ? TEXT("Valid") : TEXT("Invalid"));
@@ -481,6 +480,11 @@ void APlayerCharacter::SkillAttack()
 
 void APlayerCharacter::ComboStart()
 {
+	this->CurrentMontage = bIsLeft ? CurrentLeftMontage : CurrentRightMontage;
+	this->CurrentComboData = bIsLeft ? CurrentLeftComboData : CurrentRightComboData;
+	this->CurrentMontageSectionName = bIsLeft ? CurrentLeftMontageSectionName : CurrentRightMontageSectionName;
+	this->CurrentWeapon = bIsLeft ? CurrentLeftWeapon : CurrentRightWeapon;
+
     CurrentComboCount = 1;
     const float AttackSpeedRate = 4.0f;
 
@@ -488,6 +492,7 @@ void APlayerCharacter::ComboStart()
 
     // 몽타주 재생
     float MontageLength = AnimInstance->Montage_Play(CurrentMontage, AttackSpeedRate);
+
     if (MontageLength > 0.0f)
     {
         UE_LOG(LogTemp, Warning, TEXT("Montage_Play succeeded! Montage Length: %f"), MontageLength);
@@ -520,7 +525,6 @@ void APlayerCharacter::ComboEnd(UAnimMontage* Montage, bool IsEnded)
 
 void APlayerCharacter::ComboCheck()
 {
-
 	ComboTimerHandle.Invalidate();
 
 	if (bHasComboInput)
@@ -583,6 +587,9 @@ void APlayerCharacter::UpdateCachedData(bool bIsLeftType)
     UMMComboActionData*& SelectedComboData = bIsLeftType ? CurrentLeftComboData : CurrentRightComboData;
     FString& SelectedMontageSectionName = bIsLeftType ? CurrentLeftMontageSectionName : CurrentRightMontageSectionName;
 
+	UE_LOG(LogTemp, Warning, TEXT("%d, %p, %p, %s"), ClassTypeToUpdate, SelectedMontage, SelectedComboData, *SelectedMontageSectionName);
+	UE_LOG(LogTemp, Warning, TEXT("%d, %p, %p, %s"), LeftClassType, CurrentLeftMontage, CurrentLeftComboData, *CurrentLeftMontageSectionName);
+	
     switch (ClassTypeToUpdate)
     {
     case EClassType::CT_Wind:
@@ -591,7 +598,9 @@ void APlayerCharacter::UpdateCachedData(bool bIsLeftType)
         WeaponClass = WindWeaponBP;
         SelectedMontageSectionName = TEXT("WindSkill");
         CheckAnimBone = 1;
-        break;
+		UE_LOG(LogTemp, Warning, TEXT("%d, %p, %p, %s"), ClassTypeToUpdate, SelectedMontage, SelectedComboData, *SelectedMontageSectionName);
+		UE_LOG(LogTemp, Warning, TEXT("%d, %p, %p, %s"), LeftClassType, CurrentLeftMontage, CurrentLeftComboData, *CurrentLeftMontageSectionName);
+		break;
 
     case EClassType::CT_Stone:
         SelectedMontage = StoneComboMontage;
@@ -605,7 +614,9 @@ void APlayerCharacter::UpdateCachedData(bool bIsLeftType)
         WeaponClass = FireWeaponBP;
         SelectedMontageSectionName = TEXT("FireSkill");
         CheckAnimBone = 1;
-        break;
+		UE_LOG(LogTemp, Warning, TEXT("%d, %p, %p, %s"), ClassTypeToUpdate, SelectedMontage, SelectedComboData, *SelectedMontageSectionName);
+		UE_LOG(LogTemp, Warning, TEXT("%d, %p, %p, %s"), LeftClassType, CurrentLeftMontage, CurrentLeftComboData, *CurrentLeftMontageSectionName);
+		break;
 
     default:
         SelectedMontage = nullptr;
@@ -751,9 +762,7 @@ void APlayerCharacter::QSkill()
 
             // 원 업데이트 타이머 시작
             GetWorld()->GetTimerManager().SetTimer(CircleUpdateTimerHandle, this, &APlayerCharacter::UpdateCircle, 0.1f, true);
-
         }
-		
     }
 }
 

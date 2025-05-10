@@ -7,6 +7,7 @@
 #include "NiagaraComponent.h"
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraSystem.h"
+#include "MyBombAttack.h"
 #include "ReceiveDamageInterface.h"
 
 #include "SESSION.h"
@@ -14,6 +15,12 @@
 // Sets default values
 AMyWindCutter::AMyWindCutter()
 {
+    static ConstructorHelpers::FClassFinder<AMyBombAttack> BombBP(TEXT("/Game/Weapon/MyBombAttack.MyBombAttack_C"));
+    if (BombBP.Succeeded())
+    {
+        BombAttackClass = BombBP.Class;
+    }
+
 	// 콜리전 컴포넌트 초기화
     CollisionComponent = CreateDefaultSubobject<UBoxComponent>(TEXT("CollisionComponent"));
     CollisionComponent->SetBoxExtent(FVector(40.0f, 120.0f, 5.0f)); // 박스 크기 설정
@@ -106,16 +113,7 @@ void AMyWindCutter::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* 
         }
     }
 
-    if (OtherActor->Implements<UMixTonadoInterface>())
-    {
-        IMixTonadoInterface* MixTonado = Cast<IMixTonadoInterface>(OtherActor);
-        if (MixTonado)
-        {
-            MixTonado->SkillMixWindTonado(SkillElement);
-            UE_LOG(LogTemp, Warning, TEXT("Cutter hit applied to: %s"), *OtherActor->GetName());
-        }
-
-    }
+    
     
     for (const auto& [id, skill] : g_skills) {
         if (skill && (skill == OtherActor)) {
@@ -164,5 +162,21 @@ void AMyWindCutter::ActivateNiagara()
     else
     {
         UE_LOG(LogTemp, Error, TEXT("WindCutter Niagara Component is null!"));
+    }
+}
+
+void AMyWindCutter::MixBombAttack(EClassType MixType)
+{
+    if (BombAttackClass)
+    {
+        FVector SpawnLocation = GetActorLocation();
+        FRotator SpawnRotation = GetActorRotation();
+
+        // BombAttack 액터 생성
+        AMyBombAttack* BombAttack = GetWorld()->SpawnActor<AMyBombAttack>(BombAttackClass, SpawnLocation, SpawnRotation);
+        if (BombAttack)
+        {
+            BombAttack->SpawnBombAttack(SpawnLocation, MixType);
+        }
     }
 }

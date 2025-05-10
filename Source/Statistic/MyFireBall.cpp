@@ -8,6 +8,7 @@
 #include "ReceiveDamageInterface.h"
 #include "Enums.h"
 #include "MixTonadoInterface.h"
+#include "BombAttackInterface.h"
 #include "SESSION.h"
 
 // Sets default values
@@ -123,6 +124,17 @@ void AMyFireBall::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* Ot
             UE_LOG(LogTemp, Warning, TEXT("Skill hit applied to: %s"), *OtherActor->GetName());
         }
 
+    }
+
+    if (OtherActor->Implements<UBombAttackInterface>())
+    {
+        IBombAttackInterface* BombAttack = Cast<IBombAttackInterface>(OtherActor);
+        if (BombAttack)
+        {
+            BombAttack->MixBombAttack(SkillElement);
+            Destroy();
+            UE_LOG(LogTemp, Warning, TEXT("UBombAttackInterface hit applied to: %s"), *OtherActor->GetName());
+        }
     }
     
     for (const auto& [id, skill] : g_skills) {

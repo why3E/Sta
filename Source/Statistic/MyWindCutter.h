@@ -5,11 +5,12 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "MySkillBase.h"
-#include "MixTonadoInterface.h"
+#include "Enums.h"
+#include "BombAttackInterface.h"
 #include "MyWindCutter.generated.h"
 
 UCLASS()
-class STATISTIC_API AMyWindCutter : public AMySkillBase
+class STATISTIC_API AMyWindCutter : public AMySkillBase, public IBombAttackInterface
 {
 	GENERATED_BODY()
 	
@@ -52,10 +53,15 @@ protected:
     UPROPERTY(EditAnywhere, Category = "Damage")
 	EClassType SkillElement = EClassType::CT_Wind;
 
+	UPROPERTY(EditDefaultsOnly, Category = "Settings")
+    TSubclassOf<class AMyBombAttack> BombAttackClass;
 private:
 	float Speed = 3000.0f;
 	uint8 bIsHit : 1;
 
     UPROPERTY(EditAnywhere, Category = "Damage", meta = (AllowPrivateAccess = "true"))
     float Damage = 10.0f;
+public:
+    virtual void MixBombAttack(EClassType MixType) override;
+
 };

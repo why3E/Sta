@@ -78,5 +78,5 @@ private:
 	TObjectPtr<UNiagaraSystem> FireEffect;
 public:
 	// MixWindTonado 스킬 사용
-	virtual void SkillMixWindTonado(EClassType MixType) override;
+	virtual void SkillMixWindTonado(EClassType MixType, unsigned short skill_id) override;
 };

@@ -122,4 +122,3 @@ void AMyWindWeapon::ShootWindCutter()
 		TempWindCutter = nullptr;
 	}
 }
-

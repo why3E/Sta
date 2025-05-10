@@ -81,9 +81,8 @@ private:
 
 	// 스폰된 액터 제거 시 호출
 	virtual void EndPlay(EEndPlayReason::Type EndPlayReason) override;
-
-    void SpawnMixTonado();
 public:
 	// MixWindTonado 스킬 사용
-	virtual void SkillMixWindTonado(EClassType MixType) override;
+	virtual void SkillMixWindTonado(EClassType MixType, unsigned short skill_id) override;
+	void SpawnMixTonado(unsigned short skill_id);
 };

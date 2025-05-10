@@ -4,6 +4,8 @@
 #include "PlayerCharacter.h"
 #include "EnemyCharacter.h"
 #include "MySkillBase.h"
+#include "MyWindCutter.h"
+#include "MyWindSkill.h"
 #include "Kismet/GameplayStatics.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "AIController.h"
@@ -428,6 +430,18 @@ void h_process_packet(char* packet) {
 		}
 		break;
 	}
+
+	case C2H_SKILL_CREATE_PACKET: {
+		skill_create_packet* p = reinterpret_cast<skill_create_packet*>(packet);
+		p->packet_type = H2C_SKILL_CREATE_PACKET;
+		for (char client_id = 0; client_id < MAX_CLIENTS; ++client_id) {
+			if (g_s_clients[client_id]) {
+				g_s_clients[client_id]->do_send(p);
+				UE_LOG(LogTemp, Warning, TEXT("[Host] Skill %d Create"), p->skill_id);
+			}
+		}
+		break;
+	}
 	}
 }
 
@@ -661,6 +675,29 @@ void c_process_packet(char* packet) {
 			if (g_skills.count(p->attacker_id) && g_skills.count(p->victim_id)) {
 				g_skills[p->attacker_id]->Overlap(g_skills[p->victim_id]);
 				g_skills[p->victim_id]->Overlap(g_skills[p->attacker_id]);
+			}
+			break;
+		}
+		//UE_LOG(LogTemp, Warning, TEXT("[Client] Received Collision Packet"));
+		break;
+	}
+
+	case H2C_SKILL_CREATE_PACKET: {
+		skill_create_packet* p = reinterpret_cast<skill_create_packet*>(packet);
+		switch (p->skill_type) {
+		case SKILL_WIND_FIRE_BOMB:
+			if (g_skills.count(p->skill_id)) {
+				if (g_skills[p->skill_id]->IsA(AMyWindCutter::StaticClass())) {
+					Cast<AMyWindCutter>(g_skills[p->skill_id])->MixBombAttack(EClassType::CT_Fire, g_s_skill_cnt++);
+				}
+			}
+			break;
+
+		case SKILL_WIND_WIND_TORNADO:
+			if (g_skills.count(p->skill_id)) {
+				if (g_skills[p->skill_id]->IsA(AMyWindSkill::StaticClass())) {
+					Cast<AMyWindSkill>(g_skills[p->skill_id])->SpawnMixTonado(g_s_skill_cnt++);
+				}
 			}
 			break;
 		}

@@ -93,17 +93,10 @@ void AMyBombAttack::PostInitializeComponents()
     CollisionMesh->OnComponentBeginOverlap.AddDynamic(this, &AMyBombAttack::OnBeginOverlap);
 }
 
-void AMyBombAttack::OnBeginOverlap(UPrimitiveComponent* OverlappedComp,
-    AActor* OtherActor,
-    UPrimitiveComponent* OtherComp,
-    int32 OtherBodyIndex,
-    bool bFromSweep,
-    const FHitResult& SweepResult)
-{
+void AMyBombAttack::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult) {
     if (!g_is_host) return;
 
-    if (OtherActor && OtherActor != this)
-    {
+    if (OtherActor && OtherActor != this) {
         UE_LOG(LogTemp, Warning, TEXT("Bomb hit actor: %s"), *OtherActor->GetName());
     }
 }

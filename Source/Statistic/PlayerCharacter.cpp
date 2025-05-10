@@ -457,7 +457,6 @@ void APlayerCharacter::SkillAttack()
 	this->CurrentMontageSectionName = bIsLeft ? CurrentLeftMontageSectionName : CurrentRightMontageSectionName;
 	this->CurrentWeapon = bIsLeft ? CurrentLeftWeapon : CurrentRightWeapon;
 
-
     UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 	UE_LOG(LogTemp, Warning, TEXT("AnimInstance: %s"), AnimInstance ? TEXT("Valid") : TEXT("Invalid"));
 

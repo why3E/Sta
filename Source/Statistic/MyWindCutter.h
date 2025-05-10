@@ -64,5 +64,5 @@ private:
     float Damage = 10.0f;
 
 public:
-    virtual void MixBombAttack(EClassType MixType) override;
+    virtual void MixBombAttack(EClassType MixType, unsigned short skill_id) override;
 };

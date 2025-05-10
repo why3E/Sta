@@ -4,6 +4,7 @@
 #include "MyFireBall.h"
 #include "Components/BoxComponent.h"
 #include "PlayerCharacter.h"
+#include "Kismet/GameplayStatics.h"
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "NiagaraComponent.h"
 #include "NiagaraFunctionLibrary.h"
@@ -135,7 +136,20 @@ void AMyWindCutter::Overlap(AActor* OtherActor) {
         }
     } else if (OtherActor && OtherActor->IsA(AMyFireBall::StaticClass())) {
         // BombAttack
-        MixBombAttack(EClassType::CT_Fire);
+        FVector SpawnLocation = GetActorLocation();
+
+        skill_create_packet p;
+        p.packet_size = sizeof(skill_create_packet);
+        p.packet_type = C2H_SKILL_CREATE_PACKET;
+        p.skill_type = SKILL_WIND_FIRE_BOMB;
+        p.skill_id = m_id;
+        p.x = SpawnLocation.X; p.y = SpawnLocation.Y; p.z = SpawnLocation.Z;
+
+        Cast<APlayerCharacter>(Owner)->do_send(&p);
+
+        bIsHit = true;
+
+        return;
     } 
 
     // 히트 효과 생성
@@ -163,10 +177,9 @@ void AMyWindCutter::ActivateNiagara()
     }
 }
 
-void AMyWindCutter::MixBombAttack(EClassType MixType)
+void AMyWindCutter::MixBombAttack(EClassType MixType, unsigned short skill_id)
 {
-    if (!BombAttackClass)
-    {
+    if (!BombAttackClass) {
         UE_LOG(LogTemp, Error, TEXT("BombAttackClass is not set!"));
         return;
     }
@@ -180,26 +193,36 @@ void AMyWindCutter::MixBombAttack(EClassType MixType)
     FVector Start = SpawnLocation + FVector(0.0f, 0.0f, 500.0f); // 위에서 아래로 라인트레이스
     FVector End = SpawnLocation - FVector(0.0f, 0.0f, 500.0f);   // 아래로 500 유닛
 
-    if (GetWorld()->LineTraceSingleByChannel(HitResult, Start, End, ECC_Visibility))
-    {
+    if (GetWorld()->LineTraceSingleByChannel(HitResult, Start, End, ECC_Visibility)) {
         // 지형의 충돌 지점 높이로 Z값 조정
         SpawnLocation.Z = HitResult.ImpactPoint.Z; // 바닥에서 50 유닛 위로 위치 조정
     }
-    else
-    {
+    else {
         UE_LOG(LogTemp, Warning, TEXT("Line trace failed. Using default Z position."));
         SpawnLocation.Z += 50.0f; // 기본적으로 50 유닛 위로 조정
     }
 
-    // BombAttack 액터 생성
-    AMyBombAttack* BombAttack = GetWorld()->SpawnActor<AMyBombAttack>(BombAttackClass, SpawnLocation, SpawnRotation);
-    if (BombAttack)
-    {
+    FTransform SpawnTransform(SpawnRotation, SpawnLocation);
+
+    // BombAttack 생성
+    AMyBombAttack* BombAttack = GetWorld()->SpawnActorDeferred<AMyBombAttack>(
+        BombAttackClass,
+        SpawnTransform,
+        GetOwner(),
+        nullptr,
+        ESpawnActorCollisionHandlingMethod::AlwaysSpawn
+    );
+
+    if (BombAttack) {
+        BombAttack->SetID(skill_id);
+        BombAttack->SetOwner(GetOwner());
         BombAttack->SpawnBombAttack(SpawnLocation, MixType);
+        g_skills.emplace(skill_id, BombAttack);
+        UGameplayStatics::FinishSpawningActor(BombAttack, SpawnTransform);
         UE_LOG(LogTemp, Warning, TEXT("BombAttack spawned at location: %s with MixType: %d"), *SpawnLocation.ToString(), static_cast<int32>(MixType));
-    }
-    else
-    {
+    } else {
         UE_LOG(LogTemp, Error, TEXT("Failed to spawn BombAttack at location: %s"), *SpawnLocation.ToString());
     }
+
+    Destroy();
 }

@@ -23,5 +23,5 @@ class STATISTIC_API IBombAttackInterface
 
 	// Add interface functions to this class. This is the class that will be inherited to implement this interface.
 public:
-	virtual void MixBombAttack(EClassType MixType)=0;
+	virtual void MixBombAttack(EClassType MixType, unsigned short skill_id) = 0;
 };

@@ -84,14 +84,9 @@ void AMyWindSkill::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* O
 {
     if (!g_is_host) return;
 
-    if (OtherActor && OtherActor != this)
-    {
+    if (OtherActor && OtherActor != this) {
         // Skill - Skill Collision
         if (OtherActor->IsA(AMySkillBase::StaticClass())) {
-            if (OtherActor->IsA(AMyWindSkill::StaticClass())) {
-                return;
-            }
-            
             AMySkillBase* ptr = Cast<AMySkillBase>(OtherActor);
 
             if (g_skills.count(ptr->m_id)) {
@@ -124,13 +119,28 @@ void AMyWindSkill::Overlap(AActor* OtherActor) {
 
         // 인터페이스로 캐스팅하여 함수 호출
         IReceiveDamageInterface* DamageReceiver = Cast<IReceiveDamageInterface>(OtherActor);
-        if (DamageReceiver)
-        {
+        if (DamageReceiver) {
             DamageReceiver->ReceiveSkillHit(Info, this);
         }
     } else if ((OtherActor && OtherActor->IsA(AMyFireBall::StaticClass())) || 
         (OtherActor && OtherActor->IsA(AMyFireSkill::StaticClass()))) {
-        SkillMixWindTonado(EClassType::CT_Fire);
+        SkillMixWindTonado(EClassType::CT_Fire, m_id);
+    } else if (OtherActor && OtherActor->IsA(AMyWindSkill::StaticClass())) {
+        if (Cast<AMySkillBase>(OtherActor)->GetId() > m_id) {
+            Destroy();
+            return;
+        }
+
+        FVector SpawnLocation = GetActorLocation();
+
+        skill_create_packet p;
+        p.packet_size = sizeof(skill_create_packet);
+        p.packet_type = C2H_SKILL_CREATE_PACKET;
+        p.skill_type = SKILL_WIND_WIND_TORNADO;
+        p.skill_id = m_id;
+        p.x = SpawnLocation.X; p.y = SpawnLocation.Y; p.z = SpawnLocation.Z;
+
+        Cast<APlayerCharacter>(Owner)->do_send(&p);
     }
 }
 
@@ -144,7 +154,7 @@ void AMyWindSkill::EndPlay(const EEndPlayReason::Type EndPlayReason)
     GetWorld()->GetTimerManager().ClearTimer(CheckOverlapTimerHandle);
 }
 
-void AMyWindSkill::SkillMixWindTonado(EClassType MixType)
+void AMyWindSkill::SkillMixWindTonado(EClassType MixType, unsigned short skill_id)
 {
     SkillElement = MixType;
     switch (MixType)
@@ -156,9 +166,9 @@ void AMyWindSkill::SkillMixWindTonado(EClassType MixType)
             WindTonadoNiagaraComponent->Activate(true); // 재실행
         }
         break;
+
     case EClassType::CT_Wind:
-        SpawnMixTonado();
-        Destroy();
+        SpawnMixTonado(skill_id);
         break;
 
     default:
@@ -167,21 +177,30 @@ void AMyWindSkill::SkillMixWindTonado(EClassType MixType)
     }
 }
 
-void AMyWindSkill::SpawnMixTonado()
+void AMyWindSkill::SpawnMixTonado(unsigned short skill_id)
 {
     FVector SpawnLocation = GetActorLocation();
 
-    if (MixWindTonadoClass)
-    {
-        AMyMixWindTonado* MixWindTonado = GetWorld()->SpawnActor<AMyMixWindTonado>(
+    if (MixWindTonadoClass) {
+        FTransform SpawnTransform(FRotator::ZeroRotator, SpawnLocation);
+
+        AMyMixWindTonado* MixWindTonado = GetWorld()->SpawnActorDeferred<AMyMixWindTonado>(
             MixWindTonadoClass,
-            SpawnLocation,
-            FRotator::ZeroRotator
+            SpawnTransform,
+            GetOwner(),
+            nullptr,
+            ESpawnActorCollisionHandlingMethod::AlwaysSpawn
         );
 
-        if (MixWindTonado)
-        {
+        if (MixWindTonado) {
+            MixWindTonado->SetID(skill_id);
+            MixWindTonado->SetOwner(GetOwner());
             MixWindTonado->SetActorLocation(SpawnLocation);
+            g_skills.emplace(skill_id, MixWindTonado);
+            UGameplayStatics::FinishSpawningActor(MixWindTonado, SpawnTransform);
+            UE_LOG(LogTemp, Warning, TEXT("MixWindTonado spawned at location: %s with ID : %d"), *SpawnLocation.ToString(), skill_id);
         }
     }
+
+    Destroy();
 }

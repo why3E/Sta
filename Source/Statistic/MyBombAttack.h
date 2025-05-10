@@ -53,6 +53,6 @@ protected:
         const FHitResult& SweepResult);
 
 private:
-    virtual void Overlap();
+    virtual void Overlap(AActor* OtherActor);
     void CheckOverlappingActors();
 };

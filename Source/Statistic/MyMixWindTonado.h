@@ -56,7 +56,7 @@ protected:
 
 private:
 	// 필요 시 확장용 가상 함수
-	virtual void Overlap();
+	virtual void Overlap(AActor* OtherActor);
 
 	// Tick 기반 오버랩 감지
 	void CheckOverlappingActors();

@@ -3,6 +3,7 @@
 #include "MyWindSkill.h"
 #include "MyWindCutter.h"
 #include "PlayerCharacter.h"
+#include "Kismet/GameplayStatics.h"
 #include "GameFramework/Character.h"
 #include "Components/PoseableMeshComponent.h"
 #include "Camera/CameraComponent.h"
@@ -84,15 +85,24 @@ void AMyWindWeapon::SpawnWindSkill(FVector TargetLocation)
         TargetLocation.Z = HitResult.ImpactPoint.Z;
     }
 
+    FTransform SpawnTransform(FRotator::ZeroRotator, TargetLocation);
+
     // WindSkill 생성
-    AMyWindSkill* WindSkill = GetWorld()->SpawnActor<AMyWindSkill>(WindSkillClass, TargetLocation, FRotator::ZeroRotator, SpawnParams);
+    AMyWindSkill* WindSkill = GetWorld()->SpawnActorDeferred<AMyWindSkill>(
+        WindSkillClass,
+        SpawnTransform,
+        OwnerCharacter,
+        nullptr,
+        ESpawnActorCollisionHandlingMethod::AlwaysSpawn
+    );
+
     if (WindSkill)
     {
         WindSkill->SetID(Cast<APlayerCharacter>(OwnerCharacter)->get_skill_id());
         WindSkill->SetOwner(OwnerCharacter);
 		WindSkill->SpawnWindTonado(TargetLocation);
         g_skills.emplace(Cast<APlayerCharacter>(OwnerCharacter)->get_skill_id(), WindSkill);
-
+        UGameplayStatics::FinishSpawningActor(WindSkill, SpawnTransform);
         UE_LOG(LogTemp, Warning, TEXT("WindSkill spawned at location: %s"), *TargetLocation.ToString());
     }
     else

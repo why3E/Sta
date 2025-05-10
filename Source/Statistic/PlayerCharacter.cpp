@@ -368,7 +368,7 @@ void APlayerCharacter::BasicAttack()
 	//UE_LOG(LogTemp, Error, TEXT("CurrentImpactRot: %s"), *CurrentImpactRot.ToString());
 
 	EClassType ClassType = bIsLeft ? LeftClassType : RightClassType;
-	
+
 	if (bIsDrawingCircle)
     {
 		UE_LOG(LogTemp, Error, TEXT("CurrentImpactPoint: %s"), *CurrentImpactPoint.ToString());
@@ -384,6 +384,7 @@ void APlayerCharacter::BasicAttack()
 				p.player_id = m_id;
 				p.x = CurrentImpactPoint.X; p.y = CurrentImpactPoint.Y; p.z = CurrentImpactPoint.Z;
 				p.skill_type = SKILL_WIND_TORNADO;
+				p.is_left = bIsLeft;
 				
 				do_send(&p);
 				break;
@@ -397,7 +398,8 @@ void APlayerCharacter::BasicAttack()
 				p.x = CurrentImpactPoint.X; p.y = CurrentImpactPoint.Y; p.z = CurrentImpactPoint.Z;
 				p.pitch = CurrentImpactRot.Pitch; p.yaw = CurrentImpactRot.Yaw; p.roll = CurrentImpactRot.Roll;
 				p.skill_type = SKILL_FIRE_WALL;
-				
+				p.is_left = bIsLeft;
+
 				do_send(&p);
 				break;
 			}
@@ -418,6 +420,7 @@ void APlayerCharacter::BasicAttack()
 			p.packet_type = C2H_PLAYER_SKILL_VECTOR_PACKET;
 			p.player_id = m_id;
 			p.x = FireLocation.X; p.y = FireLocation.Y; p.z = FireLocation.Z;
+			p.is_left = bIsLeft;
 
 			switch (ClassType) {
 			case EClassType::CT_Wind:
@@ -453,6 +456,7 @@ void APlayerCharacter::SkillAttack()
 	this->CurrentComboData = bIsLeft ? CurrentLeftComboData : CurrentRightComboData;
 	this->CurrentMontageSectionName = bIsLeft ? CurrentLeftMontageSectionName : CurrentRightMontageSectionName;
 	this->CurrentWeapon = bIsLeft ? CurrentLeftWeapon : CurrentRightWeapon;
+
 
     UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 	UE_LOG(LogTemp, Warning, TEXT("AnimInstance: %s"), AnimInstance ? TEXT("Valid") : TEXT("Invalid"));
@@ -586,9 +590,6 @@ void APlayerCharacter::UpdateCachedData(bool bIsLeftType)
     UAnimMontage*& SelectedMontage = bIsLeftType ? CurrentLeftMontage : CurrentRightMontage;
     UMMComboActionData*& SelectedComboData = bIsLeftType ? CurrentLeftComboData : CurrentRightComboData;
     FString& SelectedMontageSectionName = bIsLeftType ? CurrentLeftMontageSectionName : CurrentRightMontageSectionName;
-
-	UE_LOG(LogTemp, Warning, TEXT("%d, %p, %p, %s"), ClassTypeToUpdate, SelectedMontage, SelectedComboData, *SelectedMontageSectionName);
-	UE_LOG(LogTemp, Warning, TEXT("%d, %p, %p, %s"), LeftClassType, CurrentLeftMontage, CurrentLeftComboData, *CurrentLeftMontageSectionName);
 	
     switch (ClassTypeToUpdate)
     {
@@ -598,8 +599,6 @@ void APlayerCharacter::UpdateCachedData(bool bIsLeftType)
         WeaponClass = WindWeaponBP;
         SelectedMontageSectionName = TEXT("WindSkill");
         CheckAnimBone = 1;
-		UE_LOG(LogTemp, Warning, TEXT("%d, %p, %p, %s"), ClassTypeToUpdate, SelectedMontage, SelectedComboData, *SelectedMontageSectionName);
-		UE_LOG(LogTemp, Warning, TEXT("%d, %p, %p, %s"), LeftClassType, CurrentLeftMontage, CurrentLeftComboData, *CurrentLeftMontageSectionName);
 		break;
 
     case EClassType::CT_Stone:
@@ -614,8 +613,6 @@ void APlayerCharacter::UpdateCachedData(bool bIsLeftType)
         WeaponClass = FireWeaponBP;
         SelectedMontageSectionName = TEXT("FireSkill");
         CheckAnimBone = 1;
-		UE_LOG(LogTemp, Warning, TEXT("%d, %p, %p, %s"), ClassTypeToUpdate, SelectedMontage, SelectedComboData, *SelectedMontageSectionName);
-		UE_LOG(LogTemp, Warning, TEXT("%d, %p, %p, %s"), LeftClassType, CurrentLeftMontage, CurrentLeftComboData, *CurrentLeftMontageSectionName);
 		break;
 
     default:
@@ -834,17 +831,19 @@ void APlayerCharacter::GetFireTargetLocation()
 	SetActorRotation(FRotator(ActorRot.Pitch, ControlRot.Yaw, ActorRot.Roll));
 }
 
-void APlayerCharacter::use_skill(unsigned short skill_id, char skill_type, FVector v) {
+void APlayerCharacter::use_skill(unsigned short skill_id, char skill_type, FVector v, bool is_left) {
 	switch (skill_type) {
 	case SKILL_WIND_CUTTER:
 		m_skill_id = skill_id;
 		FireLocation = v;
+		bIsLeft = is_left;
 		ComboStart();
 		break;
 
 	case SKILL_WIND_TORNADO:
 		m_skill_id = skill_id;
 		CurrentImpactPoint = v;
+		bIsLeft = is_left;
 		SkillAttack();
 		bIsDrawingCircle = false;
 		GetWorld()->GetTimerManager().ClearTimer(CircleUpdateTimerHandle);
@@ -853,17 +852,19 @@ void APlayerCharacter::use_skill(unsigned short skill_id, char skill_type, FVect
 	case SKILL_FIRE_BALL:
 		m_skill_id = skill_id;
 		FireLocation = v;
+		bIsLeft = is_left;
 		ComboStart();
 		break;
 	}
 }
 
-void APlayerCharacter::use_skill(unsigned short skill_id, char skill_type, FVector v, FRotator r) {
+void APlayerCharacter::use_skill(unsigned short skill_id, char skill_type, FVector v, FRotator r, bool is_left) {
 	switch (skill_type) {
 	case SKILL_FIRE_WALL:
 		m_skill_id = skill_id;
 		CurrentImpactPoint = v;
 		CurrentImpactRot = r;
+		bIsLeft = is_left;
 		SkillAttack();
 		bIsDrawingCircle = false;
 		GetWorld()->GetTimerManager().ClearTimer(CircleUpdateTimerHandle);

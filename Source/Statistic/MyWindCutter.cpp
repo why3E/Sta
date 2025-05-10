@@ -1,6 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "MyWindCutter.h"
+#include "MyFireBall.h"
 #include "Components/BoxComponent.h"
 #include "PlayerCharacter.h"
 #include "GameFramework/ProjectileMovementComponent.h"
@@ -93,24 +94,6 @@ void AMyWindCutter::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* 
 {
     if (!g_is_host || bIsHit || (Owner == OtherActor)) { return; } // 이미 충돌했거나 발사체의 소유자와 충돌한 경우 무시
     
-    // 데미지 전달
-    if (OtherActor->Implements<UReceiveDamageInterface>())
-    {
-        FSkillInfo Info;
-        Info.Damage = 10.f;
-        Info.Element = EClassType::CT_Wind;
-        Info.StunTime = 1.5f;
-        Info.KnockbackDir = (OtherActor->GetActorLocation() - GetActorLocation()).GetSafeNormal();
-
-        // 인터페이스로 캐스팅하여 함수 호출
-        IReceiveDamageInterface* DamageReceiver = Cast<IReceiveDamageInterface>(OtherActor);
-        if (DamageReceiver)
-        {
-            DamageReceiver->ReceiveSkillHit(Info, this);
-            UE_LOG(LogTemp, Warning, TEXT("Skill hit applied to: %s"), *OtherActor->GetName());
-        }
-    }
-    
     // Skill - Skill Collision
     if (OtherActor->IsA(AMySkillBase::StaticClass())) {
         AMySkillBase* ptr = Cast<AMySkillBase>(OtherActor);
@@ -130,16 +113,33 @@ void AMyWindCutter::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* 
     }
 }
 
-void AMyWindCutter::Overlap() {
+void AMyWindCutter::Overlap(AActor* OtherActor) {
     // 나이아가라 파티클 시스템 비활성화
-    if (WindCutterNiagaraComponent)
-    {
+    if (WindCutterNiagaraComponent) {
         WindCutterNiagaraComponent->Deactivate();
     }
 
+    if (OtherActor->Implements<UReceiveDamageInterface>()) {
+        // 데미지 전달
+        FSkillInfo Info;
+        Info.Damage = 10.f;
+        Info.Element = EClassType::CT_Wind;
+        Info.StunTime = 1.5f;
+        Info.KnockbackDir = (OtherActor->GetActorLocation() - GetActorLocation()).GetSafeNormal();
+
+        // 인터페이스로 캐스팅하여 함수 호출
+        IReceiveDamageInterface* DamageReceiver = Cast<IReceiveDamageInterface>(OtherActor);
+        if (DamageReceiver) {
+            DamageReceiver->ReceiveSkillHit(Info, this);
+            UE_LOG(LogTemp, Warning, TEXT("Skill hit applied to: %s"), *OtherActor->GetName());
+        }
+    } else if (OtherActor && OtherActor->IsA(AMyFireBall::StaticClass())) {
+        // BombAttack
+        MixBombAttack(EClassType::CT_Fire);
+    } 
+
     // 히트 효과 생성
-    if (WindCutterNiagaraComponent)
-    {
+    if (WindCutterNiagaraComponent) {
         UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), HitEffectNiagaraSystem, GetActorLocation());
     }
     

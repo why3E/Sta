@@ -152,6 +152,7 @@ struct hc_player_skill_vector_packet {
 	unsigned short skill_id;
 	char skill_type;
 	float x, y, z;
+	bool is_left;
 };
 
 struct ch_player_skill_vector_packet {
@@ -160,6 +161,7 @@ struct ch_player_skill_vector_packet {
 	char player_id;
 	char skill_type;
 	float x, y, z;
+	bool is_left;
 };
 
 struct hc_player_skill_rotator_packet {
@@ -170,6 +172,7 @@ struct hc_player_skill_rotator_packet {
 	char skill_type;
 	float x, y, z;
 	float pitch, yaw, roll;
+	bool is_left;
 };
 
 struct ch_player_skill_rotator_packet {
@@ -179,6 +182,7 @@ struct ch_player_skill_rotator_packet {
 	char skill_type;
 	float x, y, z;
 	float pitch, yaw, roll;
+	bool is_left;
 };
 
 struct player_change_element_packet {

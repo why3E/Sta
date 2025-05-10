@@ -108,9 +108,8 @@ void AMyBombAttack::OnBeginOverlap(UPrimitiveComponent* OverlappedComp,
     }
 }
 
-void AMyBombAttack::Overlap()
-{
-    // 사용하지 않음
+void AMyBombAttack::Overlap(AActor* OtherActor) {
+    
 }
 
 void AMyBombAttack::CheckOverlappingActors()

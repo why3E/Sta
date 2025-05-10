@@ -1,3 +1,4 @@
+#include "MyWindSkill.h"
 #include "MyFireSkill.h"
 #include "PlayerCharacter.h"
 #include "Components/BoxComponent.h"
@@ -93,6 +94,7 @@ void AMyFireSkill::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* O
                     p.victim_id = ptr->m_id;
 
                     Cast<APlayerCharacter>(Owner)->do_send(&p);
+                    //UE_LOG(LogTemp, Warning, TEXT("Wall ID : %d"), m_id);
                 }
             }
         }
@@ -101,48 +103,28 @@ void AMyFireSkill::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* O
     }
 }
 
-void AMyFireSkill::Overlap() {
+void AMyFireSkill::Overlap(AActor* OtherActor) {
+    if (OtherActor->Implements<UReceiveDamageInterface>()) {
+        // 데미지 전달
+        FSkillInfo Info;
+        Info.Damage = SkillDamage;
+        Info.Element = SkillElement;
+        Info.StunTime = 1.5f;
+        Info.KnockbackDir = (OtherActor->GetActorLocation() - GetActorLocation()).GetSafeNormal();
 
+        IReceiveDamageInterface* DamageReceiver = Cast<IReceiveDamageInterface>(OtherActor);
+        if (DamageReceiver)
+        {
+            DamageReceiver->ReceiveSkillHit(Info, this);
+            UE_LOG(LogTemp, Warning, TEXT("Skill hit applied to: %s"), *OtherActor->GetName());
+        }
+    } else if (OtherActor && OtherActor->IsA(AMyWindSkill::StaticClass())) {
+        Destroy();
+    }
 }
 
-void AMyFireSkill::CheckOverlappingActors()
-{
-    TArray<AActor*> CurrentOverlappingActors;
-    CollisionComponent->GetOverlappingActors(CurrentOverlappingActors);
+void AMyFireSkill::CheckOverlappingActors() {
 
-    for (AActor* OtherActor : CurrentOverlappingActors)
-    {
-        if (OtherActor)
-        {
-            FSkillInfo Info;
-                Info.Damage = SkillDamage;
-                Info.Element = SkillElement;
-                Info.StunTime = 1.5f;
-                Info.KnockbackDir = (OtherActor->GetActorLocation() - GetActorLocation()).GetSafeNormal();
-
-            if (OtherActor->Implements<UReceiveDamageInterface>())
-            {
-                IReceiveDamageInterface* DamageReceiver = Cast<IReceiveDamageInterface>(OtherActor);
-                if (DamageReceiver)
-                {
-                    DamageReceiver->ReceiveSkillHit(Info, this);
-                    UE_LOG(LogTemp, Warning, TEXT("Skill hit applied to: %s"), *OtherActor->GetName());
-                }
-
-            }
-            if (OtherActor->Implements<UMixTonadoInterface>())
-            {
-                IMixTonadoInterface* MixTonado = Cast<IMixTonadoInterface>(OtherActor);
-                if (MixTonado)
-                {
-                    Destroy();
-                    MixTonado->SkillMixWindTonado(SkillElement);
-                    UE_LOG(LogTemp, Warning, TEXT("Skill hit applied to: %s"), *OtherActor->GetName());
-                }
-
-            }
-        }
-    }
 }
 
 void AMyFireSkill::EndPlay(const EEndPlayReason::Type EndPlayReason)

@@ -94,44 +94,6 @@ void AMyFireBall::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* Ot
     // TODO: 데미지 전달 로직 추가
     UE_LOG(LogTemp, Warning, TEXT("Hit Actor: %s"), *OtherActor->GetName());
     UE_LOG(LogTemp, Warning, TEXT("Hit Component: %s"), *OverlappedComp->GetName());
-
-    if (OtherActor->Implements<UReceiveDamageInterface>())
-    {
-        FSkillInfo Info;
-        Info.Damage = 10.f;
-        Info.Element = EClassType::CT_Fire;
-        Info.StunTime = 1.5f;
-        Info.KnockbackDir = (OtherActor->GetActorLocation() - GetActorLocation()).GetSafeNormal();
-
-        // 인터페이스로 캐스팅하여 함수 호출
-        IReceiveDamageInterface* DamageReceiver = Cast<IReceiveDamageInterface>(OtherActor);
-        if (DamageReceiver)
-        {
-            DamageReceiver->ReceiveSkillHit(Info, this);
-            UE_LOG(LogTemp, Warning, TEXT("Skill hit applied to: %s"), *OtherActor->GetName());
-        }
-    }
-
-    if (OtherActor->Implements<UMixTonadoInterface>())
-    {
-        IMixTonadoInterface* MixTonado = Cast<IMixTonadoInterface>(OtherActor);
-        if (MixTonado)
-        {
-            MixTonado->SkillMixWindTonado(SkillElement);
-            UE_LOG(LogTemp, Warning, TEXT("Skill hit applied to: %s"), *OtherActor->GetName());
-        }
-    }
-
-    if (OtherActor->Implements<UBombAttackInterface>())
-    {
-        IBombAttackInterface* BombAttack = Cast<IBombAttackInterface>(OtherActor);
-        if (BombAttack)
-        {
-            BombAttack->MixBombAttack(SkillElement);
-            Destroy();
-            UE_LOG(LogTemp, Warning, TEXT("UBombAttackInterface hit applied to: %s"), *OtherActor->GetName());
-        }
-    }
     
     // Skill - Skill Collision
     if (OtherActor->IsA(AMySkillBase::StaticClass())) {
@@ -152,16 +114,30 @@ void AMyFireBall::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* Ot
     }
 }
 
-void AMyFireBall::Overlap() {
+void AMyFireBall::Overlap(AActor* OtherActor) {
     // 나이아가라 파티클 시스템 비활성화
-    if (FireBallNiagaraComponent)
-    {
+    if (FireBallNiagaraComponent) {
         FireBallNiagaraComponent->Deactivate();
     }
 
+    if (OtherActor && OtherActor->Implements<UReceiveDamageInterface>()) {
+        // 데미지 전달
+        FSkillInfo Info;
+        Info.Damage = 10.f;
+        Info.Element = EClassType::CT_Fire;
+        Info.StunTime = 1.5f;
+        Info.KnockbackDir = (OtherActor->GetActorLocation() - GetActorLocation()).GetSafeNormal();
+
+        // 인터페이스로 캐스팅하여 함수 호출
+        IReceiveDamageInterface* DamageReceiver = Cast<IReceiveDamageInterface>(OtherActor);
+        if (DamageReceiver) {
+            DamageReceiver->ReceiveSkillHit(Info, this);
+            UE_LOG(LogTemp, Warning, TEXT("Skill hit applied to: %s"), *OtherActor->GetName());
+        }
+    }
+
     // 히트 효과 생성
-    if (HitEffectNiagaraSystem)
-    {
+    if (HitEffectNiagaraSystem) {
         UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), HitEffectNiagaraSystem, GetActorLocation());
     }
 

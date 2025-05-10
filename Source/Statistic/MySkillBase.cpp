@@ -14,4 +14,4 @@ AMySkillBase::~AMySkillBase() {
 	g_skills.erase(m_id);
 }
 
-void AMySkillBase::Overlap() {}
+void AMySkillBase::Overlap(AActor* OtherActor) {}

@@ -420,10 +420,10 @@ void h_process_packet(char* packet) {
 	case C2H_COLLISION_PACKET: {
 		collision_packet* p = reinterpret_cast<collision_packet*>(packet);
 		p->packet_type = H2C_COLLISION_PACKET;
-		for (char other_id = 0; other_id < MAX_CLIENTS; ++other_id) {
-			if (g_s_clients[other_id]) {
-				g_s_clients[other_id]->do_send(p);
-				//UE_LOG(LogTemp, Warning, TEXT("[Host] Send Collision Packet to Player %d"), other_id);
+		for (char client_id = 0; client_id < MAX_CLIENTS; ++client_id) {
+			if (g_s_clients[client_id]) {
+				g_s_clients[client_id]->do_send(p);
+				UE_LOG(LogTemp, Warning, TEXT("[Host] Skill %d and %d Collision"), p->attacker_id, p->victim_id);
 			}
 		}
 		break;
@@ -634,15 +634,15 @@ void c_process_packet(char* packet) {
 
 	case H2C_PLAYER_SKILL_VECTOR_PACKET: {
 		hc_player_skill_vector_packet* p = reinterpret_cast<hc_player_skill_vector_packet*>(packet);
-		g_c_players[p->player_id]->use_skill(p->skill_id, p->skill_type, FVector(p->x, p->y, p->z));
-		//UE_LOG(LogTemp, Warning, TEXT("[Client] Received Player %d's Skill Packet"), p->player_id);
+		g_c_players[p->player_id]->use_skill(p->skill_id, p->skill_type, FVector(p->x, p->y, p->z), p->is_left);
+		//UE_LOG(LogTemp, Warning, TEXT("[Client] Received Player %d's Skill %d Packet"), p->player_id, p->skill_id);
 		break;
 	}
 
 	case H2C_PLAYER_SKILL_ROTATOR_PACKET: {
 		hc_player_skill_rotator_packet* p = reinterpret_cast<hc_player_skill_rotator_packet*>(packet);
-		g_c_players[p->player_id]->use_skill(p->skill_id, p->skill_type, FVector(p->x, p->y, p->z), FRotator(p->pitch, p->yaw, p->roll));
-		//UE_LOG(LogTemp, Warning, TEXT("[Client] Received Player %d's Skill Packet"), p->player_id);
+		g_c_players[p->player_id]->use_skill(p->skill_id, p->skill_type, FVector(p->x, p->y, p->z), FRotator(p->pitch, p->yaw, p->roll), p->is_left);
+		//UE_LOG(LogTemp, Warning, TEXT("[Client] Received Player %d's Skill %d Packet"), p->player_id, p->skill_id);
 		break;
 	}
 
@@ -657,9 +657,11 @@ void c_process_packet(char* packet) {
 		collision_packet* p = reinterpret_cast<collision_packet*>(packet);
 		switch (p->collision_type) {
 		case SKILL_SKILL_COLLISION:
-			UE_LOG(LogTemp, Warning, TEXT("[Client] Skill %d and %d Collision"), p->attacker_id, p->victim_id);
-			if (g_skills.count(p->attacker_id)) g_skills[p->attacker_id]->Overlap();
-			if (g_skills.count(p->victim_id)) g_skills[p->victim_id]->Overlap();
+			//UE_LOG(LogTemp, Warning, TEXT("[Client] Skill %d and %d Collision"), p->attacker_id, p->victim_id);
+			if (g_skills.count(p->attacker_id) && g_skills.count(p->victim_id)) {
+				g_skills[p->attacker_id]->Overlap(g_skills[p->victim_id]);
+				g_skills[p->victim_id]->Overlap(g_skills[p->attacker_id]);
+			}
 			break;
 		}
 		//UE_LOG(LogTemp, Warning, TEXT("[Client] Received Collision Packet"));

@@ -18,7 +18,7 @@ public:
 	AMySkillBase();
 	~AMySkillBase();
 
-	virtual void Overlap();
+	virtual void Overlap(AActor* OtherActor);
 
 	UPROPERTY()
 	uint16 m_id;

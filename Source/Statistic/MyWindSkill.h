@@ -71,7 +71,7 @@ private:
 		const FHitResult& SweepResult
 	);
 
-	virtual void Overlap();
+	virtual void Overlap(AActor* OtherActor);
 
 	// Tick 기반 충돌 확인용 타이머
 	FTimerHandle CheckOverlapTimerHandle;

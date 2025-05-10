@@ -78,9 +78,8 @@ void AMyMixWindTonado::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActo
     }
 }
 
-void AMyMixWindTonado::Overlap()
-{
-    // 확장용
+void AMyMixWindTonado::Overlap(AActor* OtherActor) {
+    
 }
 
 void AMyMixWindTonado::CheckOverlappingActors()

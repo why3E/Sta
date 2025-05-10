@@ -1,4 +1,6 @@
 #include "MyWindSkill.h"
+#include "MyFireBall.h"
+#include "MyFireSkill.h"
 #include "PlayerCharacter.h"
 #include "Components/StaticMeshComponent.h"
 #include "NiagaraFunctionLibrary.h"
@@ -102,6 +104,7 @@ void AMyWindSkill::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* O
                     p.victim_id = ptr->m_id;
 
                     Cast<APlayerCharacter>(Owner)->do_send(&p);
+                    //UE_LOG(LogTemp, Warning, TEXT("Tonado ID : %d"), m_id);
                 }
             }
         }
@@ -110,42 +113,29 @@ void AMyWindSkill::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* O
     }
 }
 
-void AMyWindSkill::Overlap()
-{
-    // 사용하지 않음
+void AMyWindSkill::Overlap(AActor* OtherActor) {
+    if (OtherActor && OtherActor->Implements<UReceiveDamageInterface>()) {
+        // 데미지 전달
+        FSkillInfo Info;
+        Info.Damage = Damage;
+        Info.Element = SkillElement;
+        Info.StunTime = 1.5f;
+        Info.KnockbackDir = (OtherActor->GetActorLocation() - GetActorLocation()).GetSafeNormal();
+
+        // 인터페이스로 캐스팅하여 함수 호출
+        IReceiveDamageInterface* DamageReceiver = Cast<IReceiveDamageInterface>(OtherActor);
+        if (DamageReceiver)
+        {
+            DamageReceiver->ReceiveSkillHit(Info, this);
+        }
+    } else if ((OtherActor && OtherActor->IsA(AMyFireBall::StaticClass())) || 
+        (OtherActor && OtherActor->IsA(AMyFireSkill::StaticClass()))) {
+        SkillMixWindTonado(EClassType::CT_Fire);
+    }
 }
 
-void AMyWindSkill::CheckOverlappingActors()
-{
-    TArray<AActor*> CurrentOverlappingActors;
-    CollisionMesh->GetOverlappingActors(CurrentOverlappingActors);
+void AMyWindSkill::CheckOverlappingActors() {
 
-    for (AActor* OtherActor : CurrentOverlappingActors)
-    {
-        if (OtherActor && OtherActor->Implements<UReceiveDamageInterface>())
-        {
-            FSkillInfo Info;
-            Info.Damage = Damage;
-            Info.Element = SkillElement;
-            Info.StunTime = 1.5f;
-            Info.KnockbackDir = (OtherActor->GetActorLocation() - GetActorLocation()).GetSafeNormal();
-
-            IReceiveDamageInterface* DamageReceiver = Cast<IReceiveDamageInterface>(OtherActor);
-            if (DamageReceiver)
-            {
-                DamageReceiver->ReceiveSkillHit(Info, this);
-            }
-        }
-        if (OtherActor->Implements<UMixTonadoInterface>())
-        {
-            IMixTonadoInterface* MixTonado = Cast<IMixTonadoInterface>(OtherActor);
-            if (MixTonado)
-            {
-                MixTonado->SkillMixWindTonado(SkillElement);
-                Destroy();
-            }
-        }
-    }
 }
 
 void AMyWindSkill::EndPlay(const EEndPlayReason::Type EndPlayReason)

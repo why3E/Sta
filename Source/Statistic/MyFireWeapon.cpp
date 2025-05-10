@@ -5,6 +5,7 @@
 #include "MyFireBall.h"
 #include "MyFireSkill.h"
 #include "PlayerCharacter.h"
+#include "Kismet/GameplayStatics.h"
 #include "GameFramework/Character.h"
 #include "Components/PoseableMeshComponent.h"
 #include "Camera/CameraComponent.h"
@@ -110,16 +111,25 @@ void AMyFireWeapon::SpawnFireSkill(FVector TargetLocation, FRotator TargetRotati
             SpawnLocation.Z = HitResult.ImpactPoint.Z;
         }
 
+        FTransform SpawnTransform(TargetRotation, SpawnLocation);
+
         // FireSkill 생성
-        AMyFireSkill* FireSkill = GetWorld()->SpawnActor<AMyFireSkill>(FireSkillClass, SpawnLocation, TargetRotation, SpawnParams);
+        AMyFireSkill* FireSkill = GetWorld()->SpawnActorDeferred<AMyFireSkill>(
+            FireSkillClass,
+            SpawnTransform,
+            OwnerCharacter,
+            nullptr,
+            ESpawnActorCollisionHandlingMethod::AlwaysSpawn
+        );
+
         if (FireSkill)
         {
-            FireSkill->SetID(Cast<APlayerCharacter>(OwnerCharacter)->get_skill_id());
+            FireSkill->SetID(i + Cast<APlayerCharacter>(OwnerCharacter)->get_skill_id());
             FireSkill->SetOwner(OwnerCharacter);
             FireSkill->SpawnFireWall(SpawnLocation, TargetRotation);
             g_skills.emplace(i + Cast<APlayerCharacter>(OwnerCharacter)->get_skill_id(), FireSkill);
-
-            UE_LOG(LogTemp, Warning, TEXT("FireSkill %d spawned at location: %s"), i + 1, *SpawnLocation.ToString());
+            UGameplayStatics::FinishSpawningActor(FireSkill, SpawnTransform);
+            //UE_LOG(LogTemp, Warning, TEXT("FireSkill %d spawned at location: %s"), i + Cast<APlayerCharacter>(OwnerCharacter)->get_skill_id(), *SpawnLocation.ToString());
         }
         else
         {

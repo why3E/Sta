@@ -32,7 +32,7 @@ protected:
     // 콜리전 처리 함수
     UFUNCTION()
     void OnBeginOverlap(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
-    virtual void Overlap();
+    virtual void Overlap(AActor* OtherActor);
 
     // 콜리전 컴포넌트
     UPROPERTY(VisibleAnywhere, Category = "Collision", meta = (AllowPrivateAccess = "true"))
@@ -55,13 +55,14 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Settings")
     TSubclassOf<class AMyBombAttack> BombAttackClass;
+
 private:
 	float Speed = 3000.0f;
 	uint8 bIsHit : 1;
 
     UPROPERTY(EditAnywhere, Category = "Damage", meta = (AllowPrivateAccess = "true"))
     float Damage = 10.0f;
+
 public:
     virtual void MixBombAttack(EClassType MixType) override;
-
 };

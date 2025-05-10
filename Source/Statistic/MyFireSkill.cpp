@@ -8,6 +8,7 @@
 #include "NiagaraComponent.h"
 #include "Enums.h"
 #include "ReceiveDamageInterface.h"
+#include "MixTonadoInterface.h"
 
 #include "SESSION.h"
 
@@ -98,21 +99,32 @@ void AMyFireSkill::CheckOverlappingActors()
     {
         if (OtherActor)
         {
-            if (OtherActor->Implements<UReceiveDamageInterface>())
-            {
-                FSkillInfo Info;
-                Info.Damage = 10.f;
-                Info.Element = EClassType::CT_Fire;
+            FSkillInfo Info;
+                Info.Damage = SkillDamage;
+                Info.Element = SkillElement;
                 Info.StunTime = 1.5f;
                 Info.KnockbackDir = (OtherActor->GetActorLocation() - GetActorLocation()).GetSafeNormal();
 
-                // 인터페이스로 캐스팅하여 함수 호출
+            if (OtherActor->Implements<UReceiveDamageInterface>())
+            {
                 IReceiveDamageInterface* DamageReceiver = Cast<IReceiveDamageInterface>(OtherActor);
                 if (DamageReceiver)
                 {
                     DamageReceiver->ReceiveSkillHit(Info, this);
                     UE_LOG(LogTemp, Warning, TEXT("Skill hit applied to: %s"), *OtherActor->GetName());
                 }
+
+            }
+            if (OtherActor->Implements<UMixTonadoInterface>())
+            {
+                IMixTonadoInterface* MixTonado = Cast<IMixTonadoInterface>(OtherActor);
+                if (MixTonado)
+                {
+                    Destroy();
+                    MixTonado->SkillMixWindTonado(SkillElement);
+                    UE_LOG(LogTemp, Warning, TEXT("Skill hit applied to: %s"), *OtherActor->GetName());
+                }
+
             }
         }
     }

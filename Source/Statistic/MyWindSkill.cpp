@@ -78,16 +78,32 @@ void AMyWindSkill::PostInitializeComponents()
     CollisionMesh->OnComponentBeginOverlap.AddDynamic(this, &AMyWindSkill::OnBeginOverlap);
 }
 
-void AMyWindSkill::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
-    UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+void AMyWindSkill::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
     if (!g_is_host) return;
 
     if (OtherActor && OtherActor != this)
     {
-        if (OtherActor->IsA(AMyWindSkill::StaticClass()))
-        {
-            return;
+        // Skill - Skill Collision
+        if (OtherActor->IsA(AMySkillBase::StaticClass())) {
+            if (OtherActor->IsA(AMyWindSkill::StaticClass())) {
+                return;
+            }
+            
+            AMySkillBase* ptr = Cast<AMySkillBase>(OtherActor);
+
+            if (g_skills.count(ptr->m_id)) {
+                if (m_id < ptr->m_id) {
+                    collision_packet p;
+                    p.packet_size = sizeof(collision_packet);
+                    p.packet_type = C2H_COLLISION_PACKET;
+                    p.collision_type = SKILL_SKILL_COLLISION;
+                    p.attacker_id = m_id;
+                    p.victim_id = ptr->m_id;
+
+                    Cast<APlayerCharacter>(Owner)->do_send(&p);
+                }
+            }
         }
 
         UE_LOG(LogTemp, Warning, TEXT("Tonado hit actor: %s"), *OtherActor->GetName());
@@ -128,7 +144,6 @@ void AMyWindSkill::CheckOverlappingActors()
                 MixTonado->SkillMixWindTonado(SkillElement);
                 Destroy();
             }
-
         }
     }
 }

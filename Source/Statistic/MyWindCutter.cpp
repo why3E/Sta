@@ -111,19 +111,23 @@ void AMyWindCutter::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* 
         }
     }
     
-    for (const auto& [id, skill] : g_skills) {
-        if (skill && (skill == OtherActor)) {
-            collision_packet p;
-            p.packet_size = sizeof(collision_packet);
-            p.packet_type = C2H_COLLISION_PACKET;
-            p.collision_type = SKILL_SKILL_COLLISION;
-            p.attacker_id = m_id;
-            p.victim_id = id;
+    // Skill - Skill Collision
+    if (OtherActor->IsA(AMySkillBase::StaticClass())) {
+        AMySkillBase* ptr = Cast<AMySkillBase>(OtherActor);
 
-            Cast<APlayerCharacter>(Owner)->do_send(&p);
-            return;
+        if (g_skills.count(ptr->m_id)) {
+            if (m_id < ptr->m_id) {
+                collision_packet p;
+                p.packet_size = sizeof(collision_packet);
+                p.packet_type = C2H_COLLISION_PACKET;
+                p.collision_type = SKILL_SKILL_COLLISION;
+                p.attacker_id = m_id;
+                p.victim_id = ptr->m_id;
+
+                Cast<APlayerCharacter>(Owner)->do_send(&p);
+            }
         }
-    }  
+    }
 }
 
 void AMyWindCutter::Overlap() {

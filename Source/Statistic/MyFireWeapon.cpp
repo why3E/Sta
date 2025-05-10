@@ -127,4 +127,3 @@ void AMyFireWeapon::SpawnFireSkill(FVector TargetLocation, FRotator TargetRotati
         }
     }
 }
-

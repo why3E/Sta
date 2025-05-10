@@ -8,6 +8,7 @@ class ACharacter;
 extern SOCKET g_h_socket;
 extern std::atomic<bool> g_is_host;
 extern std::unordered_map<unsigned short, AMySkillBase*> g_skills;
+extern std::unordered_map<unsigned short, ACharacter*> g_monsters;
 
 //////////////////////////////////////////////////
 // EXP_OVER

@@ -1,17 +1,12 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "MyWindCutter.h"
-
 #include "Components/BoxComponent.h"
-
 #include "PlayerCharacter.h"
-#include "Components/SphereComponent.h"
-
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "NiagaraComponent.h"
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraSystem.h"
-
 #include "ReceiveDamageInterface.h"
 
 #include "SESSION.h"
@@ -54,7 +49,6 @@ void AMyWindCutter::BeginPlay()
 void AMyWindCutter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
 }
 
 void AMyWindCutter::PostInitializeComponents()
@@ -93,38 +87,7 @@ void AMyWindCutter::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* 
     if (!g_is_host || bIsHit || (Owner == OtherActor)) { return; } // 이미 충돌했거나 발사체의 소유자와 충돌한 경우 무시
 
     // 충돌한 액터 로그 출력
-    UE_LOG(LogTemp, Warning, TEXT("Hit Actor: %s"), *OtherActor->GetName());
-    UE_LOG(LogTemp, Warning, TEXT("Hit Component: %s"), *OverlappedComp->GetName());
     
-    for (const auto& [id, skill] : g_skills) {
-        if (skill && (skill == OtherActor)) {
-            collision_packet p;
-            p.packet_size = sizeof(collision_packet);
-            p.packet_type = C2H_COLLISION_PACKET;
-            p.collision_type = SKILL_SKILL_COLLISION;
-            p.attacker_id = m_id;
-            p.victim_id = id;
-
-            Cast<APlayerCharacter>(Owner)->do_send(&p);
-            return;
-        }
-    }
-}
-
-void AMyWindCutter::Overlap() {
-    // 나이아가라 파티클 시스템 비활성화
-    if (WindCutterNiagaraComponent)
-    {
-        WindCutterNiagaraComponent->Deactivate();
-    }
-
-    // 히트 효과 생성
-    if (WindCutterNiagaraComponent)
-    {
-        UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), HitEffectNiagaraSystem, GetActorLocation());
-    }
-    
-    /*
     // 데미지 전달
     if (OtherActor->Implements<UReceiveDamageInterface>())
     {
@@ -142,8 +105,48 @@ void AMyWindCutter::Overlap() {
             UE_LOG(LogTemp, Warning, TEXT("Skill hit applied to: %s"), *OtherActor->GetName());
         }
     }
-    */
 
+    if (OtherActor->Implements<UMixTonadoInterface>())
+    {
+        IMixTonadoInterface* MixTonado = Cast<IMixTonadoInterface>(OtherActor);
+        if (MixTonado)
+        {
+            MixTonado->SkillMixWindTonado(SkillElement);
+            UE_LOG(LogTemp, Warning, TEXT("Cutter hit applied to: %s"), *OtherActor->GetName());
+        }
+
+    }
+    
+    for (const auto& [id, skill] : g_skills) {
+        if (skill && (skill == OtherActor)) {
+            collision_packet p;
+            p.packet_size = sizeof(collision_packet);
+            p.packet_type = C2H_COLLISION_PACKET;
+            p.collision_type = SKILL_SKILL_COLLISION;
+            p.attacker_id = m_id;
+            p.victim_id = id;
+
+            Cast<APlayerCharacter>(Owner)->do_send(&p);
+            return;
+        }
+    }
+
+    
+}
+
+void AMyWindCutter::Overlap() {
+    // 나이아가라 파티클 시스템 비활성화
+    if (WindCutterNiagaraComponent)
+    {
+        WindCutterNiagaraComponent->Deactivate();
+    }
+
+    // 히트 효과 생성
+    if (WindCutterNiagaraComponent)
+    {
+        UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), HitEffectNiagaraSystem, GetActorLocation());
+    }
+    
     // 충돌 상태 설정
     bIsHit = true;
 

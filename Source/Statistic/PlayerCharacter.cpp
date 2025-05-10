@@ -99,6 +99,11 @@ APlayerCharacter::APlayerCharacter()
 		{
 			IA_BasicAttack = IA_BasicAttackRef.Object;
 		}
+		static ConstructorHelpers::FObjectFinder<UInputAction>IA_RightAttackRef(TEXT("/Script/EnhancedInput.InputAction'/Game/input/attack/IA_RightAttack.IA_RightAttack'"));
+		if (IA_RightAttackRef.Object)
+		{
+			IA_RightAttack = IA_RightAttackRef.Object;
+		}
 		static ConstructorHelpers::FObjectFinder<UInputAction>IA_QSkillRef(TEXT("/Script/EnhancedInput.InputAction'/Game/input/IA_QSkill.IA_QSkill'"));
 		if (IA_QSkillRef.Object)
 		{
@@ -115,6 +120,8 @@ APlayerCharacter::APlayerCharacter()
 		{
 			IA_ChangeClass = IA_ChangeClassRef.Object;
 		}
+		
+		
     }
 
 	// Setting (기본적으로 원하는 기본 이동을 위한 캐릭터 설정)
@@ -133,16 +140,21 @@ APlayerCharacter::APlayerCharacter()
 		GetCharacterMovement()->MaxWalkSpeed = 300.0f;
 		 // Member Variable 초기화
 	}
+
 	{
 		bIsDash = false;
 	}
 
-    // 기본 클래스 타입 설정
-    ClassType = EClassType::CT_Wind;
+
+    LeftClassType = EClassType::CT_None;
+	RightClassType = EClassType::CT_None;
 
     // 초기 캐싱된 데이터 설정
-    CurrentMontage = nullptr;
-    CurrentComboData = nullptr;
+    CurrentLeftMontage = nullptr;
+    CurrentLeftComboData = nullptr;
+
+	CurrentRightMontage = nullptr;
+    CurrentRightComboData = nullptr;
 
 	static ConstructorHelpers::FClassFinder<AMyWeapon> FireWeaponBPRef(TEXT("/Game/Weapon/BP_FIreWeapon.BP_FIreWeapon_C"));
     if (FireWeaponBPRef.Succeeded())
@@ -178,13 +190,10 @@ void APlayerCharacter::BeginPlay()
 			EnableInput(PlayerController);
 		}
 	}
-
-	{
-	ChangeClass(EClassType::CT_Wind);
-	}
-
-    // 초기 캐싱된 데이터 업데이트
-    UpdateCachedData();
+	
+	ChangeClass(EClassType::CT_Fire, true);
+	
+	ChangeClass(EClassType::CT_Fire, false);
 }
 
 void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -205,7 +214,8 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 	EnhancedInputComponent->BindAction(IA_Dash, ETriggerEvent::Triggered, this, &APlayerCharacter::DashStart);
 	EnhancedInputComponent->BindAction(IA_Dash, ETriggerEvent::Completed, this, &APlayerCharacter::DashEnd);
 
-	EnhancedInputComponent->BindAction(IA_BasicAttack, ETriggerEvent::Triggered, this, &APlayerCharacter::BasicAttack);
+	EnhancedInputComponent->BindAction(IA_BasicAttack, ETriggerEvent::Triggered, this, &APlayerCharacter::LeftClick);
+	EnhancedInputComponent->BindAction(IA_RightAttack, ETriggerEvent::Triggered, this, &APlayerCharacter::RightClick);
 
 	EnhancedInputComponent->BindAction(IA_QSkill, ETriggerEvent::Triggered, this, &APlayerCharacter::QSkill);
 	EnhancedInputComponent->BindAction(IA_ESkill, ETriggerEvent::Triggered, this, &APlayerCharacter::ESkill);
@@ -339,12 +349,29 @@ void APlayerCharacter::DashEnd()
 {
 	bIsDash = false;
 }	
-
+void APlayerCharacter::LeftClick()
+{
+	bIsLeft = true;
+	BasicAttack();
+}
+void APlayerCharacter::RightClick()
+{
+	bIsLeft = false;
+	BasicAttack();
+}
+//---------------------------------------------------------------------------------------------------------------------
 void APlayerCharacter::BasicAttack()
 {
 	//UE_LOG(LogTemp, Error, TEXT("FireLocation: %s"), *FireLocation.ToString());
 	//UE_LOG(LogTemp, Error, TEXT("CurrentImpactPoint: %s"), *CurrentImpactPoint.ToString());
 	//UE_LOG(LogTemp, Error, TEXT("CurrentImpactRot: %s"), *CurrentImpactRot.ToString());
+
+	EClassType ClassType = bIsLeft ? LeftClassType : RightClassType;
+
+	this->CurrentMontage = bIsLeft ? CurrentLeftMontage : CurrentRightMontage;
+	this->CurrentComboData = bIsLeft ? CurrentLeftComboData : CurrentRightComboData;
+	this->CurrentMontageSectionName = bIsLeft ? CurrentLeftMontageSectionName : CurrentRightMontageSectionName;
+	this->CurrentWeapon = bIsLeft ? CurrentLeftWeapon : CurrentRightWeapon;
 
 	if (bIsDrawingCircle)
     {
@@ -426,6 +453,7 @@ void APlayerCharacter::BasicAttack()
 
 void APlayerCharacter::SkillAttack()
 {
+
     UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 	UE_LOG(LogTemp, Warning, TEXT("AnimInstance: %s"), AnimInstance ? TEXT("Valid") : TEXT("Invalid"));
 
@@ -441,40 +469,19 @@ void APlayerCharacter::SkillAttack()
         FName SectionName = FName(*CurrentMontageSectionName);
 
         // 몽타주 재생
-        AnimInstance->Montage_Play(CurrentMontage);
+        AnimInstance->Montage_Play(CurrentMontage,4.0f);
         AnimInstance->Montage_JumpToSection(SectionName, CurrentMontage);
 
         // 다음 콤보를 위한 입력 초기화 및 타이머 재설정
         SetComboTimer();
         bHasComboInput = false;
     }
-    else
-    {
-		if (AnimInstance)
-		{
-			UE_LOG(LogTemp, Warning, TEXT("AnimInstance is valid: %s"), *AnimInstance->GetName());
-		}
-		else
-		{
-			UE_LOG(LogTemp, Error, TEXT("AnimInstance is null!"));
-		}
-
-		// 몽타주 확인
-		if (CurrentMontage)
-		{
-			UE_LOG(LogTemp, Warning, TEXT("Montage is valid: %s"), *CurrentMontage->GetName());
-		}
-		else
-		{
-			UE_LOG(LogTemp, Error, TEXT("Montage is null!"));
-		}
-	}
 }
 
 void APlayerCharacter::ComboStart()
 {
     CurrentComboCount = 1;
-    const float AttackSpeedRate = 2.0f;
+    const float AttackSpeedRate = 4.0f;
 
     UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 
@@ -496,28 +503,6 @@ void APlayerCharacter::ComboStart()
 
         // 타이머 설정
         SetComboTimer(); 
-    }
-    else
-    {
-		if (AnimInstance)
-		{
-			UE_LOG(LogTemp, Warning, TEXT("AnimInstance is valid: %s"), *AnimInstance->GetName());
-		}
-		else
-		{
-			UE_LOG(LogTemp, Error, TEXT("AnimInstance is null!"));
-		}
-
-		// 몽타주 확인
-		if (CurrentMontage)
-		{
-			UE_LOG(LogTemp, Warning, TEXT("Montage is valid: %s"), *CurrentMontage->GetName());
-		}
-		else
-		{
-			UE_LOG(LogTemp, Error, TEXT("Montage is null!"));
-		}
-
     }
 }
 
@@ -560,111 +545,93 @@ void APlayerCharacter::ComboCheck()
 	}
 }
 
-void APlayerCharacter::BaseAttackCheck()
+void APlayerCharacter::ChangeClass(EClassType NewClassType, bool bIsLeftType)
 {
-	// 충돌 결과를 반환하기 위한 배열
-	TArray<FHitResult> OutHitResults;
+    EClassType& TargetClassType = bIsLeftType ? LeftClassType : RightClassType;
 
-	// 공격 반경
-	float AttackRange = 100.0f;
-	// 공격 체크를 위한 구체의 반지름
-	float AttackRadius = 50.0f;
-
-	// 충돌 탐지를 위한 시작 지점 (플레이어 현재 위치 + 전방 방향 플레이어의 CapsuleComponent의 반지름 거리)
-	FVector Start = GetActorLocation() + (GetActorForwardVector() * GetCapsuleComponent()->GetScaledCapsuleRadius());
-	// 충돌 탐지 종료 지점 (시작지점 + 전방 방향의 공격 거리)
-	FVector End = Start + (GetActorForwardVector() * AttackRange);
-	// 파라미터 설정하기 (트레이스 태그 : Attack, 복잡한 충돌 처리 : false, 무시할 액터 : this) 
-	FCollisionQueryParams Params(SCENE_QUERY_STAT(Attack), false, this);
-
-	bool bHasHit = GetWorld()->SweepMultiByChannel(
-		OutHitResults,
-		Start,
-		End,
-		FQuat::Identity,
-		ECC_GameTraceChannel2,
-		FCollisionShape::MakeSphere(AttackRadius),
-		Params
-	);
-
-	if (bHasHit)
-	{
-		// TODO : 데미지 전달
-	}
-
-	// Capsule 모양의 디버깅 체크
-	FVector CapsuleOrigin = Start + (End - Start) * 0.5f;
-	float CapsuleHalfHeight = AttackRange * 0.5f;
-	FColor DrawColor = bHasHit ? FColor::Green : FColor::Red;
-
-	DrawDebugCapsule(GetWorld(), CapsuleOrigin, CapsuleHalfHeight, AttackRadius, FRotationMatrix::MakeFromZ(GetActorForwardVector()).ToQuat(), DrawColor, false, 3.0f);
-}
-
-void APlayerCharacter::ChangeClass(EClassType NewClassType)
-{
-    if (ClassType != NewClassType)
+    if (TargetClassType != NewClassType)
     {
-        ClassType = NewClassType;
-        UpdateCachedData(); // 클래스 변경 시 캐싱된 데이터 업데이트
-        UE_LOG(LogTemp, Warning, TEXT("Class Type Changed to: %d"), static_cast<int32>(ClassType));
+        TargetClassType = NewClassType;
+        UpdateCachedData(bIsLeftType);
+        UE_LOG(LogTemp, Warning, TEXT("%s Class Type Changed to: %d"), bIsLeftType ? TEXT("Left") : TEXT("Right"), static_cast<int32>(TargetClassType));
     }
 }
 
-void APlayerCharacter::UpdateCachedData()
+void APlayerCharacter::UpdateCachedData(bool bIsLeftType)
 {
-    // 기존 무기 제거
-    if (CurrentWeapon)
+    if (bIsLeftType)
     {
-        CurrentWeapon->Destroy();
-        CurrentWeapon = nullptr;
-        UE_LOG(LogTemp, Warning, TEXT("Previous weapon removed."));
+        if (CurrentLeftWeapon)
+        {
+            CurrentLeftWeapon->Destroy();
+            CurrentLeftWeapon = nullptr;
+        }
+    }
+    else
+    {
+        if (CurrentRightWeapon)
+        {
+            CurrentRightWeapon->Destroy();
+            CurrentRightWeapon = nullptr;
+        }
     }
 
     // 클래스 타입에 따라 무기와 데이터를 업데이트
-    switch (ClassType)
+    EClassType ClassTypeToUpdate = bIsLeftType ? LeftClassType : RightClassType;
+    UAnimMontage*& SelectedMontage = bIsLeftType ? CurrentLeftMontage : CurrentRightMontage;
+    UMMComboActionData*& SelectedComboData = bIsLeftType ? CurrentLeftComboData : CurrentRightComboData;
+    FString& SelectedMontageSectionName = bIsLeftType ? CurrentLeftMontageSectionName : CurrentRightMontageSectionName;
+
+    switch (ClassTypeToUpdate)
     {
     case EClassType::CT_Wind:
-        CurrentMontage = WindComboMontage;
-        CurrentComboData = WindComboData;
+        SelectedMontage = WindComboMontage;
+        SelectedComboData = WindComboData;
         WeaponClass = WindWeaponBP;
-        CurrentMontageSectionName = TEXT("WindSkill");
+        SelectedMontageSectionName = TEXT("WindSkill");
         CheckAnimBone = 1;
         break;
 
     case EClassType::CT_Stone:
-        CurrentMontage = StoneComboMontage;
-        CurrentComboData = StoneComboData;
+        SelectedMontage = StoneComboMontage;
+        SelectedComboData = StoneComboData;
         CheckAnimBone = 0;
         break;
 
     case EClassType::CT_Fire:
-
-        CurrentMontage = FireComboMontage;
-        CurrentComboData = FireComboData;
+        SelectedMontage = FireComboMontage;
+        SelectedComboData = FireComboData;
         WeaponClass = FireWeaponBP;
-        CurrentMontageSectionName = TEXT("FireSkill");
+        SelectedMontageSectionName = TEXT("FireSkill");
         CheckAnimBone = 1;
         break;
 
     default:
-        CurrentMontage = nullptr;
-        CurrentComboData = nullptr;
+        SelectedMontage = nullptr;
+        SelectedComboData = nullptr;
         break;
     }
 
-    // 새로운 무기 생성 및 장착
     if (GetWorld() && WeaponClass)
     {
-        CurrentWeapon = Cast<AMyWeapon>(GetWorld()->SpawnActor<AMyWeapon>(WeaponClass));
-        UE_LOG(LogTemp, Warning, TEXT("WeaponClass Load: %s"), CurrentWeapon ? TEXT("Success") : TEXT("Fail"));
-
-        if (CurrentWeapon)
+        if (bIsLeftType)
         {
-            UE_LOG(LogTemp, Warning, TEXT("Weapon Spawned"));
-            EquipWeapon(CurrentWeapon);
+            CurrentLeftWeapon = Cast<AMyWeapon>(GetWorld()->SpawnActor<AMyWeapon>(WeaponClass));
+
+            if (CurrentLeftWeapon)
+            {
+                EquipWeapon(CurrentLeftWeapon, bIsLeftType);
+            }
+        }
+        else
+        {
+            CurrentRightWeapon = Cast<AMyWeapon>(GetWorld()->SpawnActor<AMyWeapon>(WeaponClass));
+            if (CurrentRightWeapon)
+            {
+                EquipWeapon(CurrentRightWeapon, bIsLeftType);
+            }
         }
     }
-
 }
 
 void APlayerCharacter::SetComboTimer()
@@ -693,9 +660,9 @@ void APlayerCharacter::SetComboTimer()
     }
 }
 
-void APlayerCharacter::EquipWeapon(AMyWeapon* Weapon)
+void APlayerCharacter::EquipWeapon(AMyWeapon* Weapon, bool bIsLeftType)
 {
-	Weapon->EquipWeapon(this);
+	Weapon->EquipWeapon(this, bIsLeftType);
 }
 
 void APlayerCharacter::Tick(float DeltaTime) {
@@ -907,23 +874,20 @@ void APlayerCharacter::use_skill(unsigned short skill_id, char skill_type, FVect
 }
 
 void APlayerCharacter::change_element() {
-	switch (ClassType)
+	switch (LeftClassType)
 	{
 	case EClassType::CT_Wind:
 		UE_LOG(LogTemp, Warning, TEXT("Class changed to Fire"));
-		ChangeClass(EClassType::CT_Fire);
+		ChangeClass(EClassType::CT_Fire,1);
 		break;
-
-	case EClassType::CT_Stone:
-		UE_LOG(LogTemp, Warning, TEXT("Class changed to Wind"));
-		ChangeClass(EClassType::CT_Wind);
-		break;
-
 	case EClassType::CT_Fire:
-		UE_LOG(LogTemp, Warning, TEXT("Class changed to Stone"));
-		ChangeClass(EClassType::CT_Stone);
+		UE_LOG(LogTemp, Warning, TEXT("Class changed to Wind"));
+		ChangeClass(EClassType::CT_Wind,1);
 		break;
-
+	case EClassType::CT_Stone:
+		UE_LOG(LogTemp, Warning, TEXT("Class changed to "));
+		ChangeClass(EClassType::CT_Wind,1);
+		break;
 	default:
 		UE_LOG(LogTemp, Warning, TEXT("Unknown class type"));
 		break;

@@ -5,7 +5,6 @@
 #include "InputActionValue.h"
 #include "CoreMinimal.h"
 #include "MyCharacterBase.h"
-#include "AnimationAttackInterface.h"
 #include "Enums.h" // EClassType 포함
 #include "MMComboActionData.h" // 데이터 에셋 헤더 포함
 #include "AnimationUpdateInterface.h"
@@ -16,7 +15,7 @@
 #include "PlayerCharacter.generated.h"
 
 UCLASS()
-class STATISTIC_API APlayerCharacter : public AMyCharacterBase, public IAnimationAttackInterface, public IAnimationUpdateInterface, public IMyPlayerVisualInterface, public IAnimationWeaponInterface, public IImpactPointInterface
+class STATISTIC_API APlayerCharacter : public AMyCharacterBase, public IAnimationUpdateInterface, public IMyPlayerVisualInterface, public IAnimationWeaponInterface, public IImpactPointInterface
 {
 	GENERATED_BODY()
 
@@ -51,6 +50,8 @@ protected:
     void StopJump();
 	void DashStart();
 	void DashEnd();
+	void LeftClick();
+	void RightClick();
 	void BasicAttack();
 	void SkillAttack();
 	void QSkill();
@@ -74,6 +75,8 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, Category = Input, Meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<class UInputAction> IA_BasicAttack;
+	UPROPERTY(VisibleAnywhere, Category = Input, Meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<class UInputAction> IA_RightAttack;
 
 	UPROPERTY(VisibleAnywhere, Category = Input, Meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<class UInputAction> IA_QSkill;
@@ -127,12 +130,15 @@ protected:
 	uint8 CheckBackMove = 0;
 
 protected:
-	virtual void BaseAttackCheck() override;
-
-	EClassType ClassType;
-
+	EClassType LeftClassType;
+	EClassType RightClassType;
+	
 	// 클래스 변경 함수
-	void ChangeClass(EClassType NewClassType);
+	void ChangeClass(EClassType NewClassType, bool bIsLeft);
+
+private:
+    // 왼쪽인지 오른쪽인지 저장할 변수
+    bool bIsLeft;
 
 public:
     // 블루프린트에서 접근 가능한 변수
@@ -140,26 +146,40 @@ public:
     uint8 CheckAnimBone : 1;
 
 private:
+	UAnimMontage* CurrentLeftMontage;
+	UMMComboActionData* CurrentLeftComboData;
+	FString CurrentLeftMontageSectionName; // 섹션 이름을 저장하는 변수
+
+	UAnimMontage* CurrentRightMontage;
+	UMMComboActionData* CurrentRightComboData;
+	FString CurrentRightMontageSectionName; // 섹션 이름을 저장하는 변수
+
+	// 캐싱된 데이터를 업데이트하는 함수 
+	void UpdateCachedData(bool bIsLeftType);
+
 	// 캐싱된 현재 몽타주와 데이터
 	UAnimMontage* CurrentMontage;
 	UMMComboActionData* CurrentComboData;
 	FString CurrentMontageSectionName; // 섹션 이름을 저장하는 변수
 
-	// 캐싱된 데이터를 업데이트하는 함수 
-	void UpdateCachedData();
-
 	// MMPlayerCharacter Header
-	void EquipWeapon(class AMyWeapon* Weapon);
+	void EquipWeapon(class AMyWeapon* Weapon, bool bIsLeftType);
 
 	// TEST
 	UPROPERTY(EditAnywhere, Category = Weapon, meta = (AllowPrivateAccess = "true"))
 	TSubclassOf<class AMyWeapon> WeaponClass;
 
 	UPROPERTY(VisibleAnywhere, Category = Weapon, meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<class AMyWeapon> CurrentLeftWeapon;
+
+	UPROPERTY(VisibleAnywhere, Category = Weapon, meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<class AMyWeapon> CurrentRightWeapon;
+
+	UPROPERTY(VisibleAnywhere, Category = Weapon, meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<class AMyWeapon> CurrentWeapon;
 
 protected:
-	FORCEINLINE virtual EClassType GetClassType() override { return ClassType; };
+	FORCEINLINE virtual EClassType GetClassType() override { return RightClassType; };
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
     TSubclassOf<AMyWeapon> FireWeaponBP;

@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "MySkillBase.h"
+#include "MixTonadoInterface.h"
 #include "MyWindCutter.generated.h"
 
 UCLASS()
@@ -47,6 +48,9 @@ protected:
     // Projectile Movement 컴포넌트
     UPROPERTY(VisibleAnywhere, Category = "Movement", meta = (AllowPrivateAccess = "true"))
     TObjectPtr<class UProjectileMovementComponent> MovementComponent;
+   
+    UPROPERTY(EditAnywhere, Category = "Damage")
+	EClassType SkillElement = EClassType::CT_Wind;
 
 private:
 	float Speed = 3000.0f;

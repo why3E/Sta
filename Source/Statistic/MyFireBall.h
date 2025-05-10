@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "MySkillBase.h"
+#include "Enums.h"
 #include "MyFireBall.generated.h"
 
 UCLASS()
@@ -47,6 +48,13 @@ protected:
     // Projectile Movement 컴포넌트
     UPROPERTY(VisibleAnywhere, Category = "Movement", meta = (AllowPrivateAccess = "true"))
     TObjectPtr<class UProjectileMovementComponent> MovementComponent;
+
+    UPROPERTY(EditAnywhere, Category = "Damage")
+	float SkillDamage = 10.0f;
+
+	// 속성 타입 (열거형)
+	UPROPERTY(EditAnywhere, Category = "Damage")
+	EClassType SkillElement = EClassType::CT_Fire;
 
 private:
 	float Speed = 3000.0f;

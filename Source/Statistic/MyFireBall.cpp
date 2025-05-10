@@ -7,7 +7,7 @@
 #include "NiagaraFunctionLibrary.h"
 #include "ReceiveDamageInterface.h"
 #include "Enums.h"
-
+#include "MixTonadoInterface.h"
 #include "SESSION.h"
 
 // Sets default values
@@ -97,6 +97,34 @@ void AMyFireBall::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* Ot
     UE_LOG(LogTemp, Warning, TEXT("Hit Actor: %s"), *OtherActor->GetName());
     UE_LOG(LogTemp, Warning, TEXT("Hit Component: %s"), *OverlappedComp->GetName());
 
+    if (OtherActor->Implements<UReceiveDamageInterface>())
+    {
+        FSkillInfo Info;
+        Info.Damage = 10.f;
+        Info.Element = EClassType::CT_Fire;
+        Info.StunTime = 1.5f;
+        Info.KnockbackDir = (OtherActor->GetActorLocation() - GetActorLocation()).GetSafeNormal();
+
+        // 인터페이스로 캐스팅하여 함수 호출
+        IReceiveDamageInterface* DamageReceiver = Cast<IReceiveDamageInterface>(OtherActor);
+        if (DamageReceiver)
+        {
+            DamageReceiver->ReceiveSkillHit(Info, this);
+            UE_LOG(LogTemp, Warning, TEXT("Skill hit applied to: %s"), *OtherActor->GetName());
+        }
+    }
+
+    if (OtherActor->Implements<UMixTonadoInterface>())
+    {
+        IMixTonadoInterface* MixTonado = Cast<IMixTonadoInterface>(OtherActor);
+        if (MixTonado)
+        {
+            MixTonado->SkillMixWindTonado(SkillElement);
+            UE_LOG(LogTemp, Warning, TEXT("Skill hit applied to: %s"), *OtherActor->GetName());
+        }
+
+    }
+    
     for (const auto& [id, skill] : g_skills) {
         if (skill && (skill == OtherActor)) {
             collision_packet p;
@@ -110,6 +138,8 @@ void AMyFireBall::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* Ot
             return;
         }
     }
+    
+
 }
 
 void AMyFireBall::Overlap() {

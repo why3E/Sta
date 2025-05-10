@@ -24,7 +24,6 @@ AMyFireWeapon::AMyFireWeapon()
 		FireSkillClass = FireSkillRef.Class;
 	}
 	WeaponType = EWeaponType::WT_Fire;
-	BaseSocketName = TEXT("FirePosition");
 	FireBallSocket = TEXT("FirePosition");
 }
 
@@ -40,8 +39,9 @@ void AMyFireWeapon::Tick(float DeltaSeconds)
 
 void AMyFireWeapon::SpawnFireBall(FVector ImpactPoint)
 {
+    UE_LOG(LogTemp, Warning, TEXT("SpawnFireBall called"));
 	TempFireBall = Cast<AMyFireBall>(GetWorld()->SpawnActor(FireBallClass));
-
+    UE_LOG(LogTemp, Warning, TEXT("TempFireBall Spawned"));
 	if (TempFireBall)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("FireBall1 Spawned"));

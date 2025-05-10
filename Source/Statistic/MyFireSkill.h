@@ -4,6 +4,7 @@
 #include "GameFramework/Actor.h"
 #include "NiagaraComponent.h"
 #include "MySkillBase.h"
+#include "Enums.h"
 #include "MyFireSkill.generated.h"
 
 UCLASS()
@@ -40,6 +41,13 @@ protected:
     // 불벽의 나이아가라 시스템 에셋
     UPROPERTY(EditAnywhere, Category = "Effects")
     TObjectPtr<UNiagaraSystem> FireWallEffect;
+
+    UPROPERTY(EditAnywhere, Category = "Damage")
+	float SkillDamage = 10.0f;
+
+	// 속성 타입 (열거형)
+	UPROPERTY(EditAnywhere, Category = "Damage")
+	EClassType SkillElement = EClassType::CT_Fire;
 
 private:
     // 충돌 처리 함수

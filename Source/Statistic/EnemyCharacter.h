@@ -4,11 +4,12 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "AnimationAttackInterface.h"
 #include "ReceiveDamageInterface.h" // Ensure this file defines the ReceiveDamageInterface class or struct
 #include "EnemyCharacter.generated.h"
 
 UCLASS()
-class STATISTIC_API AEnemyCharacter : public ACharacter, public IReceiveDamageInterface // Ensure the interface is prefixed with 'I' if Unreal naming conventions are followed
+class STATISTIC_API AEnemyCharacter : public ACharacter, public IReceiveDamageInterface, public IAnimationAttackInterface
 {
 	GENERATED_BODY()
 
@@ -54,4 +55,6 @@ private:
     // 캐릭터의 체력
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats", Meta = (AllowPrivateAccess = "true"))
     float HP = 100.0f; // 기본 체력 값
+protected:
+	virtual void BaseAttackCheck() override;
 };

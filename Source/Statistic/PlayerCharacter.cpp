@@ -120,9 +120,7 @@ APlayerCharacter::APlayerCharacter()
 		{
 			IA_ChangeClass = IA_ChangeClassRef.Object;
 		}
-		
-		
-    }
+	}
 
 	// Setting (기본적으로 원하는 기본 이동을 위한 캐릭터 설정)
 	{
@@ -220,7 +218,7 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 	EnhancedInputComponent->BindAction(IA_QSkill, ETriggerEvent::Triggered, this, &APlayerCharacter::QSkill);
 	EnhancedInputComponent->BindAction(IA_ESkill, ETriggerEvent::Triggered, this, &APlayerCharacter::ESkill);
 
-	EnhancedInputComponent->BindAction(IA_ChangeClass, ETriggerEvent::Triggered, this, &APlayerCharacter::ChangeClassTest);
+	EnhancedInputComponent->BindAction(IA_ChangeClass, ETriggerEvent::Triggered, this, &APlayerCharacter::change_element);
 }
 
 void APlayerCharacter::BasicMove(const FInputActionValue& Value)
@@ -349,16 +347,19 @@ void APlayerCharacter::DashEnd()
 {
 	bIsDash = false;
 }	
+
 void APlayerCharacter::LeftClick()
 {
 	bIsLeft = true;
 	BasicAttack();
 }
+
 void APlayerCharacter::RightClick()
 {
 	bIsLeft = false;
 	BasicAttack();
 }
+
 //---------------------------------------------------------------------------------------------------------------------
 void APlayerCharacter::BasicAttack()
 {
@@ -547,7 +548,7 @@ void APlayerCharacter::ComboCheck()
 
 void APlayerCharacter::ChangeClass(EClassType NewClassType, bool bIsLeftType)
 {
-    EClassType& TargetClassType = bIsLeftType ? LeftClassType : RightClassType;
+	EClassType& TargetClassType = bIsLeftType ? LeftClassType : RightClassType;
 
     if (TargetClassType != NewClassType)
     {
@@ -824,18 +825,6 @@ void APlayerCharacter::GetFireTargetLocation()
 	SetActorRotation(FRotator(ActorRot.Pitch, ControlRot.Yaw, ActorRot.Roll));
 }
 
-void APlayerCharacter::ChangeClassTest()
-{
-	player_change_element_packet p;
-	p.packet_size = sizeof(player_change_element_packet);
-	p.packet_type = C2H_PLAYER_CHANGE_ELEMENT_PACKET;
-	p.id = m_id;
-
-	do_send(&p);
-
-	change_element();
-}
-
 void APlayerCharacter::use_skill(unsigned short skill_id, char skill_type, FVector v) {
 	switch (skill_type) {
 	case SKILL_WIND_CUTTER:
@@ -874,24 +863,39 @@ void APlayerCharacter::use_skill(unsigned short skill_id, char skill_type, FVect
 }
 
 void APlayerCharacter::change_element() {
-	switch (LeftClassType)
-	{
+	player_change_element_packet p;
+	p.packet_size = sizeof(player_change_element_packet);
+	p.packet_type = C2H_PLAYER_CHANGE_ELEMENT_PACKET;
+	p.id = m_id;
+	p.is_left = true;
+
+	switch (LeftClassType) {
 	case EClassType::CT_Wind:
 		UE_LOG(LogTemp, Warning, TEXT("Class changed to Fire"));
-		ChangeClass(EClassType::CT_Fire,1);
+		ChangeClass(EClassType::CT_Fire, true);
+		p.element_type = static_cast<char>(EClassType::CT_Fire);
 		break;
+
 	case EClassType::CT_Fire:
 		UE_LOG(LogTemp, Warning, TEXT("Class changed to Wind"));
-		ChangeClass(EClassType::CT_Wind,1);
+		ChangeClass(EClassType::CT_Wind, true);
+		p.element_type = static_cast<char>(EClassType::CT_Wind);
 		break;
+
 	case EClassType::CT_Stone:
 		UE_LOG(LogTemp, Warning, TEXT("Class changed to "));
-		ChangeClass(EClassType::CT_Wind,1);
 		break;
+
 	default:
 		UE_LOG(LogTemp, Warning, TEXT("Unknown class type"));
 		break;
 	}
+
+	do_send(&p);
+}
+
+void APlayerCharacter::change_element(char element_type, bool is_left) {
+	ChangeClass(static_cast<EClassType>(element_type), is_left);
 }
 		
 void APlayerCharacter::rotate(float yaw) {

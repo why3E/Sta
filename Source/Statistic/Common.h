@@ -185,6 +185,8 @@ struct player_change_element_packet {
 	unsigned char packet_size;
 	char packet_type;
 	char id;
+	char element_type;
+	bool is_left;
 };
 
 struct collision_packet {

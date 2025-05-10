@@ -364,7 +364,7 @@ void h_process_packet(char* packet) {
 		for (char client_id = 0; client_id < MAX_CLIENTS; ++client_id) {
 			if (g_clients[client_id]) {
 				g_clients[client_id]->do_send(&hc_p);
-				//UE_LOG(LogTemp, Warning, TEXT("[Host] Send Player %d's Skill Packet to Player %d"), p->player_id, client_id);
+				UE_LOG(LogTemp, Warning, TEXT("[Host] Send Player %d's Skill Packet to Player %d"), ch_p->player_id, client_id);
 			}
 		}
 		break;
@@ -473,7 +473,6 @@ extern void CALLBACK h_recv_callback(DWORD err, DWORD num_bytes, LPWSAOVERLAPPED
 
 	o->do_recv();
 }
-
 
 extern void CALLBACK h_send_callback(DWORD err, DWORD num_bytes, LPWSAOVERLAPPED p_over, DWORD flags) {
 	//UE_LOG(LogTemp, Warning, TEXT("[Host] h_send_callback"));
@@ -632,7 +631,7 @@ void c_process_packet(char* packet) {
 	case H2C_PLAYER_SKILL_VECTOR_PACKET: {
 		hc_player_skill_vector_packet* p = reinterpret_cast<hc_player_skill_vector_packet*>(packet);
 		g_players[p->player_id]->use_skill(p->skill_id, p->skill_type, FVector(p->x, p->y, p->z));
-		//UE_LOG(LogTemp, Warning, TEXT("[Client] Received Player %d's Skill Packet"), p->player_id);
+		UE_LOG(LogTemp, Warning, TEXT("[Client] Received Player %d's Skill Packet"), p->player_id);
 		break;
 	}
 
@@ -645,7 +644,7 @@ void c_process_packet(char* packet) {
 
 	case H2C_PLAYER_CHANGE_ELEMENT_PACKET: {
 		player_change_element_packet* p = reinterpret_cast<player_change_element_packet*>(packet);
-		g_players[p->id]->change_element();
+		g_players[p->id]->change_element(p->element_type, p->is_left);
 		//UE_LOG(LogTemp, Warning, TEXT("[Client] Received Player %d's Skill Packet"), p->player_id);
 		break;
 	}

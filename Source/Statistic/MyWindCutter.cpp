@@ -85,8 +85,6 @@ void AMyWindCutter::Fire(FVector TargetLocation)
 void AMyWindCutter::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
     if (!g_is_host || bIsHit || (Owner == OtherActor)) { return; } // 이미 충돌했거나 발사체의 소유자와 충돌한 경우 무시
-
-    // 충돌한 액터 로그 출력
     
     // 데미지 전달
     if (OtherActor->Implements<UReceiveDamageInterface>())
@@ -114,7 +112,6 @@ void AMyWindCutter::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* 
             MixTonado->SkillMixWindTonado(SkillElement);
             UE_LOG(LogTemp, Warning, TEXT("Cutter hit applied to: %s"), *OtherActor->GetName());
         }
-
     }
     
     for (const auto& [id, skill] : g_skills) {
@@ -129,9 +126,7 @@ void AMyWindCutter::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* 
             Cast<APlayerCharacter>(Owner)->do_send(&p);
             return;
         }
-    }
-
-    
+    }  
 }
 
 void AMyWindCutter::Overlap() {

@@ -47,15 +47,12 @@ void AMyFireBall::BeginPlay()
 	Super::BeginPlay();
 	MovementComponent->SetActive(false);
 	FireBallNiagaraComponent->Activate(); // 나이아가라 효과 활성화
-
-
 }
 
 // Called every frame
 void AMyFireBall::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
 }
 
 void AMyFireBall::PostInitializeComponents()
@@ -122,7 +119,6 @@ void AMyFireBall::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* Ot
             MixTonado->SkillMixWindTonado(SkillElement);
             UE_LOG(LogTemp, Warning, TEXT("Skill hit applied to: %s"), *OtherActor->GetName());
         }
-
     }
     
     for (const auto& [id, skill] : g_skills) {

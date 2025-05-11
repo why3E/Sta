@@ -52,32 +52,6 @@ void CALLBACK c_send_callback(DWORD err, DWORD num_bytes, LPWSAOVERLAPPED p_over
 void AMyPlayerController::BeginPlay()
 {
     Super::BeginPlay();
-
-    // 위젯 클래스 로드
-    UClass* HUDWidgetClass = LoadClass<UUserWidget>(
-        nullptr,
-        TEXT("/Game/HUD/WBP_HUD.WBP_HUD_C")
-    );
-
-    if (HUDWidgetClass)
-    {
-        // 위젯 생성 및 뷰포트에 추가
-        UUserWidget* HUD = CreateWidget<UUserWidget>(this, HUDWidgetClass);
-        if (HUD)
-        {
-            HUD->AddToViewport();
-            UE_LOG(LogTemp, Warning, TEXT("HUD Widget successfully added to viewport."));
-        }
-        else
-        {
-            UE_LOG(LogTemp, Error, TEXT("Failed to create HUD Widget."));
-        }
-    }
-    else
-    {
-        UE_LOG(LogTemp, Error, TEXT("Failed to load HUD Widget class."));
-    }
-
     InitSocket();
 }
 

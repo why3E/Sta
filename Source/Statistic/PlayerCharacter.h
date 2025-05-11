@@ -187,11 +187,14 @@ protected:
     TSubclassOf<AMyWeapon> WindWeaponBP;
 
 private:
-    bool bIsDrawingCircle = false; // 원을 그리고 있는지 여부
+    bool bIsQDrawingCircle = false; // 원을 그리고 있는지 여부
+	bool bisEDrawingRectangle = false; // 원을 그리고 있는지 여부
     FVector CurrentImpactPoint;   // 현재 충돌 지점
 	FRotator CurrentImpactRot;     // 현재 충돌 회전
     FTimerHandle CircleUpdateTimerHandle; // 원 업데이트를 위한 타이머 핸들
+	FTimerHandle RectangleUpdateTimerHandle; // 사각형 업데이트를 위한 타이머 핸들
 	void UpdateCircle();
+	void UpdateRectangle();
 
 protected:
 	FORCEINLINE virtual FVector GetCurrentImpactPoint() override { return CurrentImpactPoint; }
@@ -234,4 +237,30 @@ public:
 	void change_element();
 	void change_element(char element_type, bool is_left);
 	void rotate(float yaw);
+
+public:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite ,Category = "Status")
+	float playerMaxHp = 100.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite ,Category = "Status")
+	float playerCurrentHp = 100.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite ,Category = "Status")
+	float playerMaxMp = 100.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite ,Category = "Status")
+	float playerCurrentMp = 100.0f;
+
+public:
+    // PlayerWidget 선언
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
+    TObjectPtr<class UPlayerWidget> CharacterWidget;
+private:
+	// PlayerWidget 생성
+	void UpdateUI();
+
+	bool bCanUseSkillQ = true;
+	float SkillQCoolTime = 5.0f;
+	float CurrnetSkillQTime = 0.0f;
+
+	bool bCanUseSkillE = true;
+	float SkillECoolTime = 3.0f;
+	float CurrnetSkillETime = 0.0f;
 };

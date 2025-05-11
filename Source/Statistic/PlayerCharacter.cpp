@@ -32,8 +32,6 @@ APlayerCharacter::APlayerCharacter()
 	m_is_player = false;
 	m_was_moving = false;
 
-	SetActorLocation(FVector(37'975.0f, -40'000.0f, 950.0f));
-
 	// Collision 설정
 	{
 		GetCapsuleComponent()->InitCapsuleSize(35.0f, 90.0f);
@@ -168,13 +166,12 @@ APlayerCharacter::APlayerCharacter()
 }
 
 // BeginPlay 안의 기존 부분을 교체
-
 void APlayerCharacter::BeginPlay()
 {
     Super::BeginPlay();
 
-    SetActorLocation(FVector(0.0f, 0.0f, 100.0f), true);
-    m_yaw = GetControlRotation().Yaw;
+	SetActorLocation(FVector(37'975.0f, -40'000.0f, 950.0f));
+	m_yaw = GetControlRotation().Yaw;
 
     APlayerController* PlayerController = Cast<APlayerController>(GetController());
     if (PlayerController && IMC_Basic)

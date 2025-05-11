@@ -169,46 +169,38 @@ APlayerCharacter::APlayerCharacter()
     }
 }
 
+// BeginPlay 안의 기존 부분을 교체
+
 void APlayerCharacter::BeginPlay()
 {
-	Super::BeginPlay();
+    Super::BeginPlay();
 
-	//SetActorLocation(FVector(37'540.0f, -39'500.0f, 340.0f), true);
-	SetActorLocation(FVector(0.0f, 0.0f, 100.0f), true);
-	m_yaw = GetControlRotation().Yaw;
+    SetActorLocation(FVector(0.0f, 0.0f, 100.0f), true);
+    m_yaw = GetControlRotation().Yaw;
 
-	APlayerController* PlayerController = Cast<APlayerController>(GetController());
-	if (PlayerController && IMC_Basic)
-	{
-    	// 서브시스템 불러오기
-		if (UEnhancedInputLocalPlayerSubsystem* SubSystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer()))
-		{
-			// 매핑 컨텍스트 추가
-			SubSystem->AddMappingContext(IMC_Basic, 0);
-			// 입력 시작
-			EnableInput(PlayerController);
-		}
-	}
-	
-	ChangeClass(EClassType::CT_Wind, true);
-	
-	ChangeClass(EClassType::CT_Fire, false);
-
-	playerCurrentHp = playerMaxHp;
-	playerCurrentMp = playerMaxMp;
-
-	 APlayerController* UIPlayerController = Cast<APlayerController>(GetController());
-    if (UIPlayerController)
+    APlayerController* PlayerController = Cast<APlayerController>(GetController());
+    if (PlayerController && IMC_Basic)
     {
-        UClass* WidgetClass = StaticLoadClass(UUserWidget::StaticClass(), nullptr, TEXT("/Game/HUD/MyPlayerWidget.MyPlayerWidget_C"));
-        if (WidgetClass)
+        if (UEnhancedInputLocalPlayerSubsystem* SubSystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer()))
         {
-            CharacterWidget = CreateWidget<UPlayerWidget>(UIPlayerController, WidgetClass);
-            if (CharacterWidget)
-            {
-                CharacterWidget->AddToViewport();
-                UpdateUI();
-            }
+            SubSystem->AddMappingContext(IMC_Basic, 0);
+            EnableInput(PlayerController);
+        } 
+    }
+
+    ChangeClass(EClassType::CT_Wind, true);
+    ChangeClass(EClassType::CT_Fire, false);
+
+    playerCurrentHp = playerMaxHp;
+    playerCurrentMp = playerMaxMp;
+
+    if (PlayerController && PlayerWidgetClass)
+    {
+        CharacterWidget = CreateWidget<UPlayerWidget>(PlayerController, PlayerWidgetClass);
+        if (CharacterWidget)
+        {
+            CharacterWidget->AddToViewport();
+            UpdateUI();
         }
     }
 }

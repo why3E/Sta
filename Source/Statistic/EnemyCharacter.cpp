@@ -132,6 +132,10 @@ void AEnemyCharacter::Die()
     CopySkeletalMeshToProcedural(0);
     ProcMeshComponent->SetVisibility(true);
     ProcMeshComponent->SetSimulatePhysics(true);
+
+    FVector PlanePosition = ProcMeshComponent->GetComponentLocation() + FVector(0.f, 0.f, 30.f);    // 약간 위로
+    FVector PlaneNormal = FVector(1.f, 0.f, 1.f).GetSafeNormal();   // 사선 절단
+    SliceProcMesh(PlanePosition, PlaneNormal);
     UE_LOG(LogTemp, Warning, TEXT("Enemy died and switched to Procedural Mesh."));
 }
 

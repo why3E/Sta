@@ -21,7 +21,7 @@
 #include <thread>
 
 constexpr short HOST_PORT = 3000;
-constexpr char HOST_ADDRESS[] = "127.0.0.1";
+FString HOST_ADDRESS = TEXT("127.0.0.1");
 
 //////////////////////////////////////////////////
 // Server
@@ -97,26 +97,31 @@ void AMyPlayerController::InitSocket()
 	SOCKADDR_IN addr;
 	addr.sin_family = AF_INET;
 	addr.sin_port = htons(HOST_PORT);
-	addr.sin_addr.s_addr = htonl(INADDR_ANY);
 
-	ret = bind(g_s_socket, reinterpret_cast<const sockaddr*>(&addr), sizeof(SOCKADDR_IN));
-	if (SOCKET_ERROR == ret) { 
-		UE_LOG(LogTemp, Warning, TEXT("Bind Failed : %d"), WSAGetLastError()); 
-		g_is_host = false;
-		closesocket(g_s_socket);
-	}
-	else { 
-		UE_LOG(LogTemp, Warning, TEXT("Bind Succeed")); 
+	if (!FParse::Value(FCommandLine::Get(), TEXT("ip="), HOST_ADDRESS)) {
+		HOST_ADDRESS = TEXT("127.0.0.1"); 
+		UE_LOG(LogTemp, Warning, TEXT("No IP Specified. Using Loopback : %s"), *HOST_ADDRESS);
 		g_is_host = true;
+	} else {
+		UE_LOG(LogTemp, Warning, TEXT("Parsed IP from Command Line : %s"), *HOST_ADDRESS);
+		g_is_host = false;
 	}
+
+	std::string IP_ADDRESS = TCHAR_TO_UTF8(*HOST_ADDRESS);
+	inet_pton(AF_INET, IP_ADDRESS.c_str(), &addr.sin_addr);
 
 	if (g_is_host) {
-		g_s_thread = std::thread(server_thread);
+		ret = bind(g_s_socket, reinterpret_cast<const sockaddr*>(&addr), sizeof(SOCKADDR_IN));
+		if (SOCKET_ERROR == ret) {
+			UE_LOG(LogTemp, Warning, TEXT("Bind Failed : %d"), WSAGetLastError());
+			closesocket(g_s_socket);
+		} else {
+			UE_LOG(LogTemp, Warning, TEXT("Bind Succeed"));
+			g_s_thread = std::thread(server_thread);
+		}
 	}
 
 	// Connect to host
-	inet_pton(AF_INET, HOST_ADDRESS, &addr.sin_addr);
-
 	ret = WSAConnect(g_h_socket, reinterpret_cast<const sockaddr*>(&addr), sizeof(SOCKADDR_IN), NULL, NULL, NULL, NULL);
 	if (SOCKET_ERROR == ret) { UE_LOG(LogTemp, Warning, TEXT("WSAConnect Failed : %d"), WSAGetLastError()); }
 	else { UE_LOG(LogTemp, Warning, TEXT("WSAConnect Succeed")); }

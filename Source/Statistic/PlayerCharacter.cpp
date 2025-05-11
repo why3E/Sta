@@ -197,6 +197,16 @@ void APlayerCharacter::BeginPlay()
 	}
 	}
 
+void APlayerCharacter::EndPlay(const EEndPlayReason::Type EndPlayReason) {
+	if (CurrentLeftWeapon) { 
+		CurrentLeftWeapon->Destroy(); 
+	}
+
+	if (CurrentRightWeapon) {
+		CurrentRightWeapon->Destroy();
+	}
+}
+
 void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);

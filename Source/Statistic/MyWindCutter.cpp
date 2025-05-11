@@ -123,15 +123,17 @@ void AMyWindCutter::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* 
         AEnemyCharacter* ptr = Cast<AEnemyCharacter>(OtherActor);
 
         if (g_monsters.count(ptr->get_id())) {
-            collision_packet p;
-            p.packet_size = sizeof(collision_packet);
-            p.packet_type = C2H_COLLISION_PACKET;
-            p.collision_type = SKILL_MONSTER_COLLISION;
-            p.attacker_id = m_id;
-            p.victim_id = ptr->get_id();
+            if (ptr->get_hp() > 0.0f) {
+                collision_packet p;
+                p.packet_size = sizeof(collision_packet);
+                p.packet_type = C2H_COLLISION_PACKET;
+                p.collision_type = SKILL_MONSTER_COLLISION;
+                p.attacker_id = m_id;
+                p.victim_id = ptr->get_id();
 
-            Cast<APlayerCharacter>(Owner)->do_send(&p);
-            //UE_LOG(LogTemp, Error, TEXT("[Client] Skill %d and Monster %d Collision"), p.attacker_id, p.victim_id);
+                Cast<APlayerCharacter>(Owner)->do_send(&p);
+                //UE_LOG(LogTemp, Error, TEXT("[Client] Skill %d and Monster %d Collision"), p.attacker_id, p.victim_id);
+            }
         }
     } else if (OtherActor->IsA(APlayerCharacter::StaticClass())) {
         // Skill - Player Collision

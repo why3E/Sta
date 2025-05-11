@@ -17,7 +17,7 @@ AEnemyCharacter::AEnemyCharacter()
 
     GetCharacterMovement()->JumpZVelocity = 700.f;
     GetCharacterMovement()->AirControl = 0.35f;
-    GetCharacterMovement()->MaxWalkSpeed = 500.f;
+    GetCharacterMovement()->MaxWalkSpeed = 300.f;
     GetCharacterMovement()->MinAnalogWalkSpeed = 20.f;
     GetCharacterMovement()->BrakingDecelerationWalking = 2000.f;
     GetCharacterMovement()->BrakingDecelerationFalling = 1500.f;
@@ -37,17 +37,15 @@ void AEnemyCharacter::BeginPlay()
     Super::BeginPlay();
     bIsAttacking = false;
 
-    // ⭐ 1초 뒤 자동 사망 (테스트용)
     FTimerHandle TimerHandle;
     GetWorld()->GetTimerManager().SetTimer(
         TimerHandle,
         this,
         &AEnemyCharacter::Die,
-        1.0f,
+        10.0f,
         false
     );
 
-    // ⭐ 3초 뒤 절단 테스트
     FTimerHandle SliceTimerHandle;
     GetWorld()->GetTimerManager().SetTimer(
         SliceTimerHandle,
@@ -57,7 +55,7 @@ void AEnemyCharacter::BeginPlay()
             FVector PlaneNormal = FVector(1.f, 0.f, 1.f).GetSafeNormal();   // 사선 절단
             SliceProcMesh(PlanePosition, PlaneNormal);
         },
-        3.0f,
+        13.0f,
         false
     );
 }

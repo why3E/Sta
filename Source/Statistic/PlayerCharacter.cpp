@@ -167,49 +167,41 @@ APlayerCharacter::APlayerCharacter()
     }
 }
 
+// BeginPlay 안의 기존 부분을 교체
+
 void APlayerCharacter::BeginPlay()
 {
-	Super::BeginPlay();
+    Super::BeginPlay();
 
-	//SetActorLocation(FVector(37'540.0f, -39'500.0f, 340.0f), true);
-	SetActorLocation(FVector(0.0f, 0.0f, 100.0f), true);
-	m_yaw = GetControlRotation().Yaw;
+    SetActorLocation(FVector(0.0f, 0.0f, 100.0f), true);
+    m_yaw = GetControlRotation().Yaw;
 
-	APlayerController* PlayerController = Cast<APlayerController>(GetController());
-	if (PlayerController && IMC_Basic)
+    APlayerController* PlayerController = Cast<APlayerController>(GetController());
+    if (PlayerController && IMC_Basic)
+    {
+        if (UEnhancedInputLocalPlayerSubsystem* SubSystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer()))
+        {
+            SubSystem->AddMappingContext(IMC_Basic, 0);
+            EnableInput(PlayerController);
+        } 
+    }
+
+    ChangeClass(EClassType::CT_Wind, true);
+    ChangeClass(EClassType::CT_Fire, false);
+
+    playerCurrentHp = playerMaxHp;
+    playerCurrentMp = playerMaxMp;
+
+	if (PlayerController && PlayerWidgetClass)
 	{
-    	// 서브시스템 불러오기
-		if (UEnhancedInputLocalPlayerSubsystem* SubSystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer()))
+		CharacterWidget = CreateWidget<UPlayerWidget>(PlayerController, PlayerWidgetClass);
+		if (CharacterWidget)
 		{
-			// 매핑 컨텍스트 추가
-			SubSystem->AddMappingContext(IMC_Basic, 0);
-			// 입력 시작
-			EnableInput(PlayerController);
+			CharacterWidget->AddToViewport();
+			UpdateUI();
 		}
 	}
-	
-	ChangeClass(EClassType::CT_Wind, true);
-	
-	ChangeClass(EClassType::CT_Fire, false);
-
-	playerCurrentHp = playerMaxHp;
-	playerCurrentMp = playerMaxMp;
-
-	 APlayerController* UIPlayerController = Cast<APlayerController>(GetController());
-    if (UIPlayerController)
-    {
-        UClass* WidgetClass = StaticLoadClass(UUserWidget::StaticClass(), nullptr, TEXT("/Game/HUD/MyPlayerWidget.MyPlayerWidget_C"));
-        if (WidgetClass)
-        {
-            CharacterWidget = CreateWidget<UPlayerWidget>(UIPlayerController, WidgetClass);
-            if (CharacterWidget)
-            {
-                CharacterWidget->AddToViewport();
-                UpdateUI();
-            }
-        }
-    }
-}
+	}
 
 void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
@@ -476,38 +468,49 @@ void APlayerCharacter::BasicAttack()
 
 void APlayerCharacter::SkillAttack()
 {
-	if(bIsLeft){
-		if(!bCanUseSkillQ) return;
-	}
-	else{
-		if(!bCanUseSkillE) return;
-	}
-  
-	this->CurrentMontage = bIsLeft ? CurrentLeftMontage : CurrentRightMontage;
-	this->CurrentComboData = bIsLeft ? CurrentLeftComboData : CurrentRightComboData;
-	this->CurrentMontageSectionName = bIsLeft ? CurrentLeftMontageSectionName : CurrentRightMontageSectionName;
-	this->CurrentWeapon = bIsLeft ? CurrentLeftWeapon : CurrentRightWeapon;
+    if (bIsLeft)
+    {
+        if (!bCanUseSkillQ) return;
+    }
+    else
+    {
+        if (!bCanUseSkillE) return;
+    }
 
-	if(playerCurrentMp >= 20)
-	{
-		playerCurrentMp -= 20.0f;
-		if(bIsLeft)
-		{
-			CharacterWidget->UpdateCountDown(SkillQCoolTime,bIsLeft);
-			bCanUseSkillQ = false;
-			CurrnetSkillQTime = 0.0f;
-		}
-		else
-		{
-			CharacterWidget->UpdateCountDown(SkillECoolTime,bIsLeft);
-			bCanUseSkillE = false;
-			CurrnetSkillETime = 0.0f;
-		}
-		UpdateUI();
-	}
+    this->CurrentMontage = bIsLeft ? CurrentLeftMontage : CurrentRightMontage;
+    this->CurrentComboData = bIsLeft ? CurrentLeftComboData : CurrentRightComboData;
+    this->CurrentMontageSectionName = bIsLeft ? CurrentLeftMontageSectionName : CurrentRightMontageSectionName;
+    this->CurrentWeapon = bIsLeft ? CurrentLeftWeapon : CurrentRightWeapon;
+
+    if (playerCurrentMp >= 20)
+    {
+        playerCurrentMp -= 20.0f;
+
+        if (bIsLeft)
+        {
+            bCanUseSkillQ = false;
+            CurrnetSkillQTime = 0.0f;
+
+            // ⭐️ 안전 체크 추가
+            if (CharacterWidget)
+                CharacterWidget->UpdateCountDown(SkillQCoolTime, bIsLeft);
+        }
+        else
+        {
+            bCanUseSkillE = false;
+            CurrnetSkillETime = 0.0f;
+
+            // ⭐️ 안전 체크 추가
+            if (CharacterWidget)
+                CharacterWidget->UpdateCountDown(SkillECoolTime, bIsLeft);
+        }
+
+        UpdateUI();
+    }
+
     UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 
-	UE_LOG(LogTemp, Warning, TEXT("AnimInstance: %s"), AnimInstance ? TEXT("Valid") : TEXT("Invalid"));
+    UE_LOG(LogTemp, Warning, TEXT("AnimInstance: %s"), AnimInstance ? TEXT("Valid") : TEXT("Invalid"));
 
     if (AnimInstance && CurrentMontage)
     {
@@ -521,7 +524,7 @@ void APlayerCharacter::SkillAttack()
         FName SectionName = FName(*CurrentMontageSectionName);
 
         // 몽타주 재생
-        AnimInstance->Montage_Play(CurrentMontage,4.0f);
+        AnimInstance->Montage_Play(CurrentMontage, 4.0f);
         AnimInstance->Montage_JumpToSection(SectionName, CurrentMontage);
 
         // 다음 콤보를 위한 입력 초기화 및 타이머 재설정
@@ -529,6 +532,7 @@ void APlayerCharacter::SkillAttack()
         bHasComboInput = false;
     }
 }
+
 
 void APlayerCharacter::ComboStart()
 {

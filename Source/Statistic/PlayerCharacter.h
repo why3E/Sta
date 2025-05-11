@@ -252,6 +252,10 @@ public:
     // PlayerWidget 선언
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
     TObjectPtr<class UPlayerWidget> CharacterWidget;
+
+	// PlayerCharacter.h
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI")
+	TSubclassOf<UUserWidget> PlayerWidgetClass;
 private:
 	// PlayerWidget 생성
 	void UpdateUI();

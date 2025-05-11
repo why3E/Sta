@@ -2,11 +2,14 @@
 
 #include "Common.h"
 
+class APlayerCharacter;
 class AMySkillBase;
 class ACharacter;
 
 extern SOCKET g_h_socket;
 extern std::atomic<bool> g_is_host;
+
+extern std::array<APlayerCharacter*, MAX_CLIENTS> g_c_players;
 extern std::unordered_map<unsigned short, AMySkillBase*> g_skills;
 extern std::unordered_map<unsigned short, std::queue<unsigned short>> g_collisions;
 extern std::unordered_map<unsigned short, ACharacter*> g_monsters;

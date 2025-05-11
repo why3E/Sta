@@ -16,7 +16,6 @@
 
 #include "SESSION.h"
 
-#include <array>
 #include <atomic>
 #include <chrono>
 #include <thread>
@@ -44,7 +43,6 @@ extern void CALLBACK h_send_callback(DWORD err, DWORD num_bytes, LPWSAOVERLAPPED
 // Client
 EXP_OVER g_recv_over;
 int g_remained;
-std::array<APlayerCharacter*, MAX_CLIENTS> g_c_players;
 
 void c_process_packet(char* p);
 void CALLBACK c_recv_callback(DWORD err, DWORD num_bytes, LPWSAOVERLAPPED p_over, DWORD flags);
@@ -796,7 +794,8 @@ void c_process_packet(char* packet) {
 				g_skills[p->attacker_id]->Overlap(g_skills[p->victim_id]);
 				g_skills[p->victim_id]->Overlap(g_skills[p->attacker_id]);
 				//UE_LOG(LogTemp, Error, TEXT("[Client] Skill %d and %d Collision"), p->attacker_id, p->victim_id);
-			} else {
+			}
+			else {
 				g_collisions[p->attacker_id].push(p->victim_id);
 				g_collisions[p->victim_id].push(p->attacker_id);
 				//UE_LOG(LogTemp, Error, TEXT("[Client] Skill %d and %d Delayed"), p->attacker_id, p->victim_id);
@@ -808,10 +807,16 @@ void c_process_packet(char* packet) {
 				g_skills[p->attacker_id]->Overlap(g_monsters[p->victim_id]);
 				Cast<AEnemyCharacter>(g_monsters[p->victim_id])->Overlap(g_skills[p->attacker_id]);
 			}
-			UE_LOG(LogTemp, Error, TEXT("[Client] Skill %d and Monster %d Collision"), p->attacker_id, p->victim_id);
+			//UE_LOG(LogTemp, Error, TEXT("[Client] Skill %d and Monster %d Collision"), p->attacker_id, p->victim_id);
+			break;
+
+		case SKILL_PLAYER_COLLISION:
+			if (g_skills.count(p->attacker_id) && g_c_players[p->victim_id]) {
+				g_skills[p->attacker_id]->Overlap(g_monsters[p->victim_id]);
+			}
+			//UE_LOG(LogTemp, Error, TEXT("[Client] Skill %d and Player %d Collision"), p->attacker_id, p->victim_id);
 			break;
 		}
-		break;
 	}
 
 	case H2C_SKILL_CREATE_PACKET: {

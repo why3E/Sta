@@ -1,4 +1,6 @@
 #include "MyBombAttack.h"
+#include "EnemyCharacter.h"
+#include "PlayerCharacter.h"
 #include "ReceiveDamageInterface.h"
 #include "SESSION.h"
 #include "Components/StaticMeshComponent.h"
@@ -42,8 +44,6 @@ AMyBombAttack::AMyBombAttack()
     MixBombAttackNiagaraComponent->SetupAttachment(Root);
     MixBombAttackNiagaraComponent->SetVisibility(true);
 }
-
-
 
 // Called when the game starts or when spawned
 void AMyBombAttack::BeginPlay()
@@ -97,6 +97,23 @@ void AMyBombAttack::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* 
     if (!g_is_host) return;
 
     if (OtherActor && OtherActor != this) {
+        if (OtherActor->IsA(AEnemyCharacter::StaticClass())) {
+            // Skill - Monster Collision
+            AEnemyCharacter* ptr = Cast<AEnemyCharacter>(OtherActor);
+
+            if (g_monsters.count(ptr->get_id())) {
+                collision_packet p;
+                p.packet_size = sizeof(collision_packet);
+                p.packet_type = C2H_COLLISION_PACKET;
+                p.collision_type = SKILL_MONSTER_COLLISION;
+                p.attacker_id = m_id;
+                p.victim_id = ptr->get_id();
+
+                Cast<APlayerCharacter>(Owner)->do_send(&p);
+                UE_LOG(LogTemp, Error, TEXT("[Client] Skill %d and Monster %d Collision"), p.attacker_id, p.victim_id);
+            }
+        }
+
         UE_LOG(LogTemp, Warning, TEXT("Bomb hit actor: %s"), *OtherActor->GetName());
     }
 }

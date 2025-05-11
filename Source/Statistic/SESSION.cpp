@@ -2,6 +2,8 @@
 
 SOCKET g_h_socket;
 std::atomic<bool> g_is_host;
+
+std::array<APlayerCharacter*, MAX_CLIENTS> g_c_players;
 std::unordered_map<unsigned short, AMySkillBase*> g_skills; 
 std::unordered_map<unsigned short, std::queue<unsigned short>> g_collisions; 
 std::unordered_map<unsigned short, ACharacter*> g_monsters;

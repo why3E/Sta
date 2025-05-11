@@ -1,6 +1,7 @@
 #include "MyMixWindTonado.h"
 #include "MyFireBall.h"
 #include "MyFireSkill.h"
+#include "EnemyCharacter.h"
 #include "PlayerCharacter.h"
 #include "Components/StaticMeshComponent.h"
 #include "NiagaraFunctionLibrary.h"
@@ -72,8 +73,8 @@ void AMyMixWindTonado::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActo
             return;
         }
 
-        // Skill - Skill Collision
         if (OtherActor->IsA(AMySkillBase::StaticClass())) {
+            // Skill - Skill Collision
             AMySkillBase* ptr = Cast<AMySkillBase>(OtherActor);
 
             if (g_skills.count(ptr->m_id)) {
@@ -88,6 +89,21 @@ void AMyMixWindTonado::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActo
                     Cast<APlayerCharacter>(Owner)->do_send(&p);
                     //UE_LOG(LogTemp, Warning, TEXT("Mix Tonado ID : %d"), m_id);
                 }
+            }
+        } else if (OtherActor->IsA(AEnemyCharacter::StaticClass())) {
+            // Skill - Monster Collision
+            AEnemyCharacter* ptr = Cast<AEnemyCharacter>(OtherActor);
+
+            if (g_monsters.count(ptr->get_id())) {
+                collision_packet p;
+                p.packet_size = sizeof(collision_packet);
+                p.packet_type = C2H_COLLISION_PACKET;
+                p.collision_type = SKILL_MONSTER_COLLISION;
+                p.attacker_id = m_id;
+                p.victim_id = ptr->get_id();
+
+                Cast<APlayerCharacter>(Owner)->do_send(&p);
+                UE_LOG(LogTemp, Error, TEXT("[Client] Skill %d and Monster %d Collision"), p.attacker_id, p.victim_id);
             }
         }
 

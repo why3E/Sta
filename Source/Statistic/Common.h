@@ -2,6 +2,7 @@
 
 #include <WS2tcpip.h>
 #include <iostream>
+#include <array>
 #include <mutex>
 #include <queue>
 #include <unordered_map>
@@ -63,6 +64,7 @@ constexpr char SKILL_FIRE_WALL = 7;
 
 constexpr char SKILL_SKILL_COLLISION = 1;
 constexpr char SKILL_MONSTER_COLLISION = 2;
+constexpr char SKILL_PLAYER_COLLISION = 3;
 
 constexpr char MAX_CLIENTS = 4;
 

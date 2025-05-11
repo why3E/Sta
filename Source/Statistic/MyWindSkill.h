@@ -71,8 +71,6 @@ private:
 		const FHitResult& SweepResult
 	);
 
-	virtual void Overlap();
-
 	// Tick 기반 충돌 확인용 타이머
 	FTimerHandle CheckOverlapTimerHandle;
 
@@ -82,8 +80,10 @@ private:
 	// 스폰된 액터 제거 시 호출
 	virtual void EndPlay(EEndPlayReason::Type EndPlayReason) override;
 
-    void SpawnMixTonado();
 public:
+	virtual void Overlap(AActor* OtherActor);
+	
 	// MixWindTonado 스킬 사용
-	virtual void SkillMixWindTonado(EClassType MixType) override;
+	virtual void SkillMixWindTonado(EClassType MixType, unsigned short skill_id) override;
+	void SpawnMixTonado(unsigned short skill_id);
 };

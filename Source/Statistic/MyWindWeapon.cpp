@@ -3,6 +3,7 @@
 #include "MyWindSkill.h"
 #include "MyWindCutter.h"
 #include "PlayerCharacter.h"
+#include "Kismet/GameplayStatics.h"
 #include "GameFramework/Character.h"
 #include "Components/PoseableMeshComponent.h"
 #include "Camera/CameraComponent.h"
@@ -46,12 +47,26 @@ void AMyWindWeapon::SpawnWindCutter(FVector ImpactPoint)
 		UE_LOG(LogTemp, Warning, TEXT("WindCutter Spawned"));
 		if (OwnerCharacter)
         {
-            UE_LOG(LogTemp, Warning, TEXT("PlayerCharacter Spawned"));
-            TempWindCutter->SetID(Cast<APlayerCharacter>(OwnerCharacter)->get_skill_id());
+            unsigned short skill_id = Cast<APlayerCharacter>(OwnerCharacter)->get_skill_id();
+
+            TempWindCutter->SetID(skill_id);
             TempWindCutter->SetOwner(OwnerCharacter);
             TempWindCutter->AttachToComponent(OwnerCharacter->GetMesh(), FAttachmentTransformRules::KeepRelativeTransform, WindCutterSocket);
             TempWindCutter->ActivateNiagara();
-            g_skills.emplace(Cast<APlayerCharacter>(OwnerCharacter)->get_skill_id(), TempWindCutter);
+
+            g_skills.emplace(skill_id, TempWindCutter);
+            if (g_collisions.count(skill_id)) {
+                while (!g_collisions[skill_id].empty()) {
+                    unsigned short other_id = g_collisions[skill_id].front();
+                    g_collisions[skill_id].pop();
+
+                    if (g_skills.count(other_id)) {
+                        TempWindCutter->Overlap(g_skills[other_id]);
+                        g_skills[other_id]->Overlap(g_skills[skill_id]);
+                        UE_LOG(LogTemp, Error, TEXT("Skill %d and %d Collision Succeed!"), skill_id, other_id);
+                    }
+                }
+            }
         }
         else
         {
@@ -84,15 +99,40 @@ void AMyWindWeapon::SpawnWindSkill(FVector TargetLocation)
         TargetLocation.Z = HitResult.ImpactPoint.Z;
     }
 
+    FTransform SpawnTransform(FRotator::ZeroRotator, TargetLocation);
+
     // WindSkill 생성
-    AMyWindSkill* WindSkill = GetWorld()->SpawnActor<AMyWindSkill>(WindSkillClass, TargetLocation, FRotator::ZeroRotator, SpawnParams);
+    AMyWindSkill* WindSkill = GetWorld()->SpawnActorDeferred<AMyWindSkill>(
+        WindSkillClass,
+        SpawnTransform,
+        OwnerCharacter,
+        nullptr,
+        ESpawnActorCollisionHandlingMethod::AlwaysSpawn
+    );
+
     if (WindSkill)
     {
-        WindSkill->SetID(Cast<APlayerCharacter>(OwnerCharacter)->get_skill_id());
+        unsigned short skill_id = Cast<APlayerCharacter>(OwnerCharacter)->get_skill_id();
+
+        WindSkill->SetID(skill_id);
         WindSkill->SetOwner(OwnerCharacter);
 		WindSkill->SpawnWindTonado(TargetLocation);
-        g_skills.emplace(Cast<APlayerCharacter>(OwnerCharacter)->get_skill_id(), WindSkill);
 
+        g_skills.emplace(skill_id, WindSkill);
+        UGameplayStatics::FinishSpawningActor(WindSkill, SpawnTransform);
+
+        if (g_collisions.count(skill_id)) {
+            while (!g_collisions[skill_id].empty()) {
+                unsigned short other_id = g_collisions[skill_id].front();
+                g_collisions[skill_id].pop();
+
+                if (g_skills.count(other_id)) {
+                    WindSkill->Overlap(g_skills[other_id]);
+                    g_skills[other_id]->Overlap(g_skills[skill_id]);
+                    UE_LOG(LogTemp, Error, TEXT("Skill %d and %d Collision Succeed!"), skill_id, other_id);
+                }
+            }
+        }
         UE_LOG(LogTemp, Warning, TEXT("WindSkill spawned at location: %s"), *TargetLocation.ToString());
     }
     else
@@ -112,4 +152,3 @@ void AMyWindWeapon::ShootWindCutter()
 		TempWindCutter = nullptr;
 	}
 }
-

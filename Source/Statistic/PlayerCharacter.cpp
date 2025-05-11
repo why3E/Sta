@@ -121,9 +121,7 @@ APlayerCharacter::APlayerCharacter()
 		{
 			IA_ChangeClass = IA_ChangeClassRef.Object;
 		}
-		
-		
-    }
+	}
 
 	// Setting (기본적으로 원하는 기본 이동을 위한 캐릭터 설정)
 	{
@@ -239,7 +237,7 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 	EnhancedInputComponent->BindAction(IA_QSkill, ETriggerEvent::Triggered, this, &APlayerCharacter::QSkill);
 	EnhancedInputComponent->BindAction(IA_ESkill, ETriggerEvent::Triggered, this, &APlayerCharacter::ESkill);
 
-	EnhancedInputComponent->BindAction(IA_ChangeClass, ETriggerEvent::Triggered, this, &APlayerCharacter::ChangeClassTest);
+	EnhancedInputComponent->BindAction(IA_ChangeClass, ETriggerEvent::Triggered, this, &APlayerCharacter::change_element);
 }
 
 void APlayerCharacter::BasicMove(const FInputActionValue& Value)
@@ -368,16 +366,19 @@ void APlayerCharacter::DashEnd()
 {
 	bIsDash = false;
 }	
+
 void APlayerCharacter::LeftClick()
 {
 	bIsLeft = true;
 	BasicAttack();
 }
+
 void APlayerCharacter::RightClick()
 {
 	bIsLeft = false;
 	BasicAttack();
 }
+
 //---------------------------------------------------------------------------------------------------------------------
 void APlayerCharacter::BasicAttack()
 {
@@ -394,11 +395,6 @@ void APlayerCharacter::BasicAttack()
 	{
 		if(bIsLeft) return;
 	}
-	this->CurrentMontage = bIsLeft ? CurrentLeftMontage : CurrentRightMontage;
-	this->CurrentComboData = bIsLeft ? CurrentLeftComboData : CurrentRightComboData;
-	this->CurrentMontageSectionName = bIsLeft ? CurrentLeftMontageSectionName : CurrentRightMontageSectionName;
-	this->CurrentWeapon = bIsLeft ? CurrentLeftWeapon : CurrentRightWeapon;
-
 	if (bIsQDrawingCircle || bisEDrawingRectangle)
     {
 		UE_LOG(LogTemp, Error, TEXT("CurrentImpactPoint: %s"), *CurrentImpactPoint.ToString());
@@ -414,6 +410,7 @@ void APlayerCharacter::BasicAttack()
 				p.player_id = m_id;
 				p.x = CurrentImpactPoint.X; p.y = CurrentImpactPoint.Y; p.z = CurrentImpactPoint.Z;
 				p.skill_type = SKILL_WIND_TORNADO;
+				p.is_left = bIsLeft;
 				
 				do_send(&p);
 				break;
@@ -427,7 +424,8 @@ void APlayerCharacter::BasicAttack()
 				p.x = CurrentImpactPoint.X; p.y = CurrentImpactPoint.Y; p.z = CurrentImpactPoint.Z;
 				p.pitch = CurrentImpactRot.Pitch; p.yaw = CurrentImpactRot.Yaw; p.roll = CurrentImpactRot.Roll;
 				p.skill_type = SKILL_FIRE_WALL;
-				
+				p.is_left = bIsLeft;
+
 				do_send(&p);
 				break;
 			}
@@ -448,6 +446,7 @@ void APlayerCharacter::BasicAttack()
 			p.packet_type = C2H_PLAYER_SKILL_VECTOR_PACKET;
 			p.player_id = m_id;
 			p.x = FireLocation.X; p.y = FireLocation.Y; p.z = FireLocation.Z;
+			p.is_left = bIsLeft;
 
 			switch (ClassType) {
 			case EClassType::CT_Wind:
@@ -485,6 +484,11 @@ void APlayerCharacter::SkillAttack()
 	else{
 		if(!bCanUseSkillE) return;
 	}
+  
+	this->CurrentMontage = bIsLeft ? CurrentLeftMontage : CurrentRightMontage;
+	this->CurrentComboData = bIsLeft ? CurrentLeftComboData : CurrentRightComboData;
+	this->CurrentMontageSectionName = bIsLeft ? CurrentLeftMontageSectionName : CurrentRightMontageSectionName;
+	this->CurrentWeapon = bIsLeft ? CurrentLeftWeapon : CurrentRightWeapon;
 
 	if(playerCurrentMp >= 20)
 	{
@@ -530,6 +534,11 @@ void APlayerCharacter::SkillAttack()
 
 void APlayerCharacter::ComboStart()
 {
+	this->CurrentMontage = bIsLeft ? CurrentLeftMontage : CurrentRightMontage;
+	this->CurrentComboData = bIsLeft ? CurrentLeftComboData : CurrentRightComboData;
+	this->CurrentMontageSectionName = bIsLeft ? CurrentLeftMontageSectionName : CurrentRightMontageSectionName;
+	this->CurrentWeapon = bIsLeft ? CurrentLeftWeapon : CurrentRightWeapon;
+
     CurrentComboCount = 1;
     const float AttackSpeedRate = 4.0f;
 
@@ -537,6 +546,7 @@ void APlayerCharacter::ComboStart()
 
     // 몽타주 재생
     float MontageLength = AnimInstance->Montage_Play(CurrentMontage, AttackSpeedRate);
+
     if (MontageLength > 0.0f)
     {
         UE_LOG(LogTemp, Warning, TEXT("Montage_Play succeeded! Montage Length: %f"), MontageLength);
@@ -569,7 +579,6 @@ void APlayerCharacter::ComboEnd(UAnimMontage* Montage, bool IsEnded)
 
 void APlayerCharacter::ComboCheck()
 {
-
 	ComboTimerHandle.Invalidate();
 
 	if (bHasComboInput)
@@ -597,7 +606,7 @@ void APlayerCharacter::ComboCheck()
 
 void APlayerCharacter::ChangeClass(EClassType NewClassType, bool bIsLeftType)
 {
-    EClassType& TargetClassType = bIsLeftType ? LeftClassType : RightClassType;
+	EClassType& TargetClassType = bIsLeftType ? LeftClassType : RightClassType;
 
     if (TargetClassType != NewClassType)
     {
@@ -631,7 +640,7 @@ void APlayerCharacter::UpdateCachedData(bool bIsLeftType)
     UAnimMontage*& SelectedMontage = bIsLeftType ? CurrentLeftMontage : CurrentRightMontage;
     UMMComboActionData*& SelectedComboData = bIsLeftType ? CurrentLeftComboData : CurrentRightComboData;
     FString& SelectedMontageSectionName = bIsLeftType ? CurrentLeftMontageSectionName : CurrentRightMontageSectionName;
-
+	
     switch (ClassTypeToUpdate)
     {
     case EClassType::CT_Wind:
@@ -640,7 +649,7 @@ void APlayerCharacter::UpdateCachedData(bool bIsLeftType)
         WeaponClass = WindWeaponBP;
         SelectedMontageSectionName = TEXT("WindSkill");
         CheckAnimBone = 1;
-        break;
+		break;
 
     case EClassType::CT_Stone:
         SelectedMontage = StoneComboMontage;
@@ -654,7 +663,7 @@ void APlayerCharacter::UpdateCachedData(bool bIsLeftType)
         WeaponClass = FireWeaponBP;
         SelectedMontageSectionName = TEXT("FireSkill");
         CheckAnimBone = 1;
-        break;
+		break;
 
     default:
         SelectedMontage = nullptr;
@@ -1013,29 +1022,19 @@ void APlayerCharacter::GetFireTargetLocation()
 	SetActorRotation(FRotator(ActorRot.Pitch, ControlRot.Yaw, ActorRot.Roll));
 }
 
-void APlayerCharacter::ChangeClassTest()
-{
-	player_change_element_packet p;
-	p.packet_size = sizeof(player_change_element_packet);
-	p.packet_type = C2H_PLAYER_CHANGE_ELEMENT_PACKET;
-	p.id = m_id;
-
-	do_send(&p);
-
-	change_element();
-}
-
-void APlayerCharacter::use_skill(unsigned short skill_id, char skill_type, FVector v) {
+void APlayerCharacter::use_skill(unsigned short skill_id, char skill_type, FVector v, bool is_left) {
 	switch (skill_type) {
 	case SKILL_WIND_CUTTER:
 		m_skill_id = skill_id;
 		FireLocation = v;
+		bIsLeft = is_left;
 		ComboStart();
 		break;
 
 	case SKILL_WIND_TORNADO:
 		m_skill_id = skill_id;
 		CurrentImpactPoint = v;
+		bIsLeft = is_left;
 		SkillAttack();
 		bIsQDrawingCircle = false;
 		GetWorld()->GetTimerManager().ClearTimer(CircleUpdateTimerHandle);
@@ -1044,17 +1043,19 @@ void APlayerCharacter::use_skill(unsigned short skill_id, char skill_type, FVect
 	case SKILL_FIRE_BALL:
 		m_skill_id = skill_id;
 		FireLocation = v;
+		bIsLeft = is_left;
 		ComboStart();
 		break;
 	}
 }
 
-void APlayerCharacter::use_skill(unsigned short skill_id, char skill_type, FVector v, FRotator r) {
+void APlayerCharacter::use_skill(unsigned short skill_id, char skill_type, FVector v, FRotator r, bool is_left) {
 	switch (skill_type) {
 	case SKILL_FIRE_WALL:
 		m_skill_id = skill_id;
 		CurrentImpactPoint = v;
 		CurrentImpactRot = r;
+		bIsLeft = is_left;
 		SkillAttack();
 		bIsQDrawingCircle = false;
 		GetWorld()->GetTimerManager().ClearTimer(CircleUpdateTimerHandle);
@@ -1063,24 +1064,39 @@ void APlayerCharacter::use_skill(unsigned short skill_id, char skill_type, FVect
 }
 
 void APlayerCharacter::change_element() {
-	switch (LeftClassType)
-	{
+	player_change_element_packet p;
+	p.packet_size = sizeof(player_change_element_packet);
+	p.packet_type = C2H_PLAYER_CHANGE_ELEMENT_PACKET;
+	p.id = m_id;
+	p.is_left = true;
+
+	switch (LeftClassType) {
 	case EClassType::CT_Wind:
 		UE_LOG(LogTemp, Warning, TEXT("Class changed to Fire"));
-		ChangeClass(EClassType::CT_Fire,1);
+		ChangeClass(EClassType::CT_Fire, true);
+		p.element_type = static_cast<char>(EClassType::CT_Fire);
 		break;
+
 	case EClassType::CT_Fire:
 		UE_LOG(LogTemp, Warning, TEXT("Class changed to Wind"));
-		ChangeClass(EClassType::CT_Wind,1);
+		ChangeClass(EClassType::CT_Wind, true);
+		p.element_type = static_cast<char>(EClassType::CT_Wind);
 		break;
+
 	case EClassType::CT_Stone:
 		UE_LOG(LogTemp, Warning, TEXT("Class changed to "));
-		ChangeClass(EClassType::CT_Wind,1);
 		break;
+
 	default:
 		UE_LOG(LogTemp, Warning, TEXT("Unknown class type"));
 		break;
 	}
+
+	do_send(&p);
+}
+
+void APlayerCharacter::change_element(char element_type, bool is_left) {
+	ChangeClass(static_cast<EClassType>(element_type), is_left);
 }
 		
 void APlayerCharacter::rotate(float yaw) {

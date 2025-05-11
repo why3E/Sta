@@ -1,3 +1,5 @@
+#include "MyFireBall.h"
+#include "MyFireSkill.h"
 #include "MyMixWindTonado.h"
 #include "PlayerCharacter.h"
 #include "Components/StaticMeshComponent.h"
@@ -62,50 +64,60 @@ void AMyMixWindTonado::PostInitializeComponents()
     CollisionMesh->OnComponentBeginOverlap.AddDynamic(this, &AMyMixWindTonado::OnBeginOverlap);
 }
 
-void AMyMixWindTonado::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
-    UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
-{
+void AMyMixWindTonado::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult) {
     if (!g_is_host) return;
 
-    if (OtherActor && OtherActor != this)
-    {
-        if (OtherActor->IsA(AMyMixWindTonado::StaticClass()))
-        {
+    if (OtherActor && OtherActor != this) {
+        if (OtherActor->IsA(AMyMixWindTonado::StaticClass())) {
             return;
+        }
+
+        // Skill - Skill Collision
+        if (OtherActor->IsA(AMySkillBase::StaticClass())) {
+            AMySkillBase* ptr = Cast<AMySkillBase>(OtherActor);
+
+            if (g_skills.count(ptr->m_id)) {
+                if (m_id < ptr->m_id) {
+                    collision_packet p;
+                    p.packet_size = sizeof(collision_packet);
+                    p.packet_type = C2H_COLLISION_PACKET;
+                    p.collision_type = SKILL_SKILL_COLLISION;
+                    p.attacker_id = m_id;
+                    p.victim_id = ptr->m_id;
+
+                    Cast<APlayerCharacter>(Owner)->do_send(&p);
+                    //UE_LOG(LogTemp, Warning, TEXT("Mix Tonado ID : %d"), m_id);
+                }
+            }
         }
 
         UE_LOG(LogTemp, Warning, TEXT("Mix Tonado hit actor: %s"), *OtherActor->GetName());
     }
 }
 
-void AMyMixWindTonado::Overlap()
-{
-    // 확장용
+void AMyMixWindTonado::Overlap(AActor* OtherActor) {
+    if (OtherActor && OtherActor->Implements<UReceiveDamageInterface>()) {
+        // 데미지 전달
+        FSkillInfo Info;
+        Info.Damage = 10.f;
+        Info.Element = EClassType::CT_Wind;
+        Info.StunTime = 1.5f;
+        Info.KnockbackDir = (OtherActor->GetActorLocation() - GetActorLocation()).GetSafeNormal();
+
+        // 인터페이스로 캐스팅하여 함수 호출
+        IReceiveDamageInterface* DamageReceiver = Cast<IReceiveDamageInterface>(OtherActor);
+        if (DamageReceiver) {
+            DamageReceiver->ReceiveSkillHit(Info, this);
+            UE_LOG(LogTemp, Warning, TEXT("Mix Skill hit applied to: %s"), *OtherActor->GetName());
+        } 
+    } else if ((OtherActor && OtherActor->IsA(AMyFireBall::StaticClass())) ||
+        (OtherActor && OtherActor->IsA(AMyFireSkill::StaticClass()))) {
+        SkillMixWindTonado(EClassType::CT_Fire, m_id);
+    }
 }
 
-void AMyMixWindTonado::CheckOverlappingActors()
-{
-    TArray<AActor*> CurrentOverlappingActors;
-    CollisionMesh->GetOverlappingActors(CurrentOverlappingActors);
+void AMyMixWindTonado::CheckOverlappingActors() {
 
-    for (AActor* OtherActor : CurrentOverlappingActors)
-    {
-        if (OtherActor && OtherActor->Implements<UReceiveDamageInterface>())
-        {
-            FSkillInfo Info;
-            Info.Damage = 10.f;
-            Info.Element = EClassType::CT_Wind;
-            Info.StunTime = 1.5f;
-            Info.KnockbackDir = (OtherActor->GetActorLocation() - GetActorLocation()).GetSafeNormal();
-
-            IReceiveDamageInterface* DamageReceiver = Cast<IReceiveDamageInterface>(OtherActor);
-            if (DamageReceiver)
-            {
-                DamageReceiver->ReceiveSkillHit(Info, this);
-                UE_LOG(LogTemp, Warning, TEXT("Mix Skill hit applied to: %s"), *OtherActor->GetName());
-            }
-        }
-    }
 }
 
 void AMyMixWindTonado::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -115,17 +127,15 @@ void AMyMixWindTonado::EndPlay(const EEndPlayReason::Type EndPlayReason)
     GetWorld()->GetTimerManager().ClearTimer(CheckOverlapTimerHandle);
 }
 
-void AMyMixWindTonado::SkillMixWindTonado(EClassType MixType)
+void AMyMixWindTonado::SkillMixWindTonado(EClassType MixType, unsigned short skill_id)
 {
-    if(SkillElement != EClassType::CT_Wind) return;
-    if(SkillElement == MixType) return;
+    if (SkillElement != EClassType::CT_Wind) return;
+    if (SkillElement == MixType) return;
 
     SkillElement = MixType;
-    switch (MixType)
-    {
+    switch (MixType) {
     case EClassType::CT_Fire:
-        if (FireEffect)
-        {
+        if (FireEffect) {
             MixWindTonadoNiagaraComponent->SetAsset(FireEffect);
             MixWindTonadoNiagaraComponent->Activate(true); // 재실행
         }

@@ -56,7 +56,6 @@ protected:
 	void SkillAttack();
 	void QSkill();
 	void ESkill();
-	void ChangeClassTest();
 
 	UPROPERTY(VisibleAnywhere, Category = Input, Meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<class UInputMappingContext> IMC_Basic;
@@ -233,9 +232,10 @@ public:
 	void set_velocity(float x, float y, float z) { m_velocity.X = x; m_velocity.Y = y; m_velocity.Z = z; }
 	void set_is_player(bool is_player) { m_is_player = is_player; }
 
-	void use_skill(unsigned short skill_id, char skill_type, FVector v);
-	void use_skill(unsigned short skill_id, char skill_type, FVector v, FRotator r);
+	void use_skill(unsigned short skill_id, char skill_type, FVector v, bool is_left);
+	void use_skill(unsigned short skill_id, char skill_type, FVector v, FRotator r, bool is_left);
 	void change_element();
+	void change_element(char element_type, bool is_left);
 	void rotate(float yaw);
 
 public:

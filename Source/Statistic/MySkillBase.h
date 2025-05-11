@@ -18,10 +18,11 @@ public:
 	AMySkillBase();
 	~AMySkillBase();
 
-	virtual void Overlap();
+	virtual void Overlap(AActor* OtherActor);
 
 	UPROPERTY()
 	uint16 m_id;
 
 	void SetID(unsigned short skill_id) { m_id = skill_id; }
+	unsigned short GetId() { return m_id; }
 };

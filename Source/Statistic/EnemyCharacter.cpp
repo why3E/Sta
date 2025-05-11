@@ -33,7 +33,6 @@ void AEnemyCharacter::BeginPlay()
     bIsAttacking = false;
 }
 
-
 // Called every frame
 void AEnemyCharacter::Tick(float DeltaTime)
 {

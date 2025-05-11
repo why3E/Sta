@@ -35,6 +35,7 @@ constexpr char H2C_PLAYER_SKILL_VECTOR_PACKET = 25;
 constexpr char H2C_PLAYER_SKILL_ROTATOR_PACKET = 26;
 constexpr char H2C_PLAYER_CHANGE_ELEMENT_PACKET = 27;
 constexpr char H2C_COLLISION_PACKET = 28;
+constexpr char H2C_SKILL_CREATE_PACKET = 29;
 
 constexpr char C2H_PLAYER_VECTOR_PACKET = 41;
 constexpr char C2H_PLAYER_STOP_PACKET = 42;
@@ -44,6 +45,7 @@ constexpr char C2H_PLAYER_SKILL_VECTOR_PACKET = 45;
 constexpr char C2H_PLAYER_SKILL_ROTATOR_PACKET = 46;
 constexpr char C2H_PLAYER_CHANGE_ELEMENT_PACKET = 47;
 constexpr char C2H_COLLISION_PACKET = 48;
+constexpr char C2H_SKILL_CREATE_PACKET = 49;
 
 
 
@@ -52,8 +54,11 @@ constexpr char ELEMENT_FIRE = 2;
 
 constexpr char SKILL_WIND_CUTTER = 1;
 constexpr char SKILL_WIND_TORNADO = 2;
-constexpr char SKILL_FIRE_BALL = 3;
-constexpr char SKILL_FIRE_WALL = 4;
+constexpr char SKILL_WIND_WIND_TORNADO = 3;
+constexpr char SKILL_WIND_FIRE_TORNADO = 4;
+constexpr char SKILL_WIND_FIRE_BOMB = 5;
+constexpr char SKILL_FIRE_BALL = 6;
+constexpr char SKILL_FIRE_WALL = 7;
 
 constexpr char SKILL_SKILL_COLLISION = 1;
 
@@ -152,6 +157,7 @@ struct hc_player_skill_vector_packet {
 	unsigned short skill_id;
 	char skill_type;
 	float x, y, z;
+	bool is_left;
 };
 
 struct ch_player_skill_vector_packet {
@@ -160,6 +166,7 @@ struct ch_player_skill_vector_packet {
 	char player_id;
 	char skill_type;
 	float x, y, z;
+	bool is_left;
 };
 
 struct hc_player_skill_rotator_packet {
@@ -170,6 +177,7 @@ struct hc_player_skill_rotator_packet {
 	char skill_type;
 	float x, y, z;
 	float pitch, yaw, roll;
+	bool is_left;
 };
 
 struct ch_player_skill_rotator_packet {
@@ -179,12 +187,15 @@ struct ch_player_skill_rotator_packet {
 	char skill_type;
 	float x, y, z;
 	float pitch, yaw, roll;
+	bool is_left;
 };
 
 struct player_change_element_packet {
 	unsigned char packet_size;
 	char packet_type;
 	char id;
+	char element_type;
+	bool is_left;
 };
 
 struct collision_packet {
@@ -193,6 +204,23 @@ struct collision_packet {
 	char collision_type;
 	unsigned char attacker_id;
 	unsigned char victim_id;
+};
+
+struct ch_skill_create_packet {
+	unsigned char packet_size;
+	char packet_type;
+	char skill_type;
+	unsigned char old_skill_id;
+	float x, y, z;
+};
+
+struct hc_skill_create_packet {
+	unsigned char packet_size;
+	char packet_type;
+	char skill_type;
+	unsigned char old_skill_id;
+	unsigned char new_skill_id;
+	float x, y, z;
 };
 
 #pragma pack(pop)

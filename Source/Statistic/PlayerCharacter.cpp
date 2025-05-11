@@ -6,6 +6,7 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
+#include "PlayerWidget.h"
 #include "InputAction.h"
 #include "InputMappingContext.h"
 #include "EnhancedInputComponent.h"
@@ -191,9 +192,27 @@ void APlayerCharacter::BeginPlay()
 		}
 	}
 	
-	ChangeClass(EClassType::CT_Fire, true);
+	ChangeClass(EClassType::CT_Wind, true);
 	
 	ChangeClass(EClassType::CT_Fire, false);
+
+	playerCurrentHp = playerMaxHp;
+	playerCurrentMp = playerMaxMp;
+
+	 APlayerController* UIPlayerController = Cast<APlayerController>(GetController());
+    if (UIPlayerController)
+    {
+        UClass* WidgetClass = StaticLoadClass(UUserWidget::StaticClass(), nullptr, TEXT("/Game/HUD/MyPlayerWidget.MyPlayerWidget_C"));
+        if (WidgetClass)
+        {
+            CharacterWidget = CreateWidget<UPlayerWidget>(UIPlayerController, WidgetClass);
+            if (CharacterWidget)
+            {
+                CharacterWidget->AddToViewport();
+                UpdateUI();
+            }
+        }
+    }
 }
 
 void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -367,13 +386,20 @@ void APlayerCharacter::BasicAttack()
 	//UE_LOG(LogTemp, Error, TEXT("CurrentImpactRot: %s"), *CurrentImpactRot.ToString());
 
 	EClassType ClassType = bIsLeft ? LeftClassType : RightClassType;
-
+	if (bIsQDrawingCircle)
+	{
+		if(!bIsLeft) return;
+	}
+	if (bisEDrawingRectangle)
+	{
+		if(bIsLeft) return;
+	}
 	this->CurrentMontage = bIsLeft ? CurrentLeftMontage : CurrentRightMontage;
 	this->CurrentComboData = bIsLeft ? CurrentLeftComboData : CurrentRightComboData;
 	this->CurrentMontageSectionName = bIsLeft ? CurrentLeftMontageSectionName : CurrentRightMontageSectionName;
 	this->CurrentWeapon = bIsLeft ? CurrentLeftWeapon : CurrentRightWeapon;
 
-	if (bIsDrawingCircle)
+	if (bIsQDrawingCircle || bisEDrawingRectangle)
     {
 		UE_LOG(LogTemp, Error, TEXT("CurrentImpactPoint: %s"), *CurrentImpactPoint.ToString());
 		UE_LOG(LogTemp, Error, TEXT("CurrentImpactRot: %s"), *CurrentImpactRot.ToString());
@@ -453,8 +479,32 @@ void APlayerCharacter::BasicAttack()
 
 void APlayerCharacter::SkillAttack()
 {
+	if(bIsLeft){
+		if(!bCanUseSkillQ) return;
+	}
+	else{
+		if(!bCanUseSkillE) return;
+	}
 
+	if(playerCurrentMp >= 20)
+	{
+		playerCurrentMp -= 20.0f;
+		if(bIsLeft)
+		{
+			CharacterWidget->UpdateCountDown(SkillQCoolTime,bIsLeft);
+			bCanUseSkillQ = false;
+			CurrnetSkillQTime = 0.0f;
+		}
+		else
+		{
+			CharacterWidget->UpdateCountDown(SkillECoolTime,bIsLeft);
+			bCanUseSkillE = false;
+			CurrnetSkillETime = 0.0f;
+		}
+		UpdateUI();
+	}
     UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+
 	UE_LOG(LogTemp, Warning, TEXT("AnimInstance: %s"), AnimInstance ? TEXT("Valid") : TEXT("Invalid"));
 
     if (AnimInstance && CurrentMontage)
@@ -668,6 +718,28 @@ void APlayerCharacter::EquipWeapon(AMyWeapon* Weapon, bool bIsLeftType)
 void APlayerCharacter::Tick(float DeltaTime) {
 	Super::Tick(DeltaTime);
 
+	float MpRenRate = 10.0f;
+	playerCurrentMp = FMath::Clamp(playerCurrentMp + MpRenRate * DeltaTime, 0.0f, playerMaxMp);
+
+	if(!bCanUseSkillQ)
+	{
+		CurrnetSkillQTime += DeltaTime;
+		if(CurrnetSkillQTime >= SkillQCoolTime)
+		{
+			bCanUseSkillQ = true;
+			CurrnetSkillQTime = 0.0f;
+		}
+	}
+	if(!bCanUseSkillE)
+	{
+		CurrnetSkillETime += DeltaTime;
+		if(CurrnetSkillETime >= SkillECoolTime)
+		{
+			bCanUseSkillE = true;
+			CurrnetSkillETime = 0.0f;
+		}
+	}
+	UpdateUI();
 	if (m_is_player) {
 		// Stop
 		if (m_was_moving) {
@@ -714,17 +786,25 @@ void APlayerCharacter::Tick(float DeltaTime) {
 
 void APlayerCharacter::QSkill()
 {
-    if (bIsDrawingCircle)
+    if (bIsQDrawingCircle)
     {
-        // 원 그리기를 중단
-        bIsDrawingCircle = false;
+        // QSkill 취소
+        bIsQDrawingCircle = false;
         GetWorld()->GetTimerManager().ClearTimer(CircleUpdateTimerHandle);
-        UE_LOG(LogTemp, Warning, TEXT("Stopped drawing circle."));
+        UE_LOG(LogTemp, Warning, TEXT("QSkill canceled."));
     }
     else
     {
-        // 원 그리기를 시작
-        bIsDrawingCircle = true;
+        if (bisEDrawingRectangle)
+        {
+            // ESkill 취소
+            bisEDrawingRectangle = false;
+            GetWorld()->GetTimerManager().ClearTimer(RectangleUpdateTimerHandle);
+            UE_LOG(LogTemp, Warning, TEXT("ESkill canceled for QSkill."));
+        }
+
+        // QSkill 활성화
+        bIsQDrawingCircle = true;
 
         // 카메라 위치와 방향 가져오기
         FVector CameraLocation;
@@ -733,12 +813,12 @@ void APlayerCharacter::QSkill()
 
         // 라인트레이스 시작점과 끝점 설정
         FVector Start = CameraLocation;
-        FVector End = Start + (CameraRotation.Vector() * 6000.0f); // 10,000 단위 거리
+        FVector End = Start + (CameraRotation.Vector() * 6000.0f);
 
         // 충돌 파라미터 설정
         FHitResult HitResult;
         FCollisionQueryParams CollisionParams;
-        CollisionParams.AddIgnoredActor(this); // 자기 자신은 무시
+        CollisionParams.AddIgnoredActor(this);
 
         // 라인트레이스 실행
         bool bHit = GetWorld()->LineTraceSingleByChannel(HitResult, Start, End, ECC_Visibility, CollisionParams);
@@ -750,15 +830,65 @@ void APlayerCharacter::QSkill()
 
             // 원 업데이트 타이머 시작
             GetWorld()->GetTimerManager().SetTimer(CircleUpdateTimerHandle, this, &APlayerCharacter::UpdateCircle, 0.1f, true);
-
+            UE_LOG(LogTemp, Warning, TEXT("QSkill activated."));
         }
-		
+    }
+}
+
+void APlayerCharacter::ESkill()
+{
+    if (bisEDrawingRectangle)
+    {
+        // ESkill 취소
+        bisEDrawingRectangle = false;
+        GetWorld()->GetTimerManager().ClearTimer(RectangleUpdateTimerHandle);
+        UE_LOG(LogTemp, Warning, TEXT("ESkill canceled."));
+    }
+    else
+    {
+        if (bIsQDrawingCircle)
+        {
+            // QSkill 취소
+            bIsQDrawingCircle = false;
+            GetWorld()->GetTimerManager().ClearTimer(CircleUpdateTimerHandle);
+            UE_LOG(LogTemp, Warning, TEXT("QSkill canceled for ESkill."));
+        }
+
+        // ESkill 활성화
+        bisEDrawingRectangle = true;
+
+        // 카메라 위치와 방향 가져오기
+        FVector CameraLocation;
+        FRotator CameraRotation;
+        GetController()->GetPlayerViewPoint(CameraLocation, CameraRotation);
+
+        // 라인트레이스 시작점과 끝점 설정
+        FVector Start = CameraLocation;
+        FVector End = Start + (CameraRotation.Vector() * 6000.0f);
+
+        // 충돌 파라미터 설정
+        FHitResult HitResult;
+        FCollisionQueryParams CollisionParams;
+        CollisionParams.AddIgnoredActor(this);
+
+        // 라인트레이스 실행
+        bool bHit = GetWorld()->LineTraceSingleByChannel(HitResult, Start, End, ECC_Visibility, CollisionParams);
+
+        if (bHit)
+        {
+            // 충돌 지점 저장
+            CurrentImpactPoint = HitResult.ImpactPoint;
+
+            // 사각형 업데이트 타이머 시작
+            GetWorld()->GetTimerManager().SetTimer(RectangleUpdateTimerHandle, this, &APlayerCharacter::UpdateRectangle, 0.1f, true);
+            UE_LOG(LogTemp, Warning, TEXT("ESkill activated."));
+        }
     }
 }
 
 void APlayerCharacter::UpdateCircle()
 {
-    if (bIsDrawingCircle)
+    if (bIsQDrawingCircle)
     {
         // 카메라 위치와 방향 가져오기
         FVector CameraLocation;
@@ -789,8 +919,67 @@ void APlayerCharacter::UpdateCircle()
     }
 }
 
-void APlayerCharacter::ESkill() {
-	UE_LOG(LogTemp, Warning, TEXT("E Skill!"));
+void APlayerCharacter::UpdateRectangle()
+{
+    if (bisEDrawingRectangle)
+    {
+        // 카메라 위치와 방향 가져오기
+        FVector CameraLocation;
+        FRotator CameraRotation;
+        GetController()->GetPlayerViewPoint(CameraLocation, CameraRotation);
+
+        // 라인트레이스 시작점과 끝점 설정
+        FVector Start = CameraLocation;
+        FVector End = Start + (CameraRotation.Vector() * 6000.0f); // 6,000 단위 거리
+
+        // 충돌 파라미터 설정
+        FHitResult HitResult;
+        FCollisionQueryParams CollisionParams;
+        CollisionParams.AddIgnoredActor(this); // 자기 자신은 무시
+
+        // 라인트레이스 실행
+        bool bHit = GetWorld()->LineTraceSingleByChannel(HitResult, Start, End, ECC_Visibility, CollisionParams);
+
+        if (bHit)
+        {
+            // 충돌 지점 업데이트
+            CurrentImpactPoint = HitResult.ImpactPoint;
+
+            // 방향 업데이트
+            FVector Direction = (CurrentImpactPoint - GetActorLocation()).GetSafeNormal();
+            CurrentImpactRot = Direction.Rotation();
+
+            // 바닥 높이를 유지하도록 Z 좌표를 고정
+            CurrentImpactPoint.Z = HitResult.Location.Z;
+
+            // 사각형의 중심 좌표
+            FVector Center = CurrentImpactPoint;
+
+            // 사각형의 크기와 방향 설정
+            float RectangleWidth = 800.0f;  // 사각형의 너비
+            float RectangleHeight = 200.0f; // 사각형의 높이
+            FVector Forward = CameraRotation.Vector();
+            FVector Right = FVector::CrossProduct(Forward, FVector::UpVector).GetSafeNormal();
+
+            // 사각형의 네 모서리 좌표 계산 (Z 고정)
+            FVector TopLeft = Center - (Right * RectangleWidth / 2) + (Forward * RectangleHeight / 2);
+            FVector TopRight = Center + (Right * RectangleWidth / 2) + (Forward * RectangleHeight / 2);
+            FVector BottomLeft = Center - (Right * RectangleWidth / 2) - (Forward * RectangleHeight / 2);
+            FVector BottomRight = Center + (Right * RectangleWidth / 2) - (Forward * RectangleHeight / 2);
+
+            // 각 꼭짓점의 Z 좌표를 충돌 지점의 Z로 고정
+            TopLeft.Z = CurrentImpactPoint.Z;
+            TopRight.Z = CurrentImpactPoint.Z;
+            BottomLeft.Z = CurrentImpactPoint.Z;
+            BottomRight.Z = CurrentImpactPoint.Z;
+
+            // 사각형을 디버그 라인으로 그리기
+            DrawDebugLine(GetWorld(), TopLeft, TopRight, FColor::Blue, false, 0.1f, 0, 2.0f);
+            DrawDebugLine(GetWorld(), TopRight, BottomRight, FColor::Blue, false, 0.1f, 0, 2.0f);
+            DrawDebugLine(GetWorld(), BottomRight, BottomLeft, FColor::Blue, false, 0.1f, 0, 2.0f);
+            DrawDebugLine(GetWorld(), BottomLeft, TopLeft, FColor::Blue, false, 0.1f, 0, 2.0f);
+        }
+    }
 }
 
 void APlayerCharacter::GetFireTargetLocation()
@@ -848,7 +1037,7 @@ void APlayerCharacter::use_skill(unsigned short skill_id, char skill_type, FVect
 		m_skill_id = skill_id;
 		CurrentImpactPoint = v;
 		SkillAttack();
-		bIsDrawingCircle = false;
+		bIsQDrawingCircle = false;
 		GetWorld()->GetTimerManager().ClearTimer(CircleUpdateTimerHandle);
 		break;
 
@@ -867,7 +1056,7 @@ void APlayerCharacter::use_skill(unsigned short skill_id, char skill_type, FVect
 		CurrentImpactPoint = v;
 		CurrentImpactRot = r;
 		SkillAttack();
-		bIsDrawingCircle = false;
+		bIsQDrawingCircle = false;
 		GetWorld()->GetTimerManager().ClearTimer(CircleUpdateTimerHandle);
 		break;
 	}
@@ -920,3 +1109,13 @@ void send_callback(DWORD err, DWORD num_bytes, LPWSAOVERLAPPED p_over, DWORD fla
 	EXP_OVER* p = reinterpret_cast<EXP_OVER*>(p_over);
 	delete p;
 }
+
+void APlayerCharacter::UpdateUI()
+{
+    if (CharacterWidget)
+    {
+        CharacterWidget->UpdateHpBar(playerCurrentHp, playerMaxHp);
+        CharacterWidget->UpdateMpBar(playerCurrentMp, playerMaxMp);
+    }
+}
+

@@ -97,6 +97,7 @@ void AMyPlayerController::InitSocket()
 	SOCKADDR_IN addr;
 	addr.sin_family = AF_INET;
 	addr.sin_port = htons(HOST_PORT);
+	addr.sin_addr.s_addr = htonl(INADDR_ANY);
 
 	if (!FParse::Value(FCommandLine::Get(), TEXT("ip="), HOST_ADDRESS)) {
 		HOST_ADDRESS = TEXT("127.0.0.1"); 
@@ -106,9 +107,6 @@ void AMyPlayerController::InitSocket()
 		UE_LOG(LogTemp, Warning, TEXT("Parsed IP from Command Line : %s"), *HOST_ADDRESS);
 		g_is_host = false;
 	}
-
-	std::string IP_ADDRESS = TCHAR_TO_UTF8(*HOST_ADDRESS);
-	inet_pton(AF_INET, IP_ADDRESS.c_str(), &addr.sin_addr);
 
 	if (g_is_host) {
 		ret = bind(g_s_socket, reinterpret_cast<const sockaddr*>(&addr), sizeof(SOCKADDR_IN));
@@ -120,6 +118,9 @@ void AMyPlayerController::InitSocket()
 			g_s_thread = std::thread(server_thread);
 		}
 	}
+
+	std::string IP_ADDRESS = TCHAR_TO_UTF8(*HOST_ADDRESS);
+	inet_pton(AF_INET, IP_ADDRESS.c_str(), &addr.sin_addr);
 
 	// Connect to host
 	ret = WSAConnect(g_h_socket, reinterpret_cast<const sockaddr*>(&addr), sizeof(SOCKADDR_IN), NULL, NULL, NULL, NULL);

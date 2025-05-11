@@ -1,8 +1,10 @@
+#include "EnemyCharacter.h"
 #include "MyWindCutter.h"
 #include "MyWindSkill.h"
 #include "MyFireBall.h"
 #include "MyFireSkill.h"
-#include "EnemyCharacter.h"
+#include "AIController.h"
+#include "BrainComponent.h"
 
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -43,30 +45,6 @@ void AEnemyCharacter::BeginPlay()
 {
     Super::BeginPlay();
     bIsAttacking = false;
-
-    //// ⭐ 1초 뒤 자동 사망 (테스트용)
-    //FTimerHandle TimerHandle;
-    //GetWorld()->GetTimerManager().SetTimer(
-    //    TimerHandle,
-    //    this,
-    //    &AEnemyCharacter::Die,
-    //    1.0f,
-    //    false
-    //);
-
-    //// ⭐ 3초 뒤 절단 테스트
-    //FTimerHandle SliceTimerHandle;
-    //GetWorld()->GetTimerManager().SetTimer(
-    //    SliceTimerHandle,
-    //    [this]()
-    //    {
-    //        FVector PlanePosition = ProcMeshComponent->GetComponentLocation() + FVector(0.f, 0.f, 30.f);    // 약간 위로
-    //        FVector PlaneNormal = FVector(1.f, 0.f, 1.f).GetSafeNormal();   // 사선 절단
-    //        SliceProcMesh(PlanePosition, PlaneNormal);
-    //    },
-    //    3.0f,
-    //    false
-    //);
 }
 
 void AEnemyCharacter::Tick(float DeltaTime)
@@ -132,6 +110,12 @@ void AEnemyCharacter::Die()
     CopySkeletalMeshToProcedural(0);
     ProcMeshComponent->SetVisibility(true);
     ProcMeshComponent->SetSimulatePhysics(true);
+
+    AAIController* AICon = Cast<AAIController>(GetController());
+    if (AICon) {
+        AICon->StopMovement();
+        AICon->BrainComponent->StopLogic(TEXT("Character Died"));
+    }
 
     FVector PlanePosition = ProcMeshComponent->GetComponentLocation() + FVector(0.f, 0.f, 30.f);    // 약간 위로
     FVector PlaneNormal = FVector(1.f, 0.f, 1.f).GetSafeNormal();   // 사선 절단

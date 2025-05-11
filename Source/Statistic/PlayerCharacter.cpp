@@ -198,6 +198,8 @@ void APlayerCharacter::BeginPlay()
 	}
 
 void APlayerCharacter::EndPlay(const EEndPlayReason::Type EndPlayReason) {
+	Super::EndPlay(EndPlayReason);
+
 	if (CurrentLeftWeapon) { 
 		CurrentLeftWeapon->Destroy(); 
 	}

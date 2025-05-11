@@ -9,6 +9,8 @@
 #include "KismetProceduralMeshLibrary.h"
 #include "Kismet/KismetMathLibrary.h"        // ⭐ 랜덤 벡터용 추가
 
+#include "SESSION.h"
+
 AEnemyCharacter::AEnemyCharacter()
 {
     PrimaryActorTick.bCanEverTick = false;
@@ -37,27 +39,29 @@ void AEnemyCharacter::BeginPlay()
     Super::BeginPlay();
     bIsAttacking = false;
 
-    FTimerHandle TimerHandle;
-    GetWorld()->GetTimerManager().SetTimer(
-        TimerHandle,
-        this,
-        &AEnemyCharacter::Die,
-        10.0f,
-        false
-    );
+    //// ⭐ 1초 뒤 자동 사망 (테스트용)
+    //FTimerHandle TimerHandle;
+    //GetWorld()->GetTimerManager().SetTimer(
+    //    TimerHandle,
+    //    this,
+    //    &AEnemyCharacter::Die,
+    //    1.0f,
+    //    false
+    //);
 
-    FTimerHandle SliceTimerHandle;
-    GetWorld()->GetTimerManager().SetTimer(
-        SliceTimerHandle,
-        [this]()
-        {
-            FVector PlanePosition = ProcMeshComponent->GetComponentLocation() + FVector(0.f, 0.f, 30.f);    // 약간 위로
-            FVector PlaneNormal = FVector(1.f, 0.f, 1.f).GetSafeNormal();   // 사선 절단
-            SliceProcMesh(PlanePosition, PlaneNormal);
-        },
-        13.0f,
-        false
-    );
+    //// ⭐ 3초 뒤 절단 테스트
+    //FTimerHandle SliceTimerHandle;
+    //GetWorld()->GetTimerManager().SetTimer(
+    //    SliceTimerHandle,
+    //    [this]()
+    //    {
+    //        FVector PlanePosition = ProcMeshComponent->GetComponentLocation() + FVector(0.f, 0.f, 30.f);    // 약간 위로
+    //        FVector PlaneNormal = FVector(1.f, 0.f, 1.f).GetSafeNormal();   // 사선 절단
+    //        SliceProcMesh(PlanePosition, PlaneNormal);
+    //    },
+    //    3.0f,
+    //    false
+    //);
 }
 
 void AEnemyCharacter::Tick(float DeltaTime)
@@ -82,6 +86,15 @@ void AEnemyCharacter::OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrup
 void AEnemyCharacter::MeleeAttack()
 {
     if (bIsAttacking || !AttackMontage) return;
+
+    if (g_is_host) {
+        monster_attack_packet p;
+        p.packet_size = sizeof(monster_attack_packet);
+        p.packet_type = C2H_MONSTER_ATTACK_PACKET;
+        p.monster_id = m_id;
+
+        do_send(&p);
+    }
 
     UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
     if (AnimInstance)
@@ -248,4 +261,20 @@ void AEnemyCharacter::SliceProcMesh(FVector PlanePosition, FVector PlaneNormal)
     }
 
     UE_LOG(LogTemp, Warning, TEXT("Sliced Procedural Mesh with random impulses!"));
+}
+
+void AEnemyCharacter::do_send(void* buff) {
+    EXP_OVER* o = new EXP_OVER;
+    unsigned char packet_size = reinterpret_cast<unsigned char*>(buff)[0];
+    memcpy(o->m_buffer, buff, packet_size);
+    o->m_wsabuf[0].len = packet_size;
+
+    DWORD send_bytes;
+    auto ret = WSASend(g_h_socket, o->m_wsabuf, 1, &send_bytes, 0, &(o->m_over), send_callback);
+    if (ret == SOCKET_ERROR) {
+        if (WSAGetLastError() != WSA_IO_PENDING) {
+            delete o;
+            return;
+        }
+    }
 }

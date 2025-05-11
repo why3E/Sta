@@ -50,3 +50,10 @@ public:
 	void do_recv();
 	void do_send(void* buff);
 };
+
+//////////////////////////////////////////////////
+// send_callback
+inline void send_callback(DWORD err, DWORD num_bytes, LPWSAOVERLAPPED p_over, DWORD flags) {
+	EXP_OVER* p = reinterpret_cast<EXP_OVER*>(p_over);
+	delete p;
+}

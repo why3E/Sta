@@ -55,7 +55,20 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Slicing")
 	void SliceProcMesh(FVector PlanePosition, FVector PlaneNormal);
 
+    void set_hp(float hp) { HP = hp; }
+    float get_hp() { return HP; }
+    bool get_is_attacking() { return bIsAttacking; }
+
 protected:
     UPROPERTY(VisibleAnywhere, Category = "Components")
     UProceduralMeshComponent* ProcMeshComponent;
+
+public:
+    unsigned short m_id;
+
+public:
+    unsigned short get_id() { return m_id; }
+    void set_id(unsigned short id) { m_id = id; }
+
+    void do_send(void* buff);
 };

@@ -18,8 +18,6 @@
 #include "Enums.h"
 #include "SESSION.h"
 
-void CALLBACK send_callback(DWORD err, DWORD num_bytes, LPWSAOVERLAPPED p_over, DWORD flags);
-
 APlayerCharacter::APlayerCharacter()
 {
 	// Initialize
@@ -1119,11 +1117,6 @@ void APlayerCharacter::do_send(void* buff) {
 			return;
 		}
 	}
-}
-
-void send_callback(DWORD err, DWORD num_bytes, LPWSAOVERLAPPED p_over, DWORD flags) {
-	EXP_OVER* p = reinterpret_cast<EXP_OVER*>(p_over);
-	delete p;
 }
 
 void APlayerCharacter::UpdateUI()

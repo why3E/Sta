@@ -22,10 +22,9 @@ constexpr char H2C_PLAYER_INFO_PACKET = 1;
 constexpr char H2C_PLAYER_ENTER_PACKET = 2;
 constexpr char H2C_PLAYER_LEAVE_PACKET = 3;
 
-constexpr char H2C_PLAYER_PACKET = 11;
-constexpr char H2C_ITEM_PACKET = 12;
-constexpr char H2C_SKILL_PACKET = 13;
-constexpr char H2C_MONSTER_PACKET = 14;
+constexpr char H2C_MONSTER_PACKET = 11;
+constexpr char H2C_MONSTER_ATTACK_PACKET = 12;
+constexpr char C2H_MONSTER_ATTACK_PACKET = 13;
 
 constexpr char H2C_PLAYER_VECTOR_PACKET = 21;
 constexpr char H2C_PLAYER_STOP_PACKET = 22;
@@ -46,6 +45,8 @@ constexpr char C2H_PLAYER_SKILL_ROTATOR_PACKET = 46;
 constexpr char C2H_PLAYER_CHANGE_ELEMENT_PACKET = 47;
 constexpr char C2H_COLLISION_PACKET = 48;
 constexpr char C2H_SKILL_CREATE_PACKET = 49;
+
+
 
 
 
@@ -221,6 +222,22 @@ struct hc_skill_create_packet {
 	unsigned char old_skill_id;
 	unsigned char new_skill_id;
 	float x, y, z;
+};
+
+struct hc_monster_packet {
+	unsigned char packet_size;
+	char packet_type;
+	unsigned char monster_id;
+	float monster_hp;
+	float monster_x, monster_y, monster_z;
+	float monster_vx, monster_vy, monster_vz;
+	float monster_yaw;
+};
+
+struct monster_attack_packet {
+	unsigned char packet_size;
+	char packet_type;
+	unsigned char monster_id;
 };
 
 #pragma pack(pop)

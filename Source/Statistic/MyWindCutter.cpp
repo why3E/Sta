@@ -2,9 +2,10 @@
 
 #include "MyWindCutter.h"
 #include "MyFireBall.h"
-#include "Components/BoxComponent.h"
+#include "EnemyCharacter.h"
 #include "PlayerCharacter.h"
 #include "Kismet/GameplayStatics.h"
+#include "Components/BoxComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "NiagaraComponent.h"
 #include "NiagaraFunctionLibrary.h"
@@ -17,6 +18,8 @@
 // Sets default values
 AMyWindCutter::AMyWindCutter()
 {
+    SetElement(EClassType::CT_Wind);
+
     static ConstructorHelpers::FClassFinder<AMyBombAttack> BombBP(TEXT("/Game/Weapon/MyBombAttack.MyBombAttack_C"));
     if (BombBP.Succeeded())
     {
@@ -95,8 +98,8 @@ void AMyWindCutter::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* 
 {
     if (!g_is_host || bIsHit || (Owner == OtherActor)) { return; } // 이미 충돌했거나 발사체의 소유자와 충돌한 경우 무시
     
-    // Skill - Skill Collision
     if (OtherActor->IsA(AMySkillBase::StaticClass())) {
+        // Skill - Skill Collision
         AMySkillBase* ptr = Cast<AMySkillBase>(OtherActor);
 
         if (g_skills.count(ptr->m_id)) {
@@ -111,6 +114,21 @@ void AMyWindCutter::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* 
                 Cast<APlayerCharacter>(Owner)->do_send(&p);
             }
         }
+    } else if (OtherActor->IsA(AEnemyCharacter::StaticClass())) {
+        // Skill - Monster Collision
+        AEnemyCharacter* ptr = Cast<AEnemyCharacter>(OtherActor);
+
+        if (g_monsters.count(ptr->get_id())) {
+            collision_packet p;
+            p.packet_size = sizeof(collision_packet);
+            p.packet_type = C2H_COLLISION_PACKET;
+            p.collision_type = SKILL_MONSTER_COLLISION;
+            p.attacker_id = m_id;
+            p.victim_id = ptr->get_id();
+
+            Cast<APlayerCharacter>(Owner)->do_send(&p);
+            UE_LOG(LogTemp, Error, TEXT("[Client] Skill %d and Monster %d Collision"), p.attacker_id, p.victim_id);
+        }
     }
 }
 
@@ -120,21 +138,7 @@ void AMyWindCutter::Overlap(AActor* OtherActor) {
         WindCutterNiagaraComponent->Deactivate();
     }
 
-    if (OtherActor->Implements<UReceiveDamageInterface>()) {
-        // 데미지 전달
-        FSkillInfo Info;
-        Info.Damage = 10.f;
-        Info.Element = EClassType::CT_Wind;
-        Info.StunTime = 1.5f;
-        Info.KnockbackDir = (OtherActor->GetActorLocation() - GetActorLocation()).GetSafeNormal();
-
-        // 인터페이스로 캐스팅하여 함수 호출
-        IReceiveDamageInterface* DamageReceiver = Cast<IReceiveDamageInterface>(OtherActor);
-        if (DamageReceiver) {
-            DamageReceiver->ReceiveSkillHit(Info, this);
-            UE_LOG(LogTemp, Warning, TEXT("Skill hit applied to: %s"), *OtherActor->GetName());
-        }
-    } else if (OtherActor && OtherActor->IsA(AMyFireBall::StaticClass())) {
+    if (OtherActor && OtherActor->IsA(AMyFireBall::StaticClass())) {
         // BombAttack
         FVector SpawnLocation = GetActorLocation();
 
@@ -157,6 +161,24 @@ void AMyWindCutter::Overlap(AActor* OtherActor) {
         UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), HitEffectNiagaraSystem, GetActorLocation());
     }
     
+    // 충돌 상태 설정
+    bIsHit = true;
+
+    // 발사체 제거
+    Destroy();
+}
+
+void AMyWindCutter::Overlap(ACharacter* OtherActor) {
+    // 나이아가라 파티클 시스템 비활성화
+    if (WindCutterNiagaraComponent) {
+        WindCutterNiagaraComponent->Deactivate();
+    }
+
+    // 히트 효과 생성
+    if (WindCutterNiagaraComponent) {
+        UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), HitEffectNiagaraSystem, GetActorLocation());
+    }
+
     // 충돌 상태 설정
     bIsHit = true;
 

@@ -1,5 +1,6 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 #include "MyFireBall.h"
+#include "EnemyCharacter.h"
 #include "PlayerCharacter.h"
 #include "Components/SphereComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
@@ -14,6 +15,8 @@
 // Sets default values
 AMyFireBall::AMyFireBall()
 {
+    SetElement(EClassType::CT_Fire);
+
     // Tick 활성화 여부
     //PrimaryActorTick.bCanEverTick = true;
 
@@ -95,8 +98,8 @@ void AMyFireBall::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* Ot
     UE_LOG(LogTemp, Warning, TEXT("Hit Actor: %s"), *OtherActor->GetName());
     UE_LOG(LogTemp, Warning, TEXT("Hit Component: %s"), *OverlappedComp->GetName());
     
-    // Skill - Skill Collision
     if (OtherActor->IsA(AMySkillBase::StaticClass())) {
+        // Skill - Skill Collision
         AMySkillBase* ptr = Cast<AMySkillBase>(OtherActor);
 
         if (g_skills.count(ptr->m_id)) {
@@ -111,6 +114,20 @@ void AMyFireBall::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* Ot
                 Cast<APlayerCharacter>(Owner)->do_send(&p);
             }
         }
+    } else if (OtherActor->IsA(AEnemyCharacter::StaticClass())) {
+        // Skill - Monster Collision
+        AEnemyCharacter* ptr = Cast<AEnemyCharacter>(OtherActor);
+
+        if (g_monsters.count(ptr->get_id())) {
+            collision_packet p;
+            p.packet_size = sizeof(collision_packet);
+            p.packet_type = C2H_COLLISION_PACKET;
+            p.collision_type = SKILL_MONSTER_COLLISION;
+            p.attacker_id = m_id;
+            p.victim_id = ptr->get_id();
+
+            Cast<APlayerCharacter>(Owner)->do_send(&p);
+        }
     }
 }
 
@@ -120,20 +137,22 @@ void AMyFireBall::Overlap(AActor* OtherActor) {
         FireBallNiagaraComponent->Deactivate();
     }
 
-    if (OtherActor && OtherActor->Implements<UReceiveDamageInterface>()) {
-        // 데미지 전달
-        FSkillInfo Info;
-        Info.Damage = 10.f;
-        Info.Element = EClassType::CT_Fire;
-        Info.StunTime = 1.5f;
-        Info.KnockbackDir = (OtherActor->GetActorLocation() - GetActorLocation()).GetSafeNormal();
+    // 히트 효과 생성
+    if (HitEffectNiagaraSystem) {
+        UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), HitEffectNiagaraSystem, GetActorLocation());
+    }
 
-        // 인터페이스로 캐스팅하여 함수 호출
-        IReceiveDamageInterface* DamageReceiver = Cast<IReceiveDamageInterface>(OtherActor);
-        if (DamageReceiver) {
-            DamageReceiver->ReceiveSkillHit(Info, this);
-            UE_LOG(LogTemp, Warning, TEXT("Skill hit applied to: %s"), *OtherActor->GetName());
-        }
+    // 충돌 상태 설정
+    bIsHit = true;
+
+    // 발사체 제거
+    Destroy();
+}
+
+void AMyFireBall::Overlap(ACharacter* OtherActor) {
+    // 나이아가라 파티클 시스템 비활성화
+    if (FireBallNiagaraComponent) {
+        FireBallNiagaraComponent->Deactivate();
     }
 
     // 히트 효과 생성

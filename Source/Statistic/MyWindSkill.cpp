@@ -1,6 +1,7 @@
 #include "MyWindSkill.h"
 #include "MyFireBall.h"
 #include "MyFireSkill.h"
+#include "EnemyCharacter.h"
 #include "PlayerCharacter.h"
 #include "Components/StaticMeshComponent.h"
 #include "NiagaraFunctionLibrary.h"
@@ -13,7 +14,9 @@
 
 // Sets default values
 AMyWindSkill::AMyWindSkill()
-{
+{    
+    SetElement(EClassType::CT_Wind);
+
     PrimaryActorTick.bCanEverTick = true;
 
     static ConstructorHelpers::FClassFinder<AMyMixWindTonado> MixBP(TEXT("/Game/Weapon/MyMixWindTonado.MyMixWindTonado_C"));
@@ -85,8 +88,8 @@ void AMyWindSkill::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* O
     if (!g_is_host) return;
 
     if (OtherActor && OtherActor != this) {
-        // Skill - Skill Collision
         if (OtherActor->IsA(AMySkillBase::StaticClass())) {
+            // Skill - Skill Collision
             AMySkillBase* ptr = Cast<AMySkillBase>(OtherActor);
 
             if (g_skills.count(ptr->m_id)) {
@@ -102,6 +105,23 @@ void AMyWindSkill::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* O
                     UE_LOG(LogTemp, Warning, TEXT("Tonado ID : %d"), m_id);
                 }
             }
+        } 
+        
+        if (OtherActor->IsA(AEnemyCharacter::StaticClass())) {
+            // Skill - Monster Collision
+            AEnemyCharacter* ptr = Cast<AEnemyCharacter>(OtherActor);
+
+            if (g_monsters.count(ptr->get_id())) {
+                collision_packet p;
+                p.packet_size = sizeof(collision_packet);
+                p.packet_type = C2H_COLLISION_PACKET;
+                p.collision_type = SKILL_MONSTER_COLLISION;
+                p.attacker_id = m_id;
+                p.victim_id = ptr->get_id();
+
+                Cast<APlayerCharacter>(Owner)->do_send(&p);
+                UE_LOG(LogTemp, Error, TEXT("[Client] Skill %d and Monster %d Collision"), p.attacker_id, p.victim_id);
+            }
         }
 
         UE_LOG(LogTemp, Warning, TEXT("Tonado hit actor: %s"), *OtherActor->GetName());
@@ -109,20 +129,7 @@ void AMyWindSkill::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* O
 }
 
 void AMyWindSkill::Overlap(AActor* OtherActor) {
-    if (OtherActor && OtherActor->Implements<UReceiveDamageInterface>()) {
-        // 데미지 전달
-        FSkillInfo Info;
-        Info.Damage = Damage;
-        Info.Element = SkillElement;
-        Info.StunTime = 1.5f;
-        Info.KnockbackDir = (OtherActor->GetActorLocation() - GetActorLocation()).GetSafeNormal();
-
-        // 인터페이스로 캐스팅하여 함수 호출
-        IReceiveDamageInterface* DamageReceiver = Cast<IReceiveDamageInterface>(OtherActor);
-        if (DamageReceiver) {
-            DamageReceiver->ReceiveSkillHit(Info, this);
-        }
-    } else if ((OtherActor && OtherActor->IsA(AMyFireBall::StaticClass())) || 
+    if ((OtherActor && OtherActor->IsA(AMyFireBall::StaticClass())) || 
         (OtherActor && OtherActor->IsA(AMyFireSkill::StaticClass()))) {
         SkillMixWindTonado(EClassType::CT_Fire, m_id);
     } else if (OtherActor && OtherActor->IsA(AMyWindSkill::StaticClass())) {
@@ -144,6 +151,10 @@ void AMyWindSkill::Overlap(AActor* OtherActor) {
     }
 }
 
+void AMyWindSkill::Overlap(ACharacter* OtherActor) {
+
+}
+
 void AMyWindSkill::CheckOverlappingActors() {
 
 }
@@ -156,7 +167,8 @@ void AMyWindSkill::EndPlay(const EEndPlayReason::Type EndPlayReason)
 
 void AMyWindSkill::SkillMixWindTonado(EClassType MixType, unsigned short skill_id)
 {
-    SkillElement = MixType;
+    SetElement(MixType);
+    
     switch (MixType)
     {
     case EClassType::CT_Fire:

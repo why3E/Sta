@@ -1,4 +1,9 @@
+#include "MyWindCutter.h"
+#include "MyWindSkill.h"
+#include "MyFireBall.h"
+#include "MyFireSkill.h"
 #include "EnemyCharacter.h"
+
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "DrawDebugHelpers.h"
@@ -261,6 +266,19 @@ void AEnemyCharacter::SliceProcMesh(FVector PlanePosition, FVector PlaneNormal)
     }
 
     UE_LOG(LogTemp, Warning, TEXT("Sliced Procedural Mesh with random impulses!"));
+}
+
+void AEnemyCharacter::Overlap(AActor* OtherActor) {
+    AMySkillBase* Skill = Cast<AMySkillBase>(OtherActor);
+
+    FSkillInfo Info;
+    Info.Damage = Skill->GetDamage();
+    Info.Element = Skill->GetElement();
+    Info.StunTime = 1.5f;
+    Info.KnockbackDir = (OtherActor->GetActorLocation() - GetActorLocation()).GetSafeNormal();
+
+    ReceiveSkillHit(Info, Skill);
+    UE_LOG(LogTemp, Warning, TEXT("Skill Hit to Monster %d"), get_id());
 }
 
 void AEnemyCharacter::do_send(void* buff) {

@@ -67,6 +67,8 @@ public:
     unsigned short m_id;
 
 public:
+    virtual void Overlap(AActor* OtherActor);
+
     unsigned short get_id() { return m_id; }
     void set_id(unsigned short id) { m_id = id; }
 

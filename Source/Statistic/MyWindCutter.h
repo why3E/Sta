@@ -48,9 +48,6 @@ protected:
     // Projectile Movement 컴포넌트
     UPROPERTY(VisibleAnywhere, Category = "Movement", meta = (AllowPrivateAccess = "true"))
     TObjectPtr<class UProjectileMovementComponent> MovementComponent;
-   
-    UPROPERTY(EditAnywhere, Category = "Damage")
-	EClassType SkillElement = EClassType::CT_Wind;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Settings")
     TSubclassOf<class AMyBombAttack> BombAttackClass;
@@ -59,11 +56,9 @@ private:
 	float Speed = 3000.0f;
 	uint8 bIsHit : 1;
 
-    UPROPERTY(EditAnywhere, Category = "Damage", meta = (AllowPrivateAccess = "true"))
-    float Damage = 10.0f;
-
 public:
     virtual void Overlap(AActor* OtherActor);
-   
+    virtual void Overlap(ACharacter* OtherActor);
+
     virtual void MixBombAttack(EClassType MixType, unsigned short skill_id) override;
 };

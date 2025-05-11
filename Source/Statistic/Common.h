@@ -62,6 +62,7 @@ constexpr char SKILL_FIRE_BALL = 6;
 constexpr char SKILL_FIRE_WALL = 7;
 
 constexpr char SKILL_SKILL_COLLISION = 1;
+constexpr char SKILL_MONSTER_COLLISION = 2;
 
 constexpr char MAX_CLIENTS = 4;
 

@@ -1,5 +1,6 @@
 #include "MyFireSkill.h"
 #include "MyWindSkill.h"
+#include "EnemyCharacter.h"
 #include "PlayerCharacter.h"
 #include "Components/BoxComponent.h"
 #include "NiagaraFunctionLibrary.h"
@@ -16,6 +17,8 @@
 // Sets default values
 AMyFireSkill::AMyFireSkill()
 {
+    SetElement(EClassType::CT_Fire);
+
     // 콜리전 컴포넌트 초기화
     CollisionComponent = CreateDefaultSubobject<UBoxComponent>(TEXT("CollisionComponent"));
     CollisionComponent->SetBoxExtent(FVector(100.0f, 100.0f, 150.0f)); // 불벽 크기 설정
@@ -76,12 +79,12 @@ void AMyFireSkill::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* O
     
     if (OtherActor && OtherActor != this)
     {
-        // Skill - Skill Collision
         if (OtherActor->IsA(AMySkillBase::StaticClass())) {
             if (OtherActor->IsA(AMyFireSkill::StaticClass())) { 
                 return; 
             }
 
+            // Skill - Skill Collision
             AMySkillBase* ptr = Cast<AMySkillBase>(OtherActor);
 
             if (g_skills.count(ptr->m_id)) {
@@ -97,6 +100,20 @@ void AMyFireSkill::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* O
                     UE_LOG(LogTemp, Warning, TEXT("Wall ID : %d"), m_id);
                 }
             }
+        } else if (OtherActor->IsA(AEnemyCharacter::StaticClass())) {
+            // Skill - Monster Collision
+            AEnemyCharacter* ptr = Cast<AEnemyCharacter>(OtherActor);
+
+            if (g_monsters.count(ptr->get_id())) {
+                collision_packet p;
+                p.packet_size = sizeof(collision_packet);
+                p.packet_type = C2H_COLLISION_PACKET;
+                p.collision_type = SKILL_MONSTER_COLLISION;
+                p.attacker_id = m_id;
+                p.victim_id = ptr->get_id();
+
+                Cast<APlayerCharacter>(Owner)->do_send(&p);
+            }
         }
 
         UE_LOG(LogTemp, Warning, TEXT("Fire Wall hit actor: %s"), *OtherActor->GetName());
@@ -104,23 +121,13 @@ void AMyFireSkill::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* O
 }
 
 void AMyFireSkill::Overlap(AActor* OtherActor) {
-    if (OtherActor->Implements<UReceiveDamageInterface>()) {
-        // 데미지 전달
-        FSkillInfo Info;
-        Info.Damage = SkillDamage;
-        Info.Element = SkillElement;
-        Info.StunTime = 1.5f;
-        Info.KnockbackDir = (OtherActor->GetActorLocation() - GetActorLocation()).GetSafeNormal();
-
-        IReceiveDamageInterface* DamageReceiver = Cast<IReceiveDamageInterface>(OtherActor);
-        if (DamageReceiver)
-        {
-            DamageReceiver->ReceiveSkillHit(Info, this);
-            UE_LOG(LogTemp, Warning, TEXT("Skill hit applied to: %s"), *OtherActor->GetName());
-        }
-    } else if (OtherActor && OtherActor->IsA(AMyWindSkill::StaticClass())) {
+    if (OtherActor && OtherActor->IsA(AMyWindSkill::StaticClass())) {
         Destroy();
     }
+}
+
+void AMyFireSkill::Overlap(ACharacter* OtherActor) {
+
 }
 
 void AMyFireSkill::CheckOverlappingActors() {

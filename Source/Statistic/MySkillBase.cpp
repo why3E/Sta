@@ -15,3 +15,5 @@ AMySkillBase::~AMySkillBase() {
 }
 
 void AMySkillBase::Overlap(AActor* OtherActor) {}
+
+void AMySkillBase::Overlap(ACharacter* OtherActor) {}

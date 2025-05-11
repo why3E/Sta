@@ -45,14 +45,6 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Settings")
 	float WindTonadoDuration = 10.0f;
 
-	// 데미지 값
-	UPROPERTY(EditAnywhere, Category = "Damage")
-	float Damage = 10.0f;
-
-	// 속성 타입 (열거형)
-	UPROPERTY(EditAnywhere, Category = "Damage")
-	EClassType SkillElement = EClassType::CT_Wind;
-
 	UPROPERTY(EditAnywhere, Category = "Effects")
 	TObjectPtr<UNiagaraSystem> FireEffect;
 
@@ -82,7 +74,8 @@ private:
 
 public:
 	virtual void Overlap(AActor* OtherActor);
-	
+	virtual void Overlap(ACharacter* OtherActor);
+
 	// MixWindTonado 스킬 사용
 	virtual void SkillMixWindTonado(EClassType MixType, unsigned short skill_id) override;
 	void SpawnMixTonado(unsigned short skill_id);

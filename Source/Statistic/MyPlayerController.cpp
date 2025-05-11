@@ -276,7 +276,7 @@ void server_thread() {
 		// WSASend
 		exec_ms = std::chrono::duration_cast<std::chrono::milliseconds>(curr_t - last_packet_t).count();
 
-		if (50 <= exec_ms) {
+		if (1000 <= exec_ms) {
 			hc_monster_packet p;
 			p.packet_size = sizeof(hc_monster_packet);
 			p.packet_type = H2C_MONSTER_PACKET;
@@ -529,7 +529,7 @@ void h_process_packet(char* packet) {
 				g_s_clients[client_id]->do_send(p);
 			}
 		}
-		//UE_LOG(LogTemp, Warning, TEXT("[Host] Skill %d and %d Collision"), p->attacker_id, p->victim_id);
+		UE_LOG(LogTemp, Warning, TEXT("[Host] %d and %d Collision"), p->attacker_id, p->victim_id);
 		break;
 	}
 
@@ -802,6 +802,14 @@ void c_process_packet(char* packet) {
 				//UE_LOG(LogTemp, Error, TEXT("[Client] Skill %d and %d Delayed"), p->attacker_id, p->victim_id);
 			}
 			break;
+
+		case SKILL_MONSTER_COLLISION:
+			if (g_skills.count(p->attacker_id) && g_monsters.count(p->victim_id)) {
+				g_skills[p->attacker_id]->Overlap(g_monsters[p->victim_id]);
+				Cast<AEnemyCharacter>(g_monsters[p->victim_id])->Overlap(g_skills[p->attacker_id]);
+			}
+			UE_LOG(LogTemp, Error, TEXT("[Client] Skill %d and Monster %d Collision"), p->attacker_id, p->victim_id);
+			break;
 		}
 		break;
 	}
@@ -913,7 +921,7 @@ void c_process_packet(char* packet) {
 			Monster->GetCharacterMovement()->Velocity = FVector(p->monster_vx, p->monster_vy, p->monster_vz);
 			Monster->SetActorRotation(NewRotation);
 		}
-		//UE_LOG(LogTemp, Warning, TEXT("[Client] Received Monster %d Packet, X : %.2f, Y : %.2f"), p->monster_id, p->monster_x, p->monster_y);
+		UE_LOG(LogTemp, Warning, TEXT("[Client] Received Monster %d Packet, X : %.2f, Y : %.2f"), p->monster_id, p->monster_x, p->monster_y);
 		break;
 	}
 

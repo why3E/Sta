@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "Enums.h"
 #include "SESSION.h"
 
 #include "CoreMinimal.h"
@@ -12,6 +13,13 @@ UCLASS()
 class STATISTIC_API AMySkillBase : public AActor
 {
 	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, Category = "Damage")
+	float Damage = 10.0f;
+
+	// 속성 타입 (열거형)
+	UPROPERTY(EditAnywhere, Category = "Damage")
+	EClassType Element = EClassType::CT_Wind;
 	
 public:	
 	// Sets default values for this actor's properties
@@ -19,10 +27,16 @@ public:
 	~AMySkillBase();
 
 	virtual void Overlap(AActor* OtherActor);
+	virtual void Overlap(ACharacter* OtherActor);
 
 	UPROPERTY()
 	uint16 m_id;
 
-	void SetID(unsigned short skill_id) { m_id = skill_id; }
 	unsigned short GetId() { return m_id; }
+	float GetDamage() { return Damage; }
+	EClassType GetElement() { return Element; }
+
+	void SetID(unsigned short skill_id) { m_id = skill_id; }
+	void SetDamage(float damage) { Damage = damage; }
+	void SetElement(EClassType element) { Element = element; }
 };

@@ -194,16 +194,16 @@ void APlayerCharacter::BeginPlay()
     playerCurrentHp = playerMaxHp;
     playerCurrentMp = playerMaxMp;
 
-    if (PlayerController && PlayerWidgetClass)
-    {
-        CharacterWidget = CreateWidget<UPlayerWidget>(PlayerController, PlayerWidgetClass);
-        if (CharacterWidget)
-        {
-            CharacterWidget->AddToViewport();
-            UpdateUI();
-        }
-    }
-}
+	if (PlayerController && PlayerWidgetClass)
+	{
+		CharacterWidget = CreateWidget<UPlayerWidget>(PlayerController, PlayerWidgetClass);
+		if (CharacterWidget)
+		{
+			CharacterWidget->AddToViewport();
+			UpdateUI();
+		}
+	}
+	}
 
 void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
@@ -470,38 +470,49 @@ void APlayerCharacter::BasicAttack()
 
 void APlayerCharacter::SkillAttack()
 {
-	if(bIsLeft){
-		if(!bCanUseSkillQ) return;
-	}
-	else{
-		if(!bCanUseSkillE) return;
-	}
-  
-	this->CurrentMontage = bIsLeft ? CurrentLeftMontage : CurrentRightMontage;
-	this->CurrentComboData = bIsLeft ? CurrentLeftComboData : CurrentRightComboData;
-	this->CurrentMontageSectionName = bIsLeft ? CurrentLeftMontageSectionName : CurrentRightMontageSectionName;
-	this->CurrentWeapon = bIsLeft ? CurrentLeftWeapon : CurrentRightWeapon;
+    if (bIsLeft)
+    {
+        if (!bCanUseSkillQ) return;
+    }
+    else
+    {
+        if (!bCanUseSkillE) return;
+    }
 
-	if(playerCurrentMp >= 20)
-	{
-		playerCurrentMp -= 20.0f;
-		if(bIsLeft)
-		{
-			CharacterWidget->UpdateCountDown(SkillQCoolTime,bIsLeft);
-			bCanUseSkillQ = false;
-			CurrnetSkillQTime = 0.0f;
-		}
-		else
-		{
-			CharacterWidget->UpdateCountDown(SkillECoolTime,bIsLeft);
-			bCanUseSkillE = false;
-			CurrnetSkillETime = 0.0f;
-		}
-		UpdateUI();
-	}
+    this->CurrentMontage = bIsLeft ? CurrentLeftMontage : CurrentRightMontage;
+    this->CurrentComboData = bIsLeft ? CurrentLeftComboData : CurrentRightComboData;
+    this->CurrentMontageSectionName = bIsLeft ? CurrentLeftMontageSectionName : CurrentRightMontageSectionName;
+    this->CurrentWeapon = bIsLeft ? CurrentLeftWeapon : CurrentRightWeapon;
+
+    if (playerCurrentMp >= 20)
+    {
+        playerCurrentMp -= 20.0f;
+
+        if (bIsLeft)
+        {
+            bCanUseSkillQ = false;
+            CurrnetSkillQTime = 0.0f;
+
+            // ⭐️ 안전 체크 추가
+            if (CharacterWidget)
+                CharacterWidget->UpdateCountDown(SkillQCoolTime, bIsLeft);
+        }
+        else
+        {
+            bCanUseSkillE = false;
+            CurrnetSkillETime = 0.0f;
+
+            // ⭐️ 안전 체크 추가
+            if (CharacterWidget)
+                CharacterWidget->UpdateCountDown(SkillECoolTime, bIsLeft);
+        }
+
+        UpdateUI();
+    }
+
     UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 
-	UE_LOG(LogTemp, Warning, TEXT("AnimInstance: %s"), AnimInstance ? TEXT("Valid") : TEXT("Invalid"));
+    UE_LOG(LogTemp, Warning, TEXT("AnimInstance: %s"), AnimInstance ? TEXT("Valid") : TEXT("Invalid"));
 
     if (AnimInstance && CurrentMontage)
     {
@@ -515,7 +526,7 @@ void APlayerCharacter::SkillAttack()
         FName SectionName = FName(*CurrentMontageSectionName);
 
         // 몽타주 재생
-        AnimInstance->Montage_Play(CurrentMontage,4.0f);
+        AnimInstance->Montage_Play(CurrentMontage, 4.0f);
         AnimInstance->Montage_JumpToSection(SectionName, CurrentMontage);
 
         // 다음 콤보를 위한 입력 초기화 및 타이머 재설정
@@ -523,6 +534,7 @@ void APlayerCharacter::SkillAttack()
         bHasComboInput = false;
     }
 }
+
 
 void APlayerCharacter::ComboStart()
 {

@@ -29,6 +29,8 @@ public:
 
 //////////////////////////////////////////////////
 // SESSION
+enum STATE { ST_FREE, ST_INGAME };
+
 class SESSION {
 public:
 	EXP_OVER m_recv_over;
@@ -37,6 +39,7 @@ public:
 	int m_remained;
 
 	long long m_id;
+	STATE m_state;
 
 	LPWSAOVERLAPPED_COMPLETION_ROUTINE m_recv_callback;
 	LPWSAOVERLAPPED_COMPLETION_ROUTINE m_send_callback;

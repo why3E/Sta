@@ -304,7 +304,7 @@ void server_thread() {
 				for (char other_id = 0; other_id < MAX_CLIENTS; ++other_id) {
 					if (other_id) {
 						if (g_s_clients[other_id]) {
-							if (ST_INGAME == g_c_players[other_id]->get_state()) {
+							if (ST_INGAME == g_s_clients[other_id]->m_state) {
 								g_s_clients[other_id]->do_send(&p);
 							}
 						}
@@ -347,6 +347,8 @@ void accept_thread() {
 		else { UE_LOG(LogTemp, Warning, TEXT("WSAAccept Succeed")); }
 
 		// Create SESSION
+		bool slot_found = false;
+
 		for (char client_id = 0; client_id < MAX_CLIENTS; ++client_id) {
 			if (!g_s_clients[client_id]) {
 				g_s_clients[client_id] = std::make_unique<SESSION>(client_id, c_socket, h_recv_callback, h_send_callback);
@@ -423,12 +425,17 @@ void accept_thread() {
 						monster_data[i].monster_yaw = Rotation.Yaw;
 						++i;
 					}
-					g_s_clients[client_id]->do_send(&p);
+					g_s_clients[client_id]->do_send(p);
 					free(p);
 				}
-			} else {
-				closesocket(c_socket);
-			}
+
+				slot_found = true;
+				break;
+			} 
+		}
+
+		if (!slot_found) {
+			closesocket(c_socket);
 		}
 	}
 
@@ -591,6 +598,13 @@ void h_process_packet(char* packet) {
 			}
 		}
 		//UE_LOG(LogTemp, Warning, TEXT("[Host] Skill %d Create"), p->new_skill_id);
+		break;
+	}
+
+	case C2H_INIT_COMPLETE_PACKET: {
+		ch_init_complete_packet* p = reinterpret_cast<ch_init_complete_packet*>(packet);
+		g_s_clients[p->client_id]->m_state = ST_INGAME;
+		//UE_LOG(LogTemp, Warning, TEXT("[Host] Client %d Init Complete"), p->client_id);
 		break;
 	}
 
@@ -983,7 +997,12 @@ void c_process_packet(char* packet) {
 				g_monsters[info.monster_id] = NewMonster;
 
 				if (monster_count == (expected_count - 1)) {
-					g_c_players[client_id]->set_state(STATE::ST_INGAME);
+					ch_init_complete_packet p;
+					p.packet_size = sizeof(ch_init_complete_packet);
+					p.packet_type = C2H_INIT_COMPLETE_PACKET;
+					p.client_id = client_id;
+
+					g_c_players[client_id]->do_send(&p);
 				}
 				UE_LOG(LogTemp, Warning, TEXT("[Client] Spawned Monster %d and Stored in g_s_monsters"), info.monster_id);
 			});

@@ -26,7 +26,9 @@ constexpr char H2C_PLAYER_LEAVE_PACKET = 3;
 constexpr char H2C_INIT_MONSTER_PACKET = 11;
 constexpr char H2C_MONSTER_PACKET = 12;
 constexpr char H2C_MONSTER_ATTACK_PACKET = 13;
-constexpr char C2H_MONSTER_ATTACK_PACKET = 14;
+
+constexpr char C2H_INIT_COMPLETE_PACKET = 14;
+constexpr char C2H_MONSTER_ATTACK_PACKET = 15;
 
 constexpr char H2C_PLAYER_VECTOR_PACKET = 21;
 constexpr char H2C_PLAYER_STOP_PACKET = 22;
@@ -110,8 +112,6 @@ struct cs_selected_lobby_packet {
 
 //////////////////////////////////////////////////
 // In-Game
-enum STATE { ST_FREE, ST_INGAME };
-
 struct hc_player_info_packet {
 	unsigned char packet_size;
 	char packet_type;
@@ -244,6 +244,12 @@ struct hc_init_monster_packet {
 	char client_id;
 	unsigned short monster_count;
 	monster_info monsters[0];
+};
+
+struct ch_init_complete_packet {
+	unsigned char packet_size;
+	char packet_type;
+	char client_id;
 };
 
 struct hc_monster_packet {

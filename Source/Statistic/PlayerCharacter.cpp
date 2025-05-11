@@ -29,7 +29,6 @@ APlayerCharacter::APlayerCharacter()
 
 	m_is_player = false;
 	m_was_moving = false;
-	m_state = ST_FREE;
 
 	// Collision 설정
 	{

@@ -223,7 +223,6 @@ private:
 
 	bool m_is_player;
 	bool m_was_moving;
-	STATE m_state;
 
 public:
 	void do_send(void* buff);
@@ -235,7 +234,6 @@ public:
 	char get_current_element() { return m_current_element; }
 	unsigned short get_skill_id() { return m_skill_id; }
 	bool get_is_player() { return m_is_player; }
-	STATE get_state() { return m_state; }
 
 	void set_id(char id) { m_id = id; }
 	void set_yaw(float yaw) { m_yaw = yaw; }
@@ -243,7 +241,6 @@ public:
 	void set_hp(char hp) { m_hp = hp; }
 	void set_current_element(char current_element) { m_current_element = current_element; }
 	void set_is_player(bool is_player) { m_is_player = is_player; }
-	void set_state(STATE state) { m_state = state; }
 
 	void use_skill(unsigned short skill_id, char skill_type, FVector v, bool is_left);
 	void use_skill(unsigned short skill_id, char skill_type, FVector v, FRotator r, bool is_left);

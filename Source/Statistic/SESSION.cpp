@@ -32,6 +32,8 @@ SESSION::SESSION(long long id, SOCKET c_socket,
 
 	m_remained = 0;
 
+	m_state = ST_FREE;
+
 	m_recv_callback = h_recv_callback;
 	m_send_callback = h_send_callback; 
 

@@ -72,14 +72,18 @@ void AMyFireBall::Fire(FVector TargetLocation)
     FVector LaunchDirection;
 	
     // 방향 계산
-    if ((TargetLocation - Owner->GetActorLocation()).Length() < 300.0f)
-    {
-        LaunchDirection = (TargetLocation - GetActorLocation()).GetSafeNormal();
-        LaunchDirection.Z = 0.0f;
-    }
-    else
-    {
-        LaunchDirection = (TargetLocation - GetActorLocation()).GetSafeNormal();
+    if (Owner) {
+        if ((TargetLocation - Owner->GetActorLocation()).Length() < 300.0f)
+        {
+            LaunchDirection = (TargetLocation - GetActorLocation()).GetSafeNormal();
+            LaunchDirection.Z = 0.0f;
+        }
+        else
+        {
+            LaunchDirection = (TargetLocation - GetActorLocation()).GetSafeNormal();
+        }
+    } else {
+        return;
     }
 
     // 방향 지정 및 Projectile Movement Component 활성화

@@ -143,12 +143,11 @@ void AMyWindWeapon::SpawnWindSkill(FVector TargetLocation)
 
 void AMyWindWeapon::ShootWindCutter()
 {
-	if (TempWindCutter)
-	{
-		// 부모 액터로부터 부착 해제
-		TempWindCutter->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
-
-		TempWindCutter->Fire(FireLocation);
-		TempWindCutter = nullptr;
-	}
+    if (TempWindCutter)
+    {
+        // 부모 액터로부터 부착 해제
+        TempWindCutter->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+        TempWindCutter->Fire(FireLocation);
+        TempWindCutter = nullptr;
+    }
 }

@@ -173,7 +173,7 @@ void server_thread() {
 		UWorld* World = GEngine->GetWorldFromContextObjectChecked(GEngine->GameViewport);
 		if (!World) return;
 
-		FVector SpawnLocation(450.0f, 450.0f, 100.0f);
+		FVector SpawnLocation(38'475.0f, -40'000.0f, 950.0f);
 		FRotator SpawnRotation = FRotator::ZeroRotator;
 
 		FActorSpawnParameters Params;

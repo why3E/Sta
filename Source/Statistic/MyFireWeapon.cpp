@@ -84,7 +84,6 @@ void AMyFireWeapon::ShootFireBall()
 	{
 		// 부모 액터로부터 부착 해제
 		TempFireBall->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
-
 		TempFireBall->Fire(FireLocation);
 		TempFireBall = nullptr;
 	}

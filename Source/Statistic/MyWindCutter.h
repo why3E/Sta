@@ -21,12 +21,13 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 	virtual void PostInitializeComponents() override;
+
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 	void Fire(FVector TargetLocation);
-
-	void ActivateNiagara();
+	
+    void ActivateNiagara();
 
 protected:
     // 콜리전 처리 함수

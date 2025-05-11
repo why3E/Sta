@@ -15,8 +15,6 @@
 #include "MyWeapon.h"
 #include "MyFireWeapon.h"
 #include "MyWindWeapon.h"
-#include "Enums.h"
-#include "SESSION.h"
 
 APlayerCharacter::APlayerCharacter()
 {
@@ -31,6 +29,7 @@ APlayerCharacter::APlayerCharacter()
 
 	m_is_player = false;
 	m_was_moving = false;
+	m_state = ST_FREE;
 
 	// Collision 설정
 	{
@@ -170,8 +169,7 @@ void APlayerCharacter::BeginPlay()
 {
     Super::BeginPlay();
 
-	SetActorLocation(FVector(37'975.0f, -40'000.0f, 950.0f));
-	m_yaw = GetControlRotation().Yaw;
+	SetActorLocation(FVector(0.0f, 0.0f, 0.0f));
 
     APlayerController* PlayerController = Cast<APlayerController>(GetController());
     if (PlayerController && IMC_Basic)
@@ -755,6 +753,7 @@ void APlayerCharacter::Tick(float DeltaTime) {
 			//UE_LOG(LogTemp, Warning, TEXT("[Client %d] VX : %.2f, VY : %.2f"), m_id, Velocity.X, Velocity.Y);
 
 			if (Velocity.IsNearlyZero()) {
+				m_velocity = FVector(0.0f, 0.0f, 0.0f);
 				m_was_moving = false;
 
 				FVector Position = GetActorLocation();

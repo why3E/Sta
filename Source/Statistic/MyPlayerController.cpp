@@ -158,20 +158,12 @@ void AMyPlayerController::CleanupSocket()
 
 //////////////////////////////////////////////////
 // Server Thread
-void server_thread() {
-	// Create Accept Thread
-	std::thread a_thread(accept_thread);
-
-	auto last_update_t = std::chrono::system_clock::now();
-	auto last_packet_t = std::chrono::system_clock::now();
-
-	////////////////////
-	// Spawn Monster
-	AsyncTask(ENamedThreads::GameThread, []() {
+void spawn_monster(FVector Location) {
+	AsyncTask(ENamedThreads::GameThread, [Location]() {
 		UWorld* World = GEngine->GetWorldFromContextObjectChecked(GEngine->GameViewport);
 		if (!World) return;
 
-		FVector SpawnLocation(38'475.0f, -40'000.0f, 950.0f);
+		FVector SpawnLocation(Location.X, Location.Y, Location.Z);
 		FRotator SpawnRotation = FRotator::ZeroRotator;
 
 		FActorSpawnParameters Params;
@@ -219,19 +211,20 @@ void server_thread() {
 		// Run BT
 		UBehaviorTree* BTAsset = LoadObject<UBehaviorTree>(
 			nullptr,
-			TEXT("/Game/Slime/AI/BT_EnemyAI.BT_EnemyAI")  
+			TEXT("/Game/Slime/AI/BT_EnemyAI.BT_EnemyAI")
 		);
 
 		if (BTAsset) {
 			APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(World, 0);
-			
+
 			NewAI->RunBehaviorTree(BTAsset);
 
 			NewAI->GetBlackboardComponent()->SetValueAsVector(TEXT("StartLocation"), NewMonster->GetActorLocation());
 			NewAI->GetBlackboardComponent()->SetValueAsObject(TEXT("TargetActor"), PlayerPawn);
 
 			UE_LOG(LogTemp, Warning, TEXT("BehaviorTree Loaded and Running"));
-		} else {
+		}
+		else {
 			UE_LOG(LogTemp, Error, TEXT("Failed to Load BehaviorTree"));
 		}
 
@@ -249,15 +242,27 @@ void server_thread() {
 			NewMonster->GetMesh()->bNoSkeletonUpdate = false;
 
 			UE_LOG(LogTemp, Warning, TEXT("AnimInstance Set: %s"), *AnimClass->GetName());
-		} else {
+		}
+		else {
 			UE_LOG(LogTemp, Error, TEXT("Failed to Load AnimBP"));
 		}
 
-		g_monsters[0] = NewMonster;
-		UE_LOG(LogTemp, Warning, TEXT("[Client] Spawned Monster %d and Stored in g_s_monsters"), 0);
+		g_monsters[NewMonster->get_id()] = NewMonster;
+		UE_LOG(LogTemp, Warning, TEXT("[Client] Spawned Monster %d and Stored in g_s_monsters"), NewMonster->get_id());
 	});
-	////////////////////
-	
+}
+
+void server_thread() {
+	// Create Accept Thread
+	std::thread a_thread(accept_thread);
+
+	auto last_update_t = std::chrono::system_clock::now();
+	auto last_packet_t = std::chrono::system_clock::now();
+
+	spawn_monster(FVector(32'500, -40'000, 400));
+	spawn_monster(FVector(32'750, -39'000, 400));
+	spawn_monster(FVector(33'000, -38'000, 400));
+
 	while (g_s_running) {
 		// Game Logic
 		auto curr_t = std::chrono::system_clock::now();
@@ -274,7 +279,7 @@ void server_thread() {
 		// WSASend
 		exec_ms = std::chrono::duration_cast<std::chrono::milliseconds>(curr_t - last_packet_t).count();
 
-		if (1000 <= exec_ms) {
+		if (16 <= exec_ms) {
 			hc_monster_packet p;
 			p.packet_size = sizeof(hc_monster_packet);
 			p.packet_type = H2C_MONSTER_PACKET;
@@ -299,7 +304,9 @@ void server_thread() {
 				for (char other_id = 0; other_id < MAX_CLIENTS; ++other_id) {
 					if (other_id) {
 						if (g_s_clients[other_id]) {
-							g_s_clients[other_id]->do_send(&p);
+							if (ST_INGAME == g_c_players[other_id]->get_state()) {
+								g_s_clients[other_id]->do_send(&p);
+							}
 						}
 					}
 				}
@@ -345,43 +352,82 @@ void accept_thread() {
 				g_s_clients[client_id] = std::make_unique<SESSION>(client_id, c_socket, h_recv_callback, h_send_callback);
 				UE_LOG(LogTemp, Warning, TEXT("[Host] Player %d Connected to Server"), g_s_clients[client_id]->m_id);
 
-				// Send Player Info to Player
-				hc_player_info_packet p;
-				SESSION* c = g_s_clients[client_id].get();
-				p.packet_size = sizeof(hc_player_info_packet);
-				p.packet_type = H2C_PLAYER_INFO_PACKET;
-				p.id = c->m_id;
-				p.yaw = c->m_yaw;
-				p.vx = c->m_velocity.X; p.vy = c->m_velocity.Y; p.vz = c->m_velocity.Z;
-				p.hp = c->m_hp;
-				p.current_element = c->m_current_element;
-				g_s_clients[client_id]->do_send(&p);
+				{
+					// Send Player Info to Player
+					hc_player_info_packet p;
+					p.packet_size = sizeof(hc_player_info_packet);
+					p.packet_type = H2C_PLAYER_INFO_PACKET;
+					p.id = client_id;
+					p.yaw = 0.0f;
+					p.x = 37'975.0f; p.y = -40'000.0f; p.z = 950.0f;
+					p.vx = 0.0f; p.vy = 0.0f; p.vz = 0.0f;
+					p.hp = 100;
+					p.current_element = static_cast<char>(EClassType::CT_Wind);
+					g_s_clients[client_id]->do_send(&p);
 
-				// Send Player Info to Others
-				p.packet_type = H2C_PLAYER_ENTER_PACKET;
-				for (char other_id = 0; other_id < MAX_CLIENTS; ++other_id) {
-					if (client_id != other_id) {
-						if (g_s_clients[other_id]) {
-							g_s_clients[other_id]->do_send(&p);
+					// Send Player Info to Others
+					p.packet_type = H2C_PLAYER_ENTER_PACKET;
+					for (char other_id = 0; other_id < MAX_CLIENTS; ++other_id) {
+						if (client_id != other_id) {
+							if (g_s_clients[other_id]) {
+								g_s_clients[other_id]->do_send(&p);
+							}
+						}
+					}
+
+					// Send Other Infos to Player
+					for (char other_id = 0; other_id < MAX_CLIENTS; ++other_id) {
+						if (client_id != other_id) {
+							if (g_s_clients[other_id]) {
+								APlayerCharacter* client = g_c_players[other_id];
+								p.id = client->get_id();
+								p.yaw = client->get_yaw();
+								p.x = client->GetActorLocation().X; p.y = client->GetActorLocation().Y; p.z = client->GetActorLocation().Z;
+								p.vx = client->get_velocity().X; p.vy = client->get_velocity().Y; p.vz = client->get_velocity().Z;
+								p.hp = client->get_hp();
+								p.current_element = client->get_current_element();
+								g_s_clients[client_id]->do_send(&p);
+							}
 						}
 					}
 				}
 
-				// Send Other Infos to Player
-				for (char other_id = 0; other_id < MAX_CLIENTS; ++other_id) {
-					if (client_id != other_id) {
-						if (g_s_clients[other_id]) {
-							c = g_s_clients[other_id].get();
-							p.id = c->m_id;
-							p.yaw = c->m_yaw;
-							p.vx = c->m_velocity.X; p.vy = c->m_velocity.Y; p.vz = c->m_velocity.Z;
-							p.hp = c->m_hp;
-							p.current_element = c->m_current_element;
-							g_s_clients[client_id]->do_send(&p);
+				{
+					// Send Monster Infos to Player
+					unsigned short monster_count = g_monsters.size();
+					unsigned char packet_size = sizeof(hc_init_monster_packet) + (sizeof(monster_info) * monster_count);
+
+					hc_init_monster_packet* p = (hc_init_monster_packet*)malloc(packet_size);
+					p->packet_size = packet_size;
+					p->packet_type = H2C_INIT_MONSTER_PACKET;
+					p->client_id = client_id;
+					p->monster_count = monster_count;
+
+					monster_info* monster_data = (monster_info*)(p + 1);
+					unsigned short i = 0;
+					for (const auto& [monster_id, ptr] : g_monsters) {
+						AEnemyCharacter* monster = Cast< AEnemyCharacter>(ptr);
+
+						if (monster->get_is_attacking()) {
+							continue;
 						}
+
+						FVector Location = ptr->GetActorLocation();
+						FVector Velocity = ptr->GetVelocity();
+						FRotator Rotation = ptr->GetActorRotation();
+
+						monster_data[i].monster_id = monster_id;
+						monster_data[i].monster_hp = monster->get_hp();
+						monster_data[i].monster_x = Location.X; monster_data[i].monster_y = Location.Y; monster_data[i].monster_z = Location.Z;
+						monster_data[i].monster_vx = Velocity.X; monster_data[i].monster_vy = Velocity.Y; monster_data[i].monster_vz = Velocity.Z;
+						monster_data[i].monster_yaw = Rotation.Yaw;
+						++i;
 					}
+					g_s_clients[client_id]->do_send(&p);
+					free(p);
 				}
-				break;
+			} else {
+				closesocket(c_socket);
 			}
 		}
 	}
@@ -527,7 +573,7 @@ void h_process_packet(char* packet) {
 				g_s_clients[client_id]->do_send(p);
 			}
 		}
-		UE_LOG(LogTemp, Warning, TEXT("[Host] %d and %d Collision"), p->attacker_id, p->victim_id);
+		//UE_LOG(LogTemp, Warning, TEXT("[Host] %d and %d Collision"), p->attacker_id, p->victim_id);
 		break;
 	}
 
@@ -638,7 +684,12 @@ void c_process_packet(char* packet) {
 		APlayerCharacter* MyPlayer = Cast<APlayerCharacter>(UGameplayStatics::GetPlayerCharacter(World, 0));
 		if (MyPlayer) {
 			MyPlayer->set_id(p->id);
+			MyPlayer->set_yaw(p->yaw);
+			MyPlayer->SetActorLocation(FVector(p->x, p->y, p->z));
+			MyPlayer->set_velocity(p->vx, p->vy, p->vz);
 			MyPlayer->set_is_player(true);
+			MyPlayer->set_hp(p->hp);
+			MyPlayer->set_current_element(p->current_element);
 
 			g_c_players[p->id] = MyPlayer;
 
@@ -660,8 +711,6 @@ void c_process_packet(char* packet) {
 		FActorSpawnParameters Params;
 		Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 	
-		//APlayerCharacter* NewPlayer = World->SpawnActor<APlayerCharacter>(APlayerCharacter::StaticClass(), SpawnLocation, SpawnRotation, Params);
-	
 		UClass* PlayerBPClass = LoadClass<APlayerCharacter>(
 			nullptr,
 			TEXT("/Game/player_anim/MyPlayerCharacter.MyPlayerCharacter_C")
@@ -679,8 +728,14 @@ void c_process_packet(char* packet) {
 			Params
 		);
 
-		NewPlayer->set_is_player(false);
 		NewPlayer->set_id(p->id);
+		NewPlayer->set_yaw(p->yaw);
+		NewPlayer->SetActorLocation(FVector(p->x, p->y, p->z));
+		NewPlayer->set_velocity(p->vx, p->vy, p->vz);
+		NewPlayer->set_is_player(true);
+		NewPlayer->set_hp(p->hp);
+		NewPlayer->set_current_element(p->current_element);
+		NewPlayer->set_is_player(false);
 
 		AAIController* NewAI = World->SpawnActor<AAIController>(
 			AAIController::StaticClass(),
@@ -842,15 +897,20 @@ void c_process_packet(char* packet) {
 		break;
 	}
 
-	case H2C_MONSTER_PACKET: {
-		hc_monster_packet* p = reinterpret_cast<hc_monster_packet*>(packet);
+	case H2C_INIT_MONSTER_PACKET: {
+		hc_init_monster_packet* p = reinterpret_cast<hc_init_monster_packet*>(packet);
+		char client_id = p->client_id;
+		unsigned short monster_count = 0;
+		unsigned short expected_count = p->monster_count;
 
-		if (!g_monsters.count(p->monster_id)) {
-			AsyncTask(ENamedThreads::GameThread, [&p]() {
+		for (unsigned short i = 0; i < expected_count; ++i) {
+			monster_info info = p->monsters[i];
+
+			AsyncTask(ENamedThreads::GameThread, [info, monster_count, expected_count, client_id]() {
 				UWorld* World = GEngine->GetWorldFromContextObjectChecked(GEngine->GameViewport);
 				if (!World) return;
 
-				FVector SpawnLocation(p->monster_x, p->monster_y, p->monster_z);
+				FVector SpawnLocation(info.monster_x, info.monster_y, info.monster_z);
 				FRotator SpawnRotation = FRotator::ZeroRotator;
 
 				FActorSpawnParameters Params;
@@ -877,7 +937,13 @@ void c_process_packet(char* packet) {
 					UE_LOG(LogTemp, Error, TEXT("Failed to spawn Monster!"));
 				}
 
-				NewMonster->set_id(p->monster_id);
+				FRotator NewRotation(0.f, info.monster_yaw, 0.f);
+
+				NewMonster->set_id(info.monster_id);
+				NewMonster->set_hp(info.monster_hp);
+				NewMonster->SetActorLocation(FVector(info.monster_x, info.monster_y, info.monster_z));
+				NewMonster->GetCharacterMovement()->Velocity = FVector(info.monster_vx, info.monster_vy, info.monster_vz);
+				NewMonster->SetActorRotation(NewRotation);
 
 				// AI Controller
 				AEnemyAIController* NewAI = World->SpawnActor<AEnemyAIController>(
@@ -914,19 +980,104 @@ void c_process_packet(char* packet) {
 					UE_LOG(LogTemp, Error, TEXT("Failed to Load AnimBP"));
 				}
 
-				g_monsters[p->monster_id] = NewMonster;
-				UE_LOG(LogTemp, Warning, TEXT("[Client] Spawned Monster %d and Stored in g_s_monsters"), p->monster_id);
+				g_monsters[info.monster_id] = NewMonster;
+
+				if (monster_count == (expected_count - 1)) {
+					g_c_players[client_id]->set_state(STATE::ST_INGAME);
+				}
+				UE_LOG(LogTemp, Warning, TEXT("[Client] Spawned Monster %d and Stored in g_s_monsters"), info.monster_id);
+			});
+
+			++monster_count;
+		}
+		break;
+	}
+
+	case H2C_MONSTER_PACKET: {
+		hc_monster_packet p = *reinterpret_cast<hc_monster_packet*>(packet);
+
+		if (!g_monsters.count(p.monster_id)) {
+			AsyncTask(ENamedThreads::GameThread, [p]() {
+				UWorld* World = GEngine->GetWorldFromContextObjectChecked(GEngine->GameViewport);
+				if (!World) return;
+
+				FVector SpawnLocation(p.monster_x, p.monster_y, p.monster_z);
+				FRotator SpawnRotation = FRotator::ZeroRotator;
+
+				FActorSpawnParameters Params;
+				Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+				// Load Monster BP Class
+				UClass* MonsterBPClass = LoadClass<AEnemyCharacter>(
+					nullptr,
+					TEXT("/Game/Slime/BP_Slime.BP_Slime_C")
+				);
+
+				if (!MonsterBPClass) {
+					UE_LOG(LogTemp, Error, TEXT("Failed to load BP_MonsterCharacter!"));
+				}
+
+				AEnemyCharacter* NewMonster = World->SpawnActor<AEnemyCharacter>(
+					MonsterBPClass,
+					SpawnLocation,
+					SpawnRotation,
+					Params
+				);
+
+				if (!NewMonster) {
+					UE_LOG(LogTemp, Error, TEXT("Failed to spawn Monster!"));
+				}
+
+				NewMonster->set_id(p.monster_id);
+
+				// AI Controller
+				AEnemyAIController* NewAI = World->SpawnActor<AEnemyAIController>(
+					AEnemyAIController::StaticClass(),
+					SpawnLocation,
+					SpawnRotation,
+					Params
+				);
+
+				if (NewAI) {
+					NewAI->Possess(NewMonster);
+					UE_LOG(LogTemp, Warning, TEXT("AEnemyAIController Possessed Monster"));
+				}
+				else {
+					UE_LOG(LogTemp, Error, TEXT("Failed to spawn AEnemyAIController"));
+				}
+
+				// Load Animation Instance
+				UClass* AnimClass = LoadClass<UAnimInstance>(
+					nullptr,
+					TEXT("/Game/Slime/slime/anim/BP_AnimSlime.BP_AnimSlime_C")
+				);
+
+				if (AnimClass) {
+					NewMonster->GetMesh()->SetAnimInstanceClass(AnimClass);
+					NewMonster->GetMesh()->SetAnimationMode(EAnimationMode::AnimationBlueprint);
+					NewMonster->GetMesh()->SetComponentTickEnabled(true);
+					NewMonster->GetMesh()->bPauseAnims = false;
+					NewMonster->GetMesh()->bNoSkeletonUpdate = false;
+
+					UE_LOG(LogTemp, Warning, TEXT("AnimInstance Set: %s"), *AnimClass->GetName());
+				}
+				else {
+					UE_LOG(LogTemp, Error, TEXT("Failed to Load AnimBP"));
+				}
+
+				g_monsters[p.monster_id] = NewMonster;
+				UE_LOG(LogTemp, Warning, TEXT("[Client] Spawned Monster %d and Stored in g_s_monsters"), p.monster_id);
 				});
 		} else {
-			AEnemyCharacter* Monster = Cast<AEnemyCharacter>(g_monsters[p->monster_id]);
-			FRotator NewRotation(0.f, p->monster_yaw, 0.f);
+			AEnemyCharacter* Monster = Cast<AEnemyCharacter>(g_monsters[p.monster_id]);
+			FRotator NewRotation(0.f, p.monster_yaw, 0.f);
 
-			Monster->set_hp(p->monster_hp);
-			Monster->SetActorLocation(FVector(p->monster_x, p->monster_y, p->monster_z));
-			Monster->GetCharacterMovement()->Velocity = FVector(p->monster_vx, p->monster_vy, p->monster_vz);
+			Monster->set_hp(p.monster_hp);
+			Monster->SetActorLocation(FVector(p.monster_x, p.monster_y, p.monster_z));
+			Monster->GetCharacterMovement()->Velocity = FVector(p.monster_vx, p.monster_vy, p.monster_vz);
 			Monster->SetActorRotation(NewRotation);
 		}
-		UE_LOG(LogTemp, Warning, TEXT("[Client] Received Monster %d Packet, X : %.2f, Y : %.2f"), p->monster_id, p->monster_x, p->monster_y);
+		UE_LOG(LogTemp, Warning, TEXT("[Client] Received Monster %d Packet, X : %.2f, Y : %.2f"), p.monster_id, p.monster_x, p.monster_y);
 		break;
 	}
 

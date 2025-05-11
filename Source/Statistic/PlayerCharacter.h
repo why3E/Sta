@@ -2,6 +2,9 @@
 
 #pragma once
 
+#include "Enums.h"
+#include "SESSION.h"
+
 #include "InputActionValue.h"
 #include "CoreMinimal.h"
 #include "MyCharacterBase.h"
@@ -220,17 +223,27 @@ private:
 
 	bool m_is_player;
 	bool m_was_moving;
+	STATE m_state;
 
 public:
 	void do_send(void* buff);
 
 	char get_id() { return m_id; }
+	float get_yaw() { return m_yaw; }
+	FVector get_velocity() { return m_velocity; }
+	char get_hp() { return m_hp; }
+	char get_current_element() { return m_current_element; }
 	unsigned short get_skill_id() { return m_skill_id; }
 	bool get_is_player() { return m_is_player; }
+	STATE get_state() { return m_state; }
 
 	void set_id(char id) { m_id = id; }
+	void set_yaw(float yaw) { m_yaw = yaw; }
 	void set_velocity(float x, float y, float z) { m_velocity.X = x; m_velocity.Y = y; m_velocity.Z = z; }
+	void set_hp(char hp) { m_hp = hp; }
+	void set_current_element(char current_element) { m_current_element = current_element; }
 	void set_is_player(bool is_player) { m_is_player = is_player; }
+	void set_state(STATE state) { m_state = state; }
 
 	void use_skill(unsigned short skill_id, char skill_type, FVector v, bool is_left);
 	void use_skill(unsigned short skill_id, char skill_type, FVector v, FRotator r, bool is_left);

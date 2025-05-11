@@ -37,10 +37,6 @@ public:
 	int m_remained;
 
 	long long m_id;
-	float m_yaw;
-	FVector m_velocity;
-	char m_hp;
-	char m_current_element;
 
 	LPWSAOVERLAPPED_COMPLETION_ROUTINE m_recv_callback;
 	LPWSAOVERLAPPED_COMPLETION_ROUTINE m_send_callback;

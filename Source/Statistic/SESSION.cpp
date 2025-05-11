@@ -32,11 +32,6 @@ SESSION::SESSION(long long id, SOCKET c_socket,
 
 	m_remained = 0;
 
-	m_yaw = 0.0f;
-	m_velocity = FVector(0.0f, 0.0f, 0.0f);
-	m_hp = 100;
-	m_current_element = ELEMENT_WIND;
-
 	m_recv_callback = h_recv_callback;
 	m_send_callback = h_send_callback; 
 

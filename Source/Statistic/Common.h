@@ -23,9 +23,10 @@ constexpr char H2C_PLAYER_INFO_PACKET = 1;
 constexpr char H2C_PLAYER_ENTER_PACKET = 2;
 constexpr char H2C_PLAYER_LEAVE_PACKET = 3;
 
-constexpr char H2C_MONSTER_PACKET = 11;
-constexpr char H2C_MONSTER_ATTACK_PACKET = 12;
-constexpr char C2H_MONSTER_ATTACK_PACKET = 13;
+constexpr char H2C_INIT_MONSTER_PACKET = 11;
+constexpr char H2C_MONSTER_PACKET = 12;
+constexpr char H2C_MONSTER_ATTACK_PACKET = 13;
+constexpr char C2H_MONSTER_ATTACK_PACKET = 14;
 
 constexpr char H2C_PLAYER_VECTOR_PACKET = 21;
 constexpr char H2C_PLAYER_STOP_PACKET = 22;
@@ -109,14 +110,16 @@ struct cs_selected_lobby_packet {
 
 //////////////////////////////////////////////////
 // In-Game
+enum STATE { ST_FREE, ST_INGAME };
+
 struct hc_player_info_packet {
 	unsigned char packet_size;
 	char packet_type;
 	char id;
 	float yaw;
+	float x, y, z;
 	float vx, vy, vz;
 	char hp;
-	char animation_state;
 	char current_element;
 };
 
@@ -225,6 +228,22 @@ struct hc_skill_create_packet {
 	unsigned char old_skill_id;
 	unsigned char new_skill_id;
 	float x, y, z;
+};
+
+struct monster_info {
+	unsigned short monster_id;
+	char monster_hp;
+	float monster_x; float monster_y; float monster_z;
+	float monster_vx; float monster_vy; float monster_vz;
+	float monster_yaw;
+};
+
+struct hc_init_monster_packet {
+	unsigned char packet_size;
+	char packet_type;
+	char client_id;
+	unsigned short monster_count;
+	monster_info monsters[0];
 };
 
 struct hc_monster_packet {

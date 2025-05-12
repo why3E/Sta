@@ -153,6 +153,11 @@ void AMyFireBall::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* Ot
 }
 
 void AMyFireBall::Overlap(AActor* OtherActor) {
+    
+    if (FireBallHitShootSound)
+    {
+        UGameplayStatics::PlaySoundAtLocation(this, FireBallHitShootSound, GetActorLocation(),5.0f);
+    }   
     // 나이아가라 파티클 시스템 비활성화
     if (FireBallNiagaraComponent) {
         FireBallNiagaraComponent->Deactivate();
@@ -162,7 +167,6 @@ void AMyFireBall::Overlap(AActor* OtherActor) {
     if (HitEffectNiagaraSystem) {
         UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), HitEffectNiagaraSystem, GetActorLocation());
     }
-
     // 충돌 상태 설정
     bIsHit = true;
 
@@ -171,6 +175,10 @@ void AMyFireBall::Overlap(AActor* OtherActor) {
 }
 
 void AMyFireBall::Overlap(ACharacter* OtherActor) {
+    if (FireBallHitShootSound)
+    {
+        UGameplayStatics::PlaySoundAtLocation(this, FireBallHitShootSound, GetActorLocation(),5.0f);
+    } 
     // 나이아가라 파티클 시스템 비활성화
     if (FireBallNiagaraComponent) {
         FireBallNiagaraComponent->Deactivate();

@@ -15,6 +15,7 @@
 #include "MyWeapon.h"
 #include "MyFireWeapon.h"
 #include "MyWindWeapon.h"
+#include "Kismet/GameplayStatics.h"
 
 APlayerCharacter::APlayerCharacter()
 {
@@ -130,7 +131,7 @@ APlayerCharacter::APlayerCharacter()
 		GetCharacterMovement()->bOrientRotationToMovement = false;
 		// 점프 높이 설정
         GetCharacterMovement()->JumpZVelocity = 400.0f; // 원하는 값으로 설정
-		GetCharacterMovement()->MaxWalkSpeed = 300.0f;
+		GetCharacterMovement()->MaxWalkSpeed = 280.0f;
 		 // Member Variable 초기화
 	}
 
@@ -254,7 +255,7 @@ void APlayerCharacter::BasicMove(const FInputActionValue& Value)
 		if (MovementVector.X < 0)
 		{
 			CheckBackMove = true;
-			GetCharacterMovement()->MaxWalkSpeed = 300.0f;
+			GetCharacterMovement()->MaxWalkSpeed = 220.0f;
 		}
 		else
 		{
@@ -267,7 +268,7 @@ void APlayerCharacter::BasicMove(const FInputActionValue& Value)
 			}
 			else
 			{
-				GetCharacterMovement()->MaxWalkSpeed = 300.0f;
+				GetCharacterMovement()->MaxWalkSpeed = 280.0f;
 			}
 		}
 
@@ -792,7 +793,7 @@ void APlayerCharacter::Tick(float DeltaTime) {
 			}
 			// Walk
 			else {
-				GetCharacterMovement()->MaxWalkSpeed = 300.0f;
+				GetCharacterMovement()->MaxWalkSpeed = 280.0f;
 			}
 
 			AddMovementInput(m_velocity.GetSafeNormal(), 1.0f);
@@ -1139,3 +1140,17 @@ void APlayerCharacter::UpdateUI()
     }
 }
 
+void APlayerCharacter::PlayFootstepSound()
+{
+    if (FootstepSounds.Num() > 0)
+    {
+        // 현재 인덱스의 효과음을 재생
+        if (FootstepSounds[CurrentFootstepIndex])
+        {
+            UGameplayStatics::PlaySoundAtLocation(this, FootstepSounds[CurrentFootstepIndex], GetActorLocation());
+        }
+
+        // 인덱스를 증가시키고, 배열 크기를 초과하면 0으로 초기화
+        CurrentFootstepIndex = (CurrentFootstepIndex + 1) % FootstepSounds.Num();
+    }
+}

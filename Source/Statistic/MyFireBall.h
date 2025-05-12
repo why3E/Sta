@@ -5,6 +5,8 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "MySkillBase.h"
+#include "Sound/SoundBase.h"
+#include "Kismet/GameplayStatics.h"
 #include "Enums.h"
 #include "MyFireBall.generated.h"
 
@@ -56,4 +58,8 @@ protected:
 private:
 	float Speed = 3000.0f;
 	uint8 bIsHit : 1;
+protected:
+    // 효과음
+    UPROPERTY(EditAnywhere, Category = "Sound", meta = (AllowPrivateAccess = "true"))
+    TObjectPtr<class USoundBase> FireBallHitShootSound;
 };

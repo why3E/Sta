@@ -6,6 +6,8 @@
 #include "GameFramework/Actor.h"
 #include "MySkillBase.h"
 #include "Enums.h"
+#include "Sound/SoundBase.h"
+#include "Kismet/GameplayStatics.h"
 #include "BombAttackInterface.h"
 #include "MyWindCutter.generated.h"
 
@@ -28,7 +30,10 @@ public:
 	void Fire(FVector TargetLocation);
 	
     void ActivateNiagara();
+protected:
 
+    UPROPERTY(EditAnywhere, Category = "Sound", meta = (AllowPrivateAccess = "true"))
+    TObjectPtr<class USoundBase> WindCutterHitSound;
 protected:
     // 콜리전 처리 함수
     UFUNCTION()

@@ -81,7 +81,11 @@ void AMyFireWeapon::SpawnFireBall(FVector ImpactPoint)
 void AMyFireWeapon::ShootFireBall()
 {
 	if (TempFireBall)
-	{
+	{// 효과음 재생
+        if (FireBallShootSound)
+        {
+            UGameplayStatics::PlaySoundAtLocation(this, FireBallShootSound, GetActorLocation());
+        }
 		// 부모 액터로부터 부착 해제
 		TempFireBall->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
 		TempFireBall->Fire(FireLocation);

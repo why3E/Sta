@@ -278,4 +278,17 @@ private:
 	bool bCanUseSkillE = true;
 	float SkillECoolTime = 3.0f;
 	float CurrnetSkillETime = 0.0f;
+
+	// 발자국 효과음을 저장할 배열과 인덱스 변수 추가
+protected:
+    // 발자국 효과음 배열
+    UPROPERTY(EditAnywhere, Category = "Sound")
+    TArray<TObjectPtr<class USoundBase>> FootstepSounds;
+
+    // 발자국 효과음을 순서대로 재생하기 위한 인덱스
+    int32 CurrentFootstepIndex = 0;
+
+public:
+    // 발자국 효과음을 재생하는 함수
+    void PlayFootstepSound();
 };

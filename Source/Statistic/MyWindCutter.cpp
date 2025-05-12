@@ -74,7 +74,8 @@ void AMyWindCutter::PostInitializeComponents()
 void AMyWindCutter::Fire(FVector TargetLocation)
 {
     FVector LaunchDirection;
-
+    
+    
     // 방향 계산
     if (Owner) {
         if ((TargetLocation - Owner->GetActorLocation()).Length() < 300.0f)
@@ -154,6 +155,10 @@ void AMyWindCutter::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* 
 }
 
 void AMyWindCutter::Overlap(AActor* OtherActor) {
+    if (WindCutterHitSound)
+    {
+        UGameplayStatics::PlaySoundAtLocation(this, WindCutterHitSound, GetActorLocation(),2.0f);
+    }
     // 나이아가라 파티클 시스템 비활성화
     if (WindCutterNiagaraComponent) {
         WindCutterNiagaraComponent->Deactivate();
@@ -190,6 +195,10 @@ void AMyWindCutter::Overlap(AActor* OtherActor) {
 }
 
 void AMyWindCutter::Overlap(ACharacter* OtherActor) {
+    if (WindCutterHitSound)
+    {
+        UGameplayStatics::PlaySoundAtLocation(this, WindCutterHitSound, GetActorLocation(),2.0f);
+    }
     // 나이아가라 파티클 시스템 비활성화
     if (WindCutterNiagaraComponent) {
         WindCutterNiagaraComponent->Deactivate();
@@ -199,7 +208,7 @@ void AMyWindCutter::Overlap(ACharacter* OtherActor) {
     if (WindCutterNiagaraComponent) {
         UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), HitEffectNiagaraSystem, GetActorLocation());
     }
-
+    
     // 충돌 상태 설정
     bIsHit = true;
 

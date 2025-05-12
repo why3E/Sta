@@ -5,6 +5,8 @@
 #include "CoreMinimal.h"
 #include "MyWeapon.h"
 #include "MyFireBall.h"
+#include "Sound/SoundBase.h"
+#include "Kismet/GameplayStatics.h"
 #include "MyFireWeapon.generated.h"
 
 /**
@@ -41,5 +43,8 @@ protected:
 
 private:
 	FVector FireLocation;
-
+protected:
+    // 효과음
+    UPROPERTY(EditAnywhere, Category = "Sound", meta = (AllowPrivateAccess = "true"))
+    TObjectPtr<class USoundBase> FireBallShootSound;
 };

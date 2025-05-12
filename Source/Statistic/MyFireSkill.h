@@ -38,6 +38,12 @@ protected:
     UPROPERTY(VisibleAnywhere, Category = "Effects")
     TObjectPtr<UNiagaraComponent> FireWallNiagaraComponent;
 
+    UPROPERTY(VisibleAnywhere, Category = "Effects")
+    TObjectPtr<UNiagaraComponent> FireWallVisualEffectComponent;
+
+    // 추가적인 시각적 효과용 나이아가라 시스템 에셋
+    UPROPERTY(EditAnywhere, Category = "Effects")
+    TObjectPtr<UNiagaraSystem> FireWallVisualEffectSystem;
     // 불벽의 지속 시간
     UPROPERTY(EditAnywhere, Category = "Settings")
     float FireWallDuration = 10.0f;

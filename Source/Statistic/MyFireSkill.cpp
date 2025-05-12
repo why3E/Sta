@@ -14,7 +14,6 @@
 
 #include "SESSION.h"
 
-// Sets default values
 AMyFireSkill::AMyFireSkill()
 {
     SetElement(EClassType::CT_Fire);
@@ -25,17 +24,24 @@ AMyFireSkill::AMyFireSkill()
     CollisionComponent->SetCollisionProfileName(TEXT("Projectile")); // 충돌 프로파일 설정
     RootComponent = CollisionComponent;
 
-    // 나이아가라 파티클 컴포넌트 초기화
+    // 기존 불벽 나이아가라 컴포넌트 초기화
     FireWallNiagaraComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("FireWallNiagaraComponent"));
     FireWallNiagaraComponent->SetupAttachment(CollisionComponent);
-    FireWallNiagaraComponent->SetVisibility(true); 
+    FireWallNiagaraComponent->SetVisibility(true);
+
+    // 추가적인 시각적 효과용 나이아가라 컴포넌트 초기화
+    FireWallVisualEffectComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("FireWallVisualEffectComponent"));
+    FireWallVisualEffectComponent->SetupAttachment(FireWallNiagaraComponent); // 기존 컴포넌트에 부착
+    FireWallVisualEffectComponent->SetVisibility(true);
 }
 
 // Called when the game starts or when spawned
 void AMyFireSkill::BeginPlay()
 {
     Super::BeginPlay();
+
     
+
     GetWorld()->GetTimerManager().SetTimer(CheckOverlapTimerHandle, this, &AMyFireSkill::CheckOverlappingActors, 1.0f, true);
 }
 
@@ -51,12 +57,20 @@ void AMyFireSkill::SpawnFireWall(FVector Location, FRotator Rotation)
     SetActorLocation(Location + FVector(0.0f, 0.0f, 75.0f)); // 불벽이 땅 위에 위치하도록 조정
     SetActorRotation(Rotation);
 
-    // 나이아가라 파티클 활성화
-    if (FireWallEffect)
+    // 기존 불벽 나이아가라 파티클 활성화
+    if (FireWallEffect && FireWallNiagaraComponent)
     {
         FireWallNiagaraComponent->SetAsset(FireWallEffect);
         FireWallNiagaraComponent->SetVisibility(true);
         FireWallNiagaraComponent->Activate();
+    }
+
+    // 추가적인 시각적 효과용 나이아가라 파티클 활성화
+    if (FireWallVisualEffectSystem && FireWallVisualEffectComponent)
+    {
+        FireWallVisualEffectComponent->SetAsset(FireWallVisualEffectSystem);
+        FireWallVisualEffectComponent->SetVisibility(true);
+        FireWallVisualEffectComponent->Activate();
     }
 
     // 불벽의 지속 시간 설정

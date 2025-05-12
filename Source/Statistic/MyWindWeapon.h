@@ -28,6 +28,9 @@ public:
 	void SpawnWindSkill(FVector TargetLocation);
 
 protected:
+    // 효과음
+    UPROPERTY(EditAnywhere, Category = "Sound", meta = (AllowPrivateAccess = "true"))
+    TObjectPtr<class USoundBase> WindCutterShootSound;
 
 	UPROPERTY(VisibleAnywhere, Category = "Quiver", meta = (AllowPrivateAccess = "true"))
 	TSubclassOf<AActor> WindCutterClass;

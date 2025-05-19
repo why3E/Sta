@@ -15,6 +15,7 @@
 #include "MyWeapon.h"
 #include "MyFireWeapon.h"
 #include "MyWindWeapon.h"
+#include "MyStoneWeapon.h"
 #include "Kismet/GameplayStatics.h"
 
 APlayerCharacter::APlayerCharacter()
@@ -39,7 +40,7 @@ APlayerCharacter::APlayerCharacter()
 	// Mesh 설정
 	{
 		// Load
-		static ConstructorHelpers::FObjectFinder<USkeletalMesh> SkeletalMeshRef(TEXT("/Game/MilitaryMercenaryBandit/Meshes/SK_Bandit.SK_Bandit"));
+		static ConstructorHelpers::FObjectFinder<USkeletalMesh> SkeletalMeshRef(TEXT("/Game/ElfArden/BaseMesh/SK_ElfArden.SK_ElfArden"));
 		if (SkeletalMeshRef.Succeeded())
 		{
 			GetMesh()->SetSkeletalMesh(SkeletalMeshRef.Object);
@@ -155,13 +156,19 @@ APlayerCharacter::APlayerCharacter()
     {
         FireWeaponBP = FireWeaponBPRef.Class;
     }
-
-    // WindWeaponBP 초기화
-    static ConstructorHelpers::FClassFinder<AMyWeapon> WindWeaponBPRef(TEXT("/Game/Weapon/BP_WindWeapon.BP_WindWeapon_C"));
+	static ConstructorHelpers::FClassFinder<AMyWeapon> WindWeaponBPRef(TEXT("/Game/Weapon/BP_WindWeapon.BP_WindWeapon_C"));
     if (WindWeaponBPRef.Succeeded())
     {
         WindWeaponBP = WindWeaponBPRef.Class;
     }
+    // StoneWeaponBP 초기화
+    static ConstructorHelpers::FClassFinder<AMyWeapon> StoneWeaponBPRef(TEXT("/Game/Weapon/BP_StoneWeapon.BP_StoneWeapon_C"));
+    if (StoneWeaponBPRef.Succeeded())
+    {
+        StoneWeaponBP = StoneWeaponBPRef.Class;
+    }
+
+
 }
 
 // BeginPlay 안의 기존 부분을 교체
@@ -182,7 +189,7 @@ void APlayerCharacter::BeginPlay()
     }
 
     ChangeClass(EClassType::CT_Wind, true);
-    ChangeClass(EClassType::CT_Fire, false);
+    ChangeClass(EClassType::CT_Stone, false);
 
     playerCurrentHp = playerMaxHp;
     playerCurrentMp = playerMaxMp;
@@ -396,9 +403,11 @@ void APlayerCharacter::BasicAttack()
     {
 		UE_LOG(LogTemp, Error, TEXT("CurrentImpactPoint: %s"), *CurrentImpactPoint.ToString());
 		UE_LOG(LogTemp, Error, TEXT("CurrentImpactRot: %s"), *CurrentImpactRot.ToString());
-
+		
+		SkillAttack();
+		return;
 		// Send Skill Packet 
-		if (get_is_player()) {
+		/*if (get_is_player()) {
 			switch (ClassType) {
 			case EClassType::CT_Wind: {
 				ch_player_skill_vector_packet p;
@@ -427,14 +436,15 @@ void APlayerCharacter::BasicAttack()
 				break;
 			}
 			//UE_LOG(LogTemp, Warning, TEXT("[Client %d] Send Skill Packet to Host"), p.id);
-		}
+		}*/
         return;
     }
 
 	if (CurrentComboCount == 0)
 	{
+		ComboStart();
 		// Send Skill Packet
-		if (get_is_player()) {
+		/*if (get_is_player()) {
 			GetFireTargetLocation();
 			UE_LOG(LogTemp, Error, TEXT("FireLocation: %s"), *FireLocation.ToString());
 
@@ -457,7 +467,7 @@ void APlayerCharacter::BasicAttack()
 
 			do_send(&p);
 			//UE_LOG(LogTemp, Warning, TEXT("[Client %d] Send Attack Packet to Host"), p.player_id);
-		}
+		}*/
 		return;
 	}
 	
@@ -498,7 +508,6 @@ void APlayerCharacter::SkillAttack()
             bCanUseSkillQ = false;
             CurrnetSkillQTime = 0.0f;
 
-            // ⭐️ 안전 체크 추가
             if (CharacterWidget)
                 CharacterWidget->UpdateCountDown(SkillQCoolTime, bIsLeft);
         }
@@ -507,7 +516,6 @@ void APlayerCharacter::SkillAttack()
             bCanUseSkillE = false;
             CurrnetSkillETime = 0.0f;
 
-            // ⭐️ 안전 체크 추가
             if (CharacterWidget)
                 CharacterWidget->UpdateCountDown(SkillECoolTime, bIsLeft);
         }
@@ -549,10 +557,15 @@ void APlayerCharacter::ComboStart()
 	this->CurrentWeapon = bIsLeft ? CurrentLeftWeapon : CurrentRightWeapon;
 
     CurrentComboCount = 1;
-    const float AttackSpeedRate = 4.0f;
-
+    float AttackSpeedRate = 4.0f;
+    if (CurrentWeapon && CurrentWeapon->IsA(AMyStoneWeapon::StaticClass()))
+    {
+        AttackSpeedRate = 2.0f;
+    }
+	
     UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-
+	UE_LOG(LogTemp, Warning, TEXT("AnimInstance: %s"), AnimInstance ? TEXT("Valid") : TEXT("Invalid"));
+	UE_LOG(LogTemp, Warning, TEXT("CurrentMontage: %s"), CurrentMontage ? TEXT("Valid") : TEXT("Invalid"));
     // 몽타주 재생
     float MontageLength = AnimInstance->Montage_Play(CurrentMontage, AttackSpeedRate);
 
@@ -663,6 +676,8 @@ void APlayerCharacter::UpdateCachedData(bool bIsLeftType)
     case EClassType::CT_Stone:
         SelectedMontage = StoneComboMontage;
         SelectedComboData = StoneComboData;
+		WeaponClass = StoneWeaponBP;
+		SelectedMontageSectionName = TEXT("StoneSkill");
         CheckAnimBone = 0;
         break;
 
@@ -1089,12 +1104,14 @@ void APlayerCharacter::change_element() {
 
 	case EClassType::CT_Fire:
 		UE_LOG(LogTemp, Warning, TEXT("Class changed to Wind"));
-		ChangeClass(EClassType::CT_Wind, true);
-		p.element_type = static_cast<char>(EClassType::CT_Wind);
+		ChangeClass(EClassType::CT_Stone, true);
+		p.element_type = static_cast<char>(EClassType::CT_Stone);
 		break;
 
 	case EClassType::CT_Stone:
 		UE_LOG(LogTemp, Warning, TEXT("Class changed to "));
+		ChangeClass(EClassType::CT_Wind, true);
+		p.element_type = static_cast<char>(EClassType::CT_Wind);
 		break;
 
 	default:

@@ -10,12 +10,13 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "DrawDebugHelpers.h"
 
+#include "DamageWidget.h" // DamageWidget 헤더 추가
 #include "Rendering/SkeletalMeshRenderData.h"
 #include "Rendering/SkeletalMeshLODRenderData.h"
 #include "Rendering/StaticMeshVertexBuffer.h"
 #include "KismetProceduralMeshLibrary.h"
 #include "Kismet/KismetMathLibrary.h"        // ⭐ 랜덤 벡터용 추가
-
+#include "Components/WidgetComponent.h" // UWidgetComponent 헤더 추가
 #include "SESSION.h"
 
 AEnemyCharacter::AEnemyCharacter()
@@ -39,11 +40,20 @@ AEnemyCharacter::AEnemyCharacter()
     ProcMeshComponent->SetupAttachment(RootComponent);
     ProcMeshComponent->SetVisibility(false);
     ProcMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+    // 데미지 표시용 위젯 컴포넌트 초기화
+    damageWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("DamageWidget"));
+    damageWidget->SetupAttachment(RootComponent);
+    damageWidget->SetRelativeLocation(FVector(0.f, 0.f, 100.f));
+
+
 }
 
 void AEnemyCharacter::BeginPlay()
 {
     Super::BeginPlay();
+    UUserWidget* damageW = damageWidget->GetUserWidgetObject();
+    damageWidgetInstance = Cast<UDamageWidget>(damageW);
     bIsAttacking = false;
 }
 
@@ -96,6 +106,8 @@ void AEnemyCharacter::MeleeAttack()
 void AEnemyCharacter::ReceiveSkillHit(const FSkillInfo& Info, AActor* Causer)
 {
     HP -= Info.Damage;
+    damageWidgetInstance->PlayNormalDamageAnimation(Info.Damage);
+
     UE_LOG(LogTemp, Warning, TEXT("Damage: %f, HP: %f"), Info.Damage, HP);
 
     if (HP <= 0.f)
@@ -114,7 +126,10 @@ void AEnemyCharacter::Die()
     AAIController* AICon = Cast<AAIController>(GetController());
     if (AICon) {
         AICon->StopMovement();
-        AICon->BrainComponent->StopLogic(TEXT("Character Died"));
+        if(AICon->BrainComponent)
+        {
+            AICon->BrainComponent->StopLogic(TEXT("Character Died"));
+        }
     }
 
     FVector PlanePosition = ProcMeshComponent->GetComponentLocation() + FVector(0.f, 0.f, 30.f);    // 약간 위로

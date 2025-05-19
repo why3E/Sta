@@ -5,6 +5,7 @@
 #include "AnimationAttackInterface.h"
 #include "ReceiveDamageInterface.h"
 #include "ProceduralMeshComponent.h"
+#include "DamageWidget.h" // UDamageWidget 헤더 추가
 #include "EnemyCharacter.generated.h"
 
 UCLASS()
@@ -73,4 +74,10 @@ public:
     void set_id(unsigned short id) { m_id = id; }
 
     void do_send(void* buff);
+
+    UPROPERTY(EditAnywhere, Category = "Hud")
+    class UWidgetComponent* damageWidget;
+
+    UPROPERTY()
+    UDamageWidget* damageWidgetInstance;
 };

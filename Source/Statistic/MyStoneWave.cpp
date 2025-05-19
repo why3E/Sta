@@ -93,12 +93,27 @@ void AMyStoneWave::Tick(float DeltaTime)
 
 void AMyStoneWave::Fire(FVector TargetLocation)
 {
-    FVector Direction = (TargetLocation - GetActorLocation()).GetSafeNormal();
-    SetActorRotation(Direction.Rotation());
-    if (MovementComponent)
-    {
-        MovementComponent->Velocity = Direction * MovementComponent->InitialSpeed;
+    FVector LaunchDirection;
+	
+    // 방향 계산
+    if (Owner) {
+        if ((TargetLocation - Owner->GetActorLocation()).Length() < 300.0f)
+        {
+            LaunchDirection = (TargetLocation - GetActorLocation()).GetSafeNormal();
+            LaunchDirection.Z = 0.0f;
+        }
+        else
+        {
+            LaunchDirection = (TargetLocation - GetActorLocation()).GetSafeNormal();
+        }
+    } else {
+        return;
     }
+
+    // 방향 지정 및 Projectile Movement Component 활성화
+    MovementComponent->Velocity = LaunchDirection * MovementComponent->InitialSpeed;
+    MovementComponent->Activate();
+
 }
 
 void AMyStoneWave::ActivateNiagara()

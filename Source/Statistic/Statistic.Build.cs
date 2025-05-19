@@ -8,6 +8,17 @@ public class Statistic : ModuleRules
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 
-		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput", "GameplayTasks", "Niagara", "UMG","ProceduralMeshComponent" });
+		PublicDependencyModuleNames.AddRange(new string[] {
+			"Core",
+			"CoreUObject",
+			"Engine",
+			"InputCore",
+			"EnhancedInput",
+			"GameplayTasks",
+			"Niagara",
+			"UMG",
+			"ProceduralMeshComponent",
+			"Kismet" 
+		});
 	}
 }

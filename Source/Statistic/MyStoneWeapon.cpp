@@ -1,17 +1,31 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-
 #include "MyStoneWeapon.h"
-
+#include "MyStoneWave.h"
+#include "MyStoneSkill.h"
+#include "PlayerCharacter.h"
+#include "Kismet/GameplayStatics.h"
+#include "GameFramework/Character.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "Camera/CameraComponent.h"
+#include "DrawDebugHelpers.h"
 
 AMyStoneWeapon::AMyStoneWeapon()
 {
-    // 필요하다면 초기화 코드 작성
-    static ConstructorHelpers::FClassFinder<AActor>StoneWaveRef(TEXT("/Game/Weapon/MyStoneWave.MyStoneWave_C"));
+    static ConstructorHelpers::FClassFinder<AActor> StoneWaveRef(TEXT("/Game/Weapon/MyStoneWave.MyStoneWave_C"));
     if (StoneWaveRef.Succeeded())
     {
         StoneWaveClass = StoneWaveRef.Class;
     }
+
+    static ConstructorHelpers::FClassFinder<AActor> StoneSkillRef(TEXT("/Game/Weapon/MyStoneSkill.MyStoneSkill_C"));
+    if (StoneSkillRef.Succeeded())
+    {
+        StoneSkillClass = StoneSkillRef.Class;
+    }
+
+    StoneSkillSocket = TEXT("StonePosition");
+    WeaponType = EWeaponType::WT_Stone;
 }
 
 void AMyStoneWeapon::BeginPlay()
@@ -27,13 +41,13 @@ void AMyStoneWeapon::Tick(float DeltaSeconds)
 void AMyStoneWeapon::SpawnStoneWave(FVector FireLocation)
 {
     if (StoneWaveClass)
-    {   
+    {
         FVector SpawnLocation = GetOwner() ? GetOwner()->GetActorLocation() : FVector::ZeroVector;
+
         FActorSpawnParameters SpawnParams;
         SpawnParams.Owner = this;
         SpawnParams.Instigator = GetInstigator();
 
-        // 소환 위치는 Owner의 위치, Fire 함수에는 목표 위치(FireLocation) 전달
         AMyStoneWave* StoneWave = GetWorld()->SpawnActor<AMyStoneWave>(StoneWaveClass, SpawnLocation, FRotator::ZeroRotator, SpawnParams);
         if (StoneWave)
         {
@@ -42,7 +56,55 @@ void AMyStoneWeapon::SpawnStoneWave(FVector FireLocation)
     }
 }
 
-void AMyStoneWeapon::SpawnStoneSkill(FVector TargetLocation)
+void AMyStoneWeapon::SpawnStoneSkill(FVector ImpactPoint)
 {
-    
+    if (!StoneSkillClass || !OwnerCharacter)
+    {
+        UE_LOG(LogTemp, Error, TEXT("StoneSkillClass or OwnerCharacter is null!"));
+        return;
+    }
+
+    USkeletalMeshComponent* MeshComp = OwnerCharacter->GetMesh();
+    if (!MeshComp || !MeshComp->DoesSocketExist(StoneSkillSocket))
+    {
+        UE_LOG(LogTemp, Error, TEXT("Invalid mesh or socket not found: %s"), *StoneSkillSocket.ToString());
+        return;
+    }
+
+    FVector SpawnLocation = MeshComp->GetSocketLocation(StoneSkillSocket);
+
+    TempStoneSkill = Cast<AMyStoneSkill>(GetWorld()->SpawnActor<AMyStoneSkill>(StoneSkillClass, SpawnLocation, FRotator::ZeroRotator));
+    if (!TempStoneSkill)
+    {
+        UE_LOG(LogTemp, Error, TEXT("Failed to spawn StoneSkill"));
+        return;
+    }
+
+    TempStoneSkill->SetOwner(OwnerCharacter);
+
+    // 소켓에 부착
+    TempStoneSkill->AttachToComponent(
+        MeshComp,
+        FAttachmentTransformRules::SnapToTargetNotIncludingScale,
+        StoneSkillSocket
+    );
+
+    StoneSkillImpactPoint = ImpactPoint;
+}
+
+void AMyStoneWeapon::ShootStoneSkill()
+{
+    if (!TempStoneSkill)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("TempStoneSkill is null, nothing to shoot"));
+        return;
+    }
+
+    // 소켓에서 분리
+    TempStoneSkill->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+
+    // 실제 발사
+    TempStoneSkill->Fire(StoneSkillImpactPoint);
+
+    TempStoneSkill = nullptr;
 }

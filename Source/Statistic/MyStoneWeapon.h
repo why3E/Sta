@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "MyWeapon.h"
 #include "MyStoneWave.h"
+#include "MyStoneSkill.h"
 #include "MyStoneWeapon.generated.h"
 
 /**
@@ -22,8 +23,21 @@ protected:
 public:
 	// 생성 및 발사 함수
 	void SpawnStoneWave(FVector FireLocation);
-	void SpawnStoneSkill(FVector TargetLocation);
+	void SpawnStoneSkill(FVector ImpactPoint);
+	void ShootStoneSkill();
+
 protected:
 	UPROPERTY(VisibleAnywhere, Category = "Quiver", meta = (AllowPrivateAccess = "true"))
 	TSubclassOf<AActor> StoneWaveClass;
+
+	UPROPERTY(VisibleAnywhere, Category = "Quiver", meta = (AllowPrivateAccess = "true"))
+	TSubclassOf<AActor> StoneSkillClass;
+	
+	FName StoneSkillSocket;
+
+	UPROPERTY()
+	AMyStoneSkill* TempStoneSkill;
+
+	UPROPERTY()
+	FVector StoneSkillImpactPoint;
 };

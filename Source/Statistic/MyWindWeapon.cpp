@@ -85,21 +85,6 @@ void AMyWindWeapon::SpawnWindSkill(FVector TargetLocation)
         return;
     }
 
-    FActorSpawnParameters SpawnParams;
-    SpawnParams.Owner = this;
-    SpawnParams.Instigator = GetInstigator();
-
-    // 지형 높이 확인
-    FHitResult HitResult;
-    FVector Start = TargetLocation + FVector(0.0f, 0.0f, 500.0f); // 위에서 아래로 라인트레이스
-    FVector End = TargetLocation - FVector(0.0f, 0.0f, 500.0f);   // 아래로 500 유닛
-
-    if (GetWorld()->LineTraceSingleByChannel(HitResult, Start, End, ECC_Visibility))
-    {
-        // 지형의 충돌 지점 높이로 Z값 조정
-        TargetLocation.Z = HitResult.ImpactPoint.Z;
-    }
-
     FTransform SpawnTransform(FRotator::ZeroRotator, TargetLocation);
 
     // WindSkill 생성

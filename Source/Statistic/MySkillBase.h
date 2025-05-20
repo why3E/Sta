@@ -17,7 +17,6 @@ class STATISTIC_API AMySkillBase : public AActor
 	UPROPERTY(EditAnywhere, Category = "Damage")
 	float Damage = 10.0f;
 
-	// 속성 타입 (열거형)
 	UPROPERTY(EditAnywhere, Category = "Damage")
 	EClassType Element = EClassType::CT_Wind;
 	

@@ -190,6 +190,9 @@ protected:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
     TSubclassOf<AMyWeapon> WindWeaponBP;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
+    TSubclassOf<AMyWeapon> StoneWeaponBP;
+
 private:
     bool bIsQDrawingCircle = false; // 원을 그리고 있는지 여부
 	bool bisEDrawingRectangle = false; // 원을 그리고 있는지 여부

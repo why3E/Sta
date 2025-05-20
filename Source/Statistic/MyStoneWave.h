@@ -47,4 +47,7 @@ private:
 	
 	UFUNCTION()
 	void OnNiagaraFinished(class UNiagaraComponent* PSystem);
+public:
+    virtual void Overlap(AActor* OtherActor);
+    virtual void Overlap(ACharacter* OtherActor);
 };

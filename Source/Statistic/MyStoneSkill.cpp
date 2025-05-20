@@ -120,3 +120,16 @@ void AMyStoneSkill::Tick(float DeltaTime)
     }
     // 예: 날아가는 동안 회전 or 이펙트 제어
 }
+
+void AMyStoneSkill::Overlap(AActor* OtherActor)
+{
+    
+}
+void AMyStoneSkill::Overlap(ACharacter* OtherActor)
+{
+    
+}
+void AMyStoneSkill::OnBeginOverlap(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+{
+   
+}

@@ -26,6 +26,13 @@ public:
 
     // 돌을 던지는 함수
     void Fire(FVector FireLocation);
+	virtual void Overlap(AActor* OtherActor);
+	virtual void Overlap(ACharacter* OtherActor);
+
+protected:
+    // 콜리전 처리 함수
+    UFUNCTION()
+    void OnBeginOverlap(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
 protected:
     // 돌 메시
@@ -47,4 +54,6 @@ protected:
 private:
 	float Speed = 3000.0f;
 	uint8 bIsHit : 1;
+
+    
 };

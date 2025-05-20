@@ -39,14 +39,6 @@ AMyStoneSkill::AMyStoneSkill()
 // 발사 함수 (포물선)
 void AMyStoneSkill::Fire(FVector FireLocation)
 {
-    // 오너 위치에서 FireLocation 방향으로 살짝(예: 50.f) 떨어진 위치에서 시작
-    FVector OwnerLocation = Owner ? Owner->GetActorLocation() : GetActorLocation();
-    FVector Direction = (FireLocation - OwnerLocation).GetSafeNormal();
-    float OffsetDistance = 200.f; // 원하는 만큼 조절
-    FVector StartLocation = OwnerLocation + Direction * OffsetDistance;
-
-    SetActorLocation(StartLocation);
-
     // Fire 시점에 메시 보이게, 충돌 활성화
     if (StoneMesh)
     {
@@ -69,7 +61,7 @@ void AMyStoneSkill::Fire(FVector FireLocation)
     }
 
     FVector LaunchVelocity;
-
+    FVector StartLocation = GetActorLocation();
     bool bHaveAimSolution = UGameplayStatics::SuggestProjectileVelocity(
         this,
         LaunchVelocity,

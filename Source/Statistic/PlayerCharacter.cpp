@@ -16,6 +16,7 @@
 #include "MyFireWeapon.h"
 #include "MyWindWeapon.h"
 #include "MyStoneWeapon.h"
+#include "MyIceWeapon.h"
 #include "Kismet/GameplayStatics.h"
 
 APlayerCharacter::APlayerCharacter()
@@ -167,7 +168,11 @@ APlayerCharacter::APlayerCharacter()
     {
         StoneWeaponBP = StoneWeaponBPRef.Class;
     }
-
+	static ConstructorHelpers::FClassFinder<AMyWeapon> IceWeaponBPRef(TEXT("/Game/Weapon/BP_IceWeapon.BP_IceWeapon_C"));
+    if (IceWeaponBPRef.Succeeded())
+    {
+        IceWeaponBP = IceWeaponBPRef.Class;
+    }
 
 }
 
@@ -188,8 +193,8 @@ void APlayerCharacter::BeginPlay()
         } 
     }
 
-    ChangeClass(EClassType::CT_Wind, true);
-    ChangeClass(EClassType::CT_Stone, false);
+    ChangeClass(EClassType::CT_Ice, true);
+    ChangeClass(EClassType::CT_Fire, false);
 
     playerCurrentHp = playerMaxHp;
     playerCurrentMp = playerMaxMp;
@@ -203,7 +208,10 @@ void APlayerCharacter::BeginPlay()
 			UpdateUI();
 		}
 	}
-	}
+	DefaultArmLength = SpringArm->TargetArmLength;
+	DefaultCameraRelativeLocation = Camera->GetRelativeLocation();
+
+}
 
 void APlayerCharacter::EndPlay(const EEndPlayReason::Type EndPlayReason) {
 	Super::EndPlay(EndPlayReason);
@@ -236,6 +244,8 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 	EnhancedInputComponent->BindAction(IA_Dash, ETriggerEvent::Completed, this, &APlayerCharacter::DashEnd);
 
 	EnhancedInputComponent->BindAction(IA_BasicAttack, ETriggerEvent::Triggered, this, &APlayerCharacter::LeftClick);
+	EnhancedInputComponent->BindAction(IA_BasicAttack, ETriggerEvent::Completed, this, &APlayerCharacter::LeftClickRelease);
+
 	EnhancedInputComponent->BindAction(IA_RightAttack, ETriggerEvent::Triggered, this, &APlayerCharacter::RightClick);
 
 	EnhancedInputComponent->BindAction(IA_QSkill, ETriggerEvent::Triggered, this, &APlayerCharacter::QSkill);
@@ -373,8 +383,58 @@ void APlayerCharacter::DashEnd()
 
 void APlayerCharacter::LeftClick()
 {
-	bIsLeft = true;
-	BasicAttack();
+    bIsLeft = true;
+    // 왼쪽 무기가 얼음 타입인지 확인
+    if (LeftClassType == EClassType::CT_Ice)
+    {
+        // 얼음 조준/확대/활성화 로직 호출 (예시 함수)
+        StartIceAim();
+        return;
+    }
+    BasicAttack();
+}
+
+void APlayerCharacter::StartIceAim()
+{
+	this->CurrentMontage = bIsLeft ? CurrentLeftMontage : CurrentRightMontage;
+    this->CurrentComboData = bIsLeft ? CurrentLeftComboData : CurrentRightComboData;
+    this->CurrentMontageSectionName = bIsLeft ? CurrentLeftMontageSectionName : CurrentRightMontageSectionName;
+    this->CurrentWeapon = bIsLeft ? CurrentLeftWeapon : CurrentRightWeapon;
+
+    bIsHold = true;
+    bIsIceAiming = true;
+
+    UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+    if (AnimInstance && CurrentMontage)
+    {
+        if (!AnimInstance->Montage_IsPlaying(CurrentMontage))
+        {
+            AnimInstance->Montage_Play(CurrentMontage, 1.0f);
+        }
+        AnimInstance->Montage_JumpToSection(FName("IceAttack1"), CurrentMontage);
+    }
+}
+
+void APlayerCharacter::LeftClickRelease()
+{
+    bIsHold = false;
+    bIsIceAiming = false;
+
+    // 발사 처리
+    UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+    if (AnimInstance && CurrentMontage)
+    {
+        // 이미 재생 중이면 IceShoot 섹션으로 이동
+        if (AnimInstance->Montage_IsPlaying(CurrentMontage))
+        {
+            AnimInstance->Montage_JumpToSection(FName("IceShoot"), CurrentMontage);
+        }
+        else
+        {
+            AnimInstance->Montage_Play(CurrentMontage, 1.0f);
+            AnimInstance->Montage_JumpToSection(FName("IceShoot"), CurrentMontage);
+        }
+    }
 }
 
 void APlayerCharacter::RightClick()
@@ -688,7 +748,13 @@ void APlayerCharacter::UpdateCachedData(bool bIsLeftType)
         SelectedMontageSectionName = TEXT("FireSkill");
         CheckAnimBone = 1;
 		break;
-
+    case EClassType::CT_Ice:
+        SelectedMontage = IceComboMontage;
+        SelectedComboData = IceComboData;
+        WeaponClass = IceWeaponBP;
+        SelectedMontageSectionName = TEXT("IceSkill");
+        CheckAnimBone = 1;
+		break;
     default:
         SelectedMontage = nullptr;
         SelectedComboData = nullptr;
@@ -816,6 +882,25 @@ void APlayerCharacter::Tick(float DeltaTime) {
 	}
 
 	SleepEx(0, TRUE);
+
+	float InterpSpeed = 2.0f;
+
+	if (bIsHold)
+	{
+		// 확대: 암 길이를 줄임
+		SpringArm->TargetArmLength = FMath::FInterpTo(SpringArm->TargetArmLength, 200.0f, DeltaTime, InterpSpeed);
+
+		// 캐릭터 회전: 카메라 방향으로 부드럽게 회전
+		FRotator StartRot = GetActorRotation();
+		FRotator TargetRot = FRotator(StartRot.Pitch, GetControlRotation().Yaw, StartRot.Roll);
+		SetActorRotation(FMath::RInterpTo(StartRot, TargetRot, DeltaTime, InterpSpeed));
+	}
+	else
+	{
+		// 복귀: 원래 거리로 돌아감
+		SpringArm->TargetArmLength = FMath::FInterpTo(SpringArm->TargetArmLength, DefaultArmLength, DeltaTime, InterpSpeed);
+	}
+
 }
 
 void APlayerCharacter::QSkill()

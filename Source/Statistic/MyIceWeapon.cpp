@@ -14,7 +14,7 @@ AMyIceWeapon::AMyIceWeapon()
 
     // 필요하다면 메시의 충돌 설정 등 추가
     WeaponMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-    WeaponMesh->SetVisibility(true);
+    WeaponMesh->SetVisibility(false);
 
     static ConstructorHelpers::FClassFinder<AActor> IceArrowRef(TEXT("/Game/Weapon/MyIceArrow.MyIceArrow_C"));
     if (IceArrowRef.Succeeded())
@@ -43,7 +43,7 @@ void AMyIceWeapon::SetAiming()
     if (bIsAiming)
         return;
     bIsAiming = true;
-
+    WeaponMesh->SetVisibility(true);
    TempIceArrow = Cast<AMyIceArrow>(GetWorld()->SpawnActor(IceArrowClass));
     UE_LOG(LogTemp, Error, TEXT("FireBall %d Spawning"), Cast<APlayerCharacter>(OwnerCharacter)->get_skill_id());
 
@@ -75,5 +75,6 @@ void AMyIceWeapon::ShootIceArrow(FVector FirePoint)
 		TempIceArrow = nullptr;
 	}
     bIsAiming = false;
+    WeaponMesh->SetVisibility(false);
 }
 

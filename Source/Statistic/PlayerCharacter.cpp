@@ -16,6 +16,7 @@
 #include "MyFireWeapon.h"
 #include "MyWindWeapon.h"
 #include "MyStoneWeapon.h"
+#include "MyIceWeapon.h"
 #include "Kismet/GameplayStatics.h"
 
 APlayerCharacter::APlayerCharacter()
@@ -395,17 +396,22 @@ void APlayerCharacter::LeftClick()
 
 void APlayerCharacter::StartIceAim()
 {
+	this->CurrentMontage = bIsLeft ? CurrentLeftMontage : CurrentRightMontage;
+    this->CurrentComboData = bIsLeft ? CurrentLeftComboData : CurrentRightComboData;
+    this->CurrentMontageSectionName = bIsLeft ? CurrentLeftMontageSectionName : CurrentRightMontageSectionName;
+    this->CurrentWeapon = bIsLeft ? CurrentLeftWeapon : CurrentRightWeapon;
+
     bIsHold = true;
     bIsIceAiming = true;
 
     UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-    if (AnimInstance && CurrentLeftMontage)
+    if (AnimInstance && CurrentMontage)
     {
-        if (!AnimInstance->Montage_IsPlaying(CurrentLeftMontage))
+        if (!AnimInstance->Montage_IsPlaying(CurrentMontage))
         {
-            AnimInstance->Montage_Play(CurrentLeftMontage, 1.0f);
+            AnimInstance->Montage_Play(CurrentMontage, 1.0f);
         }
-        AnimInstance->Montage_JumpToSection(FName("IceAttack1"), CurrentLeftMontage);
+        AnimInstance->Montage_JumpToSection(FName("IceAttack1"), CurrentMontage);
     }
 }
 
@@ -416,17 +422,17 @@ void APlayerCharacter::LeftClickRelease()
 
     // 발사 처리
     UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-    if (AnimInstance && CurrentLeftMontage)
+    if (AnimInstance && CurrentMontage)
     {
         // 이미 재생 중이면 IceShoot 섹션으로 이동
-        if (AnimInstance->Montage_IsPlaying(CurrentLeftMontage))
+        if (AnimInstance->Montage_IsPlaying(CurrentMontage))
         {
-            AnimInstance->Montage_JumpToSection(FName("IceShoot"), CurrentLeftMontage);
+            AnimInstance->Montage_JumpToSection(FName("IceShoot"), CurrentMontage);
         }
         else
         {
-            AnimInstance->Montage_Play(CurrentLeftMontage, 1.0f);
-            AnimInstance->Montage_JumpToSection(FName("IceShoot"), CurrentLeftMontage);
+            AnimInstance->Montage_Play(CurrentMontage, 1.0f);
+            AnimInstance->Montage_JumpToSection(FName("IceShoot"), CurrentMontage);
         }
     }
 }

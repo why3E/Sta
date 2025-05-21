@@ -21,11 +21,9 @@ void UMMSpawnFireBall::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBas
             IAnimationWeaponInterface* WeaponPawn = Cast<IAnimationWeaponInterface>(MeshComp->GetOwner());
             if (WeaponPawn)
             {
-                UE_LOG(LogTemp, Warning, TEXT("WeaponPawn is valid"));
                 AMyFireWeapon* Weapon = Cast<AMyFireWeapon>(WeaponPawn->GetWeapon());
                 if (Weapon)
                 {
-                    UE_LOG(LogTemp, Warning, TEXT("WeaponPawn is Spawn"));
                     Weapon->SpawnFireBall(FireLocation); // 에너지볼 스폰 함수 호출
                 }
             }

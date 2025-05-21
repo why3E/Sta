@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "MyWeapon.h"
+#include "MyIceArrow.h"
 #include "MyIceWeapon.generated.h"
 
 /**
@@ -24,4 +25,22 @@ protected:
     TObjectPtr<class UStaticMeshComponent> WeaponMesh;
 
 	FName IceSocket;
+public:
+	void SetAiming();
+	// 생성 및 발사 함수
+	void ShootIceArrow(FVector FirePoint);
+
+protected:
+	// 클래스
+	UPROPERTY(VisibleAnywhere, Category = "Quiver", meta = (AllowPrivateAccess = "true"))
+	TSubclassOf<AActor> IceArrowClass;
+	
+	UPROPERTY()
+	TObjectPtr<class AMyIceArrow> TempIceArrow;
+
+
+private:
+	FVector FireLocation;
+private:
+	bool bIsAiming = false;
 };

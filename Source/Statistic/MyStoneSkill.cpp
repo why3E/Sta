@@ -50,10 +50,13 @@ void AMyStoneSkill::Fire(FVector FireLocation)
             StoneMesh->IgnoreActorWhenMoving(Owner, true); // 오너와 충돌 무시
         }
     }
+
     if (CollisionComponent)
     {
-        CollisionComponent->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+        // QueryAndPhysics로 변경
+        CollisionComponent->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
         CollisionComponent->SetCollisionResponseToChannel(ECC_Camera, ECR_Ignore); // 카메라 충돌 무시
+        // 랜드스케이프 채널에 대한 응답 추가 (보통 WorldStatic)
         if (Owner)
         {
             CollisionComponent->IgnoreActorWhenMoving(Owner, true); // 오너와 충돌 무시
@@ -61,7 +64,7 @@ void AMyStoneSkill::Fire(FVector FireLocation)
     }
 
     FVector LaunchVelocity;
-    FVector StartLocation = GetActorLocation();
+    FVector StartLocation = GetActorLocation() + FVector(0.0f, 0.0f, 100.0f); // 발사 시작 위치 (약간 위로)
     bool bHaveAimSolution = UGameplayStatics::SuggestProjectileVelocity(
         this,
         LaunchVelocity,

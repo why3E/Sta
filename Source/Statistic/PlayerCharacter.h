@@ -55,6 +55,7 @@ protected:
 	void DashStart();
 	void DashEnd();
 	void LeftClick();
+	void LeftClickRelease();
 	void RightClick();
 	void BasicAttack();
 	void SkillAttack();
@@ -106,6 +107,8 @@ protected:
 	TObjectPtr<class UAnimMontage> WindComboMontage;
 	UPROPERTY(EditAnywhere, Category = Montage, Meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<class UAnimMontage> FireComboMontage;
+	UPROPERTY(EditAnywhere, Category = Montage, Meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<class UAnimMontage> IceComboMontage;
 
 // Combo
 protected:
@@ -115,6 +118,8 @@ protected:
 	TObjectPtr<class UMMComboActionData> WindComboData;
 	UPROPERTY(EditAnywhere, Category = ComboData, Meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<class UMMComboActionData> FireComboData;
+	UPROPERTY(EditAnywhere, Category = ComboData, Meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<class UMMComboActionData> IceComboData;
 
 protected:
 	void ComboStart();
@@ -193,6 +198,8 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
     TSubclassOf<AMyWeapon> StoneWeaponBP;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
+    TSubclassOf<AMyWeapon> IceWeaponBP;
 private:
     bool bIsQDrawingCircle = false; // 원을 그리고 있는지 여부
 	bool bisEDrawingRectangle = false; // 원을 그리고 있는지 여부
@@ -281,6 +288,12 @@ private:
 	bool bCanUseSkillE = true;
 	float SkillECoolTime = 3.0f;
 	float CurrnetSkillETime = 0.0f;
+
+	bool bIsHold = false;
+	bool bIsIceAiming = false;  // 얼음 조준 중 여부
+	float DefaultArmLength = 300.0f;
+	FVector DefaultCameraRelativeLocation = FVector(0.0f, 0.0f, 60.0f);
+	void StartIceAim();
 
 	// 발자국 효과음을 저장할 배열과 인덱스 변수 추가
 protected:

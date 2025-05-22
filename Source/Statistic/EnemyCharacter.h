@@ -75,9 +75,10 @@ public:
 
     void do_send(void* buff);
 
-    UPROPERTY(EditAnywhere, Category = "Hud")
-    class UWidgetComponent* damageWidget;
 
-    UPROPERTY()
-    UDamageWidget* damageWidgetInstance;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Hud")
+    TSubclassOf<class ADamagePopupActor> DamagePopupActorClass;
+
+    UFUNCTION(BlueprintCallable, Category = "Hud")
+    void ShowHud(float Damage, bool bIsCritical = false);
 };

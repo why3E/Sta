@@ -465,7 +465,7 @@ void APlayerCharacter::BasicAttack()
 		UE_LOG(LogTemp, Error, TEXT("CurrentImpactRot: %s"), *CurrentImpactRot.ToString());
 		
 		SkillAttack();
-		return;
+		
 		// Send Skill Packet 
 		/*if (get_is_player()) {
 			switch (ClassType) {

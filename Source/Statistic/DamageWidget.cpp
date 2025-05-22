@@ -4,7 +4,7 @@
 void UDamageWidget::NativeConstruct()
 {
     Super::NativeConstruct();
-    HideWidget();
+    //HideWidget();
 }
 
 void UDamageWidget::SetDamageText(FString Damage)
@@ -46,5 +46,7 @@ void UDamageWidget::PlayNormalDamageAnimation(float Damage)
 
         // 텍스트를 보이게 설정
         ShowWidget();
+        
+		UE_LOG(LogTemp, Warning, TEXT("Damage Popup Actor Spawned4"));
     }
 }

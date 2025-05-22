@@ -10,13 +10,14 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "DrawDebugHelpers.h"
 
-#include "DamageWidget.h" // DamageWidget 헤더 추가
+#include "DamageWidget.h"
 #include "Rendering/SkeletalMeshRenderData.h"
 #include "Rendering/SkeletalMeshLODRenderData.h"
 #include "Rendering/StaticMeshVertexBuffer.h"
 #include "KismetProceduralMeshLibrary.h"
-#include "Kismet/KismetMathLibrary.h"        // ⭐ 랜덤 벡터용 추가
-#include "Components/WidgetComponent.h" // UWidgetComponent 헤더 추가
+#include "Kismet/KismetMathLibrary.h"        
+#include "Components/WidgetComponent.h" 
+#include "DamagePopupActor.h"
 #include "SESSION.h"
 
 AEnemyCharacter::AEnemyCharacter()
@@ -41,19 +42,11 @@ AEnemyCharacter::AEnemyCharacter()
     ProcMeshComponent->SetVisibility(false);
     ProcMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
-    // 데미지 표시용 위젯 컴포넌트 초기화
-    damageWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("DamageWidget"));
-    damageWidget->SetupAttachment(RootComponent);
-    damageWidget->SetRelativeLocation(FVector(0.f, 0.f, 100.f));
-
-
 }
 
 void AEnemyCharacter::BeginPlay()
 {
     Super::BeginPlay();
-    UUserWidget* damageW = damageWidget->GetUserWidgetObject();
-    damageWidgetInstance = Cast<UDamageWidget>(damageW);
     bIsAttacking = false;
 }
 
@@ -106,7 +99,9 @@ void AEnemyCharacter::MeleeAttack()
 void AEnemyCharacter::ReceiveSkillHit(const FSkillInfo& Info, AActor* Causer)
 {
     HP -= Info.Damage;
-    damageWidgetInstance->PlayNormalDamageAnimation(Info.Damage);
+
+    // 수정된 부분: 개별 팝업 출력
+    ShowHud(Info.Damage, false);
 
     UE_LOG(LogTemp, Warning, TEXT("Damage: %f, HP: %f"), Info.Damage, HP);
 
@@ -132,9 +127,10 @@ void AEnemyCharacter::Die()
         }
     }
 
-    FVector PlanePosition = ProcMeshComponent->GetComponentLocation() + FVector(0.f, 0.f, 30.f);    // 약간 위로
-    FVector PlaneNormal = FVector(1.f, 0.f, 1.f).GetSafeNormal();   // 사선 절단
+    FVector PlanePosition = ProcMeshComponent->GetComponentLocation() + FVector(0.f, 0.f, 30.f);
+    FVector PlaneNormal = FVector(1.f, 0.f, 1.f).GetSafeNormal();
     SliceProcMesh(PlanePosition, PlaneNormal);
+
     UE_LOG(LogTemp, Warning, TEXT("Enemy died and switched to Procedural Mesh."));
 }
 
@@ -250,20 +246,12 @@ void AEnemyCharacter::SliceProcMesh(FVector PlanePosition, FVector PlaneNormal)
 
     if (ProcMeshComponent)
     {
-        ProcMeshComponent->SetSimulatePhysics(true);
-        ProcMeshComponent->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-        ProcMeshComponent->SetEnableGravity(true);
-
         FVector RandomImpulse = UKismetMathLibrary::RandomUnitVector() * ImpulseStrength;
         ProcMeshComponent->AddImpulse(RandomImpulse, NAME_None, true);
     }
 
     if (OutOtherHalfProcMesh)
     {
-        OutOtherHalfProcMesh->SetSimulatePhysics(true);
-        OutOtherHalfProcMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-        OutOtherHalfProcMesh->SetEnableGravity(true);
-
         FVector RandomImpulse = UKismetMathLibrary::RandomUnitVector() * ImpulseStrength;
         OutOtherHalfProcMesh->AddImpulse(RandomImpulse, NAME_None, true);
     }
@@ -271,7 +259,8 @@ void AEnemyCharacter::SliceProcMesh(FVector PlanePosition, FVector PlaneNormal)
     UE_LOG(LogTemp, Warning, TEXT("Sliced Procedural Mesh with random impulses!"));
 }
 
-void AEnemyCharacter::Overlap(AActor* OtherActor) {
+void AEnemyCharacter::Overlap(AActor* OtherActor)
+{
     AMySkillBase* Skill = Cast<AMySkillBase>(OtherActor);
 
     FSkillInfo Info;
@@ -284,7 +273,8 @@ void AEnemyCharacter::Overlap(AActor* OtherActor) {
     UE_LOG(LogTemp, Warning, TEXT("Skill Hit to Monster %d"), get_id());
 }
 
-void AEnemyCharacter::do_send(void* buff) {
+void AEnemyCharacter::do_send(void* buff)
+{
     EXP_OVER* o = new EXP_OVER;
     unsigned char packet_size = reinterpret_cast<unsigned char*>(buff)[0];
     memcpy(o->m_buffer, buff, packet_size);
@@ -297,5 +287,28 @@ void AEnemyCharacter::do_send(void* buff) {
             delete o;
             return;
         }
+    }
+}
+
+void AEnemyCharacter::ShowHud(float Damage, bool bIsCritical)
+{
+    if (!DamagePopupActorClass)
+    {
+        return;
+    }
+
+    FVector spawnLoc = GetActorLocation() + FVector(0.f, 0.f, 140.f);
+
+    // X, Y에 랜덤 흔들림 추가
+    spawnLoc.X += FMath::RandRange(-80.f, 80.f);
+    spawnLoc.Y += FMath::RandRange(-80.f, 80.f);
+
+    FRotator spawnRot = FRotator::ZeroRotator;
+
+    ADamagePopupActor* popupActor = GetWorld()->SpawnActor<ADamagePopupActor>(DamagePopupActorClass, spawnLoc, spawnRot);
+    if (popupActor)
+    {
+        popupActor->InitDamage(Damage, bIsCritical);
+        UE_LOG(LogTemp, Warning, TEXT("Damage Popup Actor Spawned"));
     }
 }

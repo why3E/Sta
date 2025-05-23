@@ -1,4 +1,6 @@
 #include "MyStoneWave.h"
+#include "EnemyCharacter.h"
+#include "PlayerCharacter.h"
 #include "Components/BoxComponent.h"
 #include "NiagaraComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
@@ -29,6 +31,7 @@ AMyStoneWave::AMyStoneWave()
 void AMyStoneWave::PostInitializeComponents()
 {
     Super::PostInitializeComponents();
+
     if (CollisionComponent)
     {
         CollisionComponent->OnComponentBeginOverlap.AddDynamic(this, &AMyStoneWave::OnBeginOverlap);
@@ -90,7 +93,6 @@ void AMyStoneWave::Tick(float DeltaTime)
     }
 }
 
-
 void AMyStoneWave::Fire(FVector TargetLocation)
 {
     FVector LaunchDirection;
@@ -129,7 +131,45 @@ void AMyStoneWave::OnNiagaraFinished(UNiagaraComponent* PSystem)
 }
 void AMyStoneWave::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
+    if (!g_is_host) return;
 
+    if (OtherActor && OtherActor != this) {
+        if (OtherActor->IsA(AMySkillBase::StaticClass())) {
+            // Skill - Skill Collision
+            AMySkillBase* ptr = Cast<AMySkillBase>(OtherActor);
+
+            if (g_c_skills.count(ptr->m_id)) {
+                if (m_id < ptr->m_id) {
+                    collision_packet p;
+                    p.packet_size = sizeof(collision_packet);
+                    p.packet_type = C2H_COLLISION_PACKET;
+                    p.collision_type = SKILL_SKILL_COLLISION;
+                    p.attacker_id = m_id;
+                    p.victim_id = ptr->m_id;
+
+                    Cast<APlayerCharacter>(Owner)->do_send(&p);
+                }
+            }
+        }
+
+        if (OtherActor->IsA(AEnemyCharacter::StaticClass())) {
+            // Skill - Monster Collision
+            AEnemyCharacter* ptr = Cast<AEnemyCharacter>(OtherActor);
+
+            if (g_c_monsters.count(ptr->get_id())) {
+                if (ptr->get_hp() > 0.0f) {
+                    collision_packet p;
+                    p.packet_size = sizeof(collision_packet);
+                    p.packet_type = C2H_COLLISION_PACKET;
+                    p.collision_type = SKILL_MONSTER_COLLISION;
+                    p.attacker_id = m_id;
+                    p.victim_id = ptr->get_id();
+
+                    Cast<APlayerCharacter>(Owner)->do_send(&p);
+                }
+            }
+        }
+    }
 }
 
 void AMyStoneWave::Overlap(AActor* OtherActor)

@@ -91,6 +91,7 @@ void AMyIceWeapon::ShootIceArrow(FVector FirePoint)
 		TempIceArrow->Fire(FirePoint);
 		TempIceArrow = nullptr;
 	}
+
     bIsAiming = false;
     WeaponMesh->SetVisibility(false);
 }

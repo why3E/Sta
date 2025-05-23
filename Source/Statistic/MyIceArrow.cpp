@@ -52,7 +52,11 @@ void AMyIceArrow::Tick(float DeltaTime)
 void AMyIceArrow::PostInitializeComponents()
 {
     Super::PostInitializeComponents();
-    //CollisionComponent->OnComponentBeginOverlap.AddDynamic(this, &AMyIceArrow::OnBeginOverlap);
+
+    if (CollisionComponent)
+    {
+        CollisionComponent->OnComponentBeginOverlap.AddDynamic(this, &AMyIceArrow::OnBeginOverlap);
+    }
 }
 
 void AMyIceArrow::Fire(FVector TargetLocation)
@@ -81,15 +85,70 @@ void AMyIceArrow::Fire(FVector TargetLocation)
 
 void AMyIceArrow::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
+    if (!g_is_host || bIsHit || (Owner == OtherActor)) { return; } // 이미 충돌했거나 발사체의 소유자와 충돌한 경우 무시
+
+    if (OtherActor->IsA(AMySkillBase::StaticClass())) {
+        // Skill - Skill Collision
+        AMySkillBase* ptr = Cast<AMySkillBase>(OtherActor);
+
+        if (g_c_skills.count(ptr->m_id)) {
+            if (m_id < ptr->m_id) {
+                collision_packet p;
+                p.packet_size = sizeof(collision_packet);
+                p.packet_type = C2H_COLLISION_PACKET;
+                p.collision_type = SKILL_SKILL_COLLISION;
+                p.attacker_id = m_id;
+                p.victim_id = ptr->m_id;
+
+                Cast<APlayerCharacter>(Owner)->do_send(&p);
+            }
+        }
+    } else if (OtherActor->IsA(AEnemyCharacter::StaticClass())) {
+        // Skill - Monster Collision
+        AEnemyCharacter* ptr = Cast<AEnemyCharacter>(OtherActor);
+
+        if (g_c_monsters.count(ptr->get_id())) {
+            if (ptr->get_hp() > 0.0f) {
+                collision_packet p;
+                p.packet_size = sizeof(collision_packet);
+                p.packet_type = C2H_COLLISION_PACKET;
+                p.collision_type = SKILL_MONSTER_COLLISION;
+                p.attacker_id = m_id;
+                p.victim_id = ptr->get_id();
+
+                Cast<APlayerCharacter>(Owner)->do_send(&p);
+            }
+        }
+    } else if (OtherActor->IsA(APlayerCharacter::StaticClass())) {
+        // Skill - Player Collision
+        APlayerCharacter* ptr = Cast<APlayerCharacter>(OtherActor);
+
+        if (g_c_players[ptr->get_id()]) {
+            collision_packet p;
+            p.packet_size = sizeof(collision_packet);
+            p.packet_type = C2H_COLLISION_PACKET;
+            p.collision_type = SKILL_PLAYER_COLLISION;
+            p.attacker_id = m_id;
+            p.victim_id = ptr->get_id();
+
+            Cast<APlayerCharacter>(Owner)->do_send(&p);
+        }
+    }
 }
 
 void AMyIceArrow::Overlap(AActor* OtherActor) {
-    
+    // 충돌 상태 설정
+    bIsHit = true;
+
+    // 발사체 제거
     Destroy();
 }
 
 void AMyIceArrow::Overlap(ACharacter* OtherActor) {
-    
+    // 충돌 상태 설정
+    bIsHit = true;
+
+    // 발사체 제거
     Destroy();
 }
 

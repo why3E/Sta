@@ -108,6 +108,7 @@ void AMyPlayerController::InitSocket()
 		ret = bind(g_s_socket, reinterpret_cast<const sockaddr*>(&addr), sizeof(SOCKADDR_IN));
 		if (SOCKET_ERROR == ret) {
 			UE_LOG(LogTemp, Warning, TEXT("Bind Failed : %d"), WSAGetLastError());
+			g_is_host = false;
 			closesocket(g_s_socket);
 		} else {
 			UE_LOG(LogTemp, Warning, TEXT("Bind Succeed"));
@@ -730,7 +731,7 @@ void c_process_packet(char* packet) {
 		);
 
 		NewPlayer->set_id(p->player_id);
-		NewPlayer->set_yaw(p->player_yaw);
+		NewPlayer->rotate(p->player_yaw);
 		NewPlayer->SetActorLocation(FVector(p->player_x, p->player_y, p->player_z));
 		NewPlayer->set_velocity(p->player_vx, p->player_vy, p->player_vz);
 		NewPlayer->set_is_player(true);
@@ -758,7 +759,7 @@ void c_process_packet(char* packet) {
 			nullptr,
 			TEXT("/Game/player_anim/MyPlayerAnim.MyPlayerAnim_C")
 		);
-	
+
 		if (AnimClass)
 		{
 			NewPlayer->GetMesh()->SetAnimInstanceClass(AnimClass);
@@ -847,6 +848,7 @@ void c_process_packet(char* packet) {
 				g_c_collisions[p->attacker_id].push(p->victim_id);
 				g_c_collisions[p->victim_id].push(p->attacker_id);
 			}
+			UE_LOG(LogTemp, Warning, TEXT("Skill %d And Skill %d Collision"), p->attacker_id, p->victim_id);
 			break;
 
 		case SKILL_MONSTER_COLLISION:
@@ -854,12 +856,14 @@ void c_process_packet(char* packet) {
 				g_c_skills[p->attacker_id]->Overlap(g_c_monsters[p->victim_id]);
 				Cast<AEnemyCharacter>(g_c_monsters[p->victim_id])->Overlap(g_c_skills[p->attacker_id]);
 			}
+			UE_LOG(LogTemp, Warning, TEXT("Skill %d And Monster %d Collision"), p->attacker_id, p->victim_id);
 			break;
 
 		case SKILL_PLAYER_COLLISION:
 			if (g_c_skills.count(p->attacker_id) && g_c_players[p->victim_id]) {
 				g_c_skills[p->attacker_id]->Overlap(g_c_monsters[p->victim_id]);
 			}
+			UE_LOG(LogTemp, Warning, TEXT("Skill %d And Player %d Collision"), p->attacker_id, p->victim_id);
 			break;
 		}
 	}
@@ -891,6 +895,16 @@ void c_process_packet(char* packet) {
 		char client_id = p->client_id;
 		unsigned short monster_count = 0;
 		unsigned short expected_count = p->monster_count;
+
+		if (0 == expected_count) {
+			ch_init_complete_packet init_complete_packet;
+			init_complete_packet.packet_size = sizeof(ch_init_complete_packet);
+			init_complete_packet.packet_type = C2H_INIT_COMPLETE_PACKET;
+			init_complete_packet.player_id = client_id;
+
+			g_c_players[client_id]->do_send(&init_complete_packet);
+			break;
+		}
 
 		for (unsigned short i = 0; i < expected_count; ++i) {
 			monster_info info = p->monsters[i];
@@ -972,12 +986,12 @@ void c_process_packet(char* packet) {
 				g_c_monsters[info.monster_id] = NewMonster;
 
 				if (monster_count == (expected_count - 1)) {
-					ch_init_complete_packet p;
-					p.packet_size = sizeof(ch_init_complete_packet);
-					p.packet_type = C2H_INIT_COMPLETE_PACKET;
-					p.player_id = client_id;
+					ch_init_complete_packet init_complete_packet;
+					init_complete_packet.packet_size = sizeof(ch_init_complete_packet);
+					init_complete_packet.packet_type = C2H_INIT_COMPLETE_PACKET;
+					init_complete_packet.player_id = client_id;
 
-					g_c_players[client_id]->do_send(&p);
+					g_c_players[client_id]->do_send(&init_complete_packet);
 				}
 				UE_LOG(LogTemp, Warning, TEXT("[Client] Spawned Monster %d and Stored in g_s_monsters"), info.monster_id);
 			});

@@ -1,4 +1,6 @@
 #include "MyStoneSkill.h"
+#include "EnemyCharacter.h"
+#include "PlayerCharacter.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/SphereComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
@@ -99,6 +101,11 @@ void AMyStoneSkill::PostInitializeComponents()
 {
     Super::PostInitializeComponents();
 
+    if (CollisionComponent)
+    {
+        CollisionComponent->OnComponentBeginOverlap.AddDynamic(this, &AMyStoneSkill::OnBeginOverlap);
+    }
+
     // 예: 충돌 이벤트 바인딩 (나중에 필요 시 사용)
     // CollisionComponent->OnComponentHit.AddDynamic(this, &AMyStoneSkill::OnHit);
 }
@@ -126,13 +133,71 @@ void AMyStoneSkill::Tick(float DeltaTime)
 
 void AMyStoneSkill::Overlap(AActor* OtherActor)
 {
-    
+    // 충돌 상태 설정
+    bIsHit = true;
+
+    // 발사체 제거
+    Destroy();
 }
+
 void AMyStoneSkill::Overlap(ACharacter* OtherActor)
 {
-    
+    // 충돌 상태 설정
+    bIsHit = true;
+
+    // 발사체 제거
+    Destroy();
 }
+
 void AMyStoneSkill::OnBeginOverlap(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-   
+    if (!g_is_host || bIsHit || (Owner == OtherActor)) { return; } // 이미 충돌했거나 발사체의 소유자와 충돌한 경우 무시
+
+    if (OtherActor->IsA(AMySkillBase::StaticClass())) {
+        // Skill - Skill Collision
+        AMySkillBase* ptr = Cast<AMySkillBase>(OtherActor);
+
+        if (g_c_skills.count(ptr->m_id)) {
+            if (m_id < ptr->m_id) {
+                collision_packet p;
+                p.packet_size = sizeof(collision_packet);
+                p.packet_type = C2H_COLLISION_PACKET;
+                p.collision_type = SKILL_SKILL_COLLISION;
+                p.attacker_id = m_id;
+                p.victim_id = ptr->m_id;
+
+                Cast<APlayerCharacter>(Owner)->do_send(&p);
+            }
+        }
+    } else if (OtherActor->IsA(AEnemyCharacter::StaticClass())) {
+        // Skill - Monster Collision
+        AEnemyCharacter* ptr = Cast<AEnemyCharacter>(OtherActor);
+
+        if (g_c_monsters.count(ptr->get_id())) {
+            if (ptr->get_hp() > 0.0f) {
+                collision_packet p;
+                p.packet_size = sizeof(collision_packet);
+                p.packet_type = C2H_COLLISION_PACKET;
+                p.collision_type = SKILL_MONSTER_COLLISION;
+                p.attacker_id = m_id;
+                p.victim_id = ptr->get_id();
+
+                Cast<APlayerCharacter>(Owner)->do_send(&p);
+            }
+        }
+    } else if (OtherActor->IsA(APlayerCharacter::StaticClass())) {
+        // Skill - Player Collision
+        APlayerCharacter* ptr = Cast<APlayerCharacter>(OtherActor);
+
+        if (g_c_players[ptr->get_id()]) {
+            collision_packet p;
+            p.packet_size = sizeof(collision_packet);
+            p.packet_type = C2H_COLLISION_PACKET;
+            p.collision_type = SKILL_PLAYER_COLLISION;
+            p.attacker_id = m_id;
+            p.victim_id = ptr->get_id();
+
+            Cast<APlayerCharacter>(Owner)->do_send(&p);
+        }
+    }
 }

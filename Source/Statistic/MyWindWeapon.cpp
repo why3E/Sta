@@ -47,7 +47,6 @@ void AMyWindWeapon::SpawnWindCutter(FVector ImpactPoint)
 		UE_LOG(LogTemp, Warning, TEXT("WindCutter Spawned"));
 		if (OwnerCharacter)
         {
-            
             unsigned short skill_id = Cast<APlayerCharacter>(OwnerCharacter)->get_skill_id();
 
             TempWindCutter->SetID(skill_id);

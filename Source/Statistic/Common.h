@@ -36,6 +36,7 @@ constexpr char H2C_PLAYER_SKILL_ROTATOR_PACKET = 26;
 constexpr char H2C_PLAYER_CHANGE_ELEMENT_PACKET = 27;
 constexpr char H2C_COLLISION_PACKET = 28;
 constexpr char H2C_SKILL_CREATE_PACKET = 29;
+constexpr char H2C_PLAYER_ICE_AIM_PACKET = 30;
 
 constexpr char C2H_PLAYER_VECTOR_PACKET = 41;
 constexpr char C2H_PLAYER_STOP_PACKET = 42;
@@ -46,6 +47,7 @@ constexpr char C2H_PLAYER_SKILL_ROTATOR_PACKET = 46;
 constexpr char C2H_PLAYER_CHANGE_ELEMENT_PACKET = 47;
 constexpr char C2H_COLLISION_PACKET = 48;
 constexpr char C2H_SKILL_CREATE_PACKET = 49;
+constexpr char C2H_PLAYER_ICE_AIM_PACKET = 50;
 
 
 
@@ -53,7 +55,7 @@ constexpr char C2H_SKILL_CREATE_PACKET = 49;
 
 constexpr char ELEMENT_WIND = 1;
 constexpr char ELEMENT_FIRE = 2;
-constexpr char ELEMENT_EARTH = 3;
+constexpr char ELEMENT_STONE = 3;
 constexpr char ELEMENT_ICE = 4;
 
 constexpr char SKILL_WIND_CUTTER = 1;
@@ -63,6 +65,10 @@ constexpr char SKILL_WIND_FIRE_TORNADO = 4;
 constexpr char SKILL_WIND_FIRE_BOMB = 5;
 constexpr char SKILL_FIRE_BALL = 6;
 constexpr char SKILL_FIRE_WALL = 7;
+constexpr char SKILL_STONE_WAVE = 8;
+constexpr char SKILL_STONE_SKILL = 9;
+constexpr char SKILL_ICE_AIM = 10;
+constexpr char SKILL_ICE_ARROW = 11;
 
 constexpr char SKILL_SKILL_COLLISION = 1;
 constexpr char SKILL_MONSTER_COLLISION = 2;
@@ -150,6 +156,12 @@ struct player_change_element_packet {
 	char player_id;
 	char element_type;
 	bool is_left;
+};
+
+struct player_ice_aim_packet {
+	unsigned char packet_size;
+	char packet_type;
+	char player_id;
 };
 
 struct collision_packet {

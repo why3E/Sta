@@ -287,6 +287,8 @@ void server_thread() {
 			p.packet_type = H2C_MONSTER_PACKET;
 			
 			for (const auto& [monster_id, ptr] : g_c_monsters) {
+				if (!ptr) { continue; }
+
 				AEnemyCharacter* monster = Cast<AEnemyCharacter>(ptr);
 
 				if (monster->get_is_attacking()) {
@@ -511,6 +513,7 @@ void h_process_packet(char* packet) {
 
 	case C2H_PLAYER_SKILL_VECTOR_PACKET: {
 		player_skill_vector_packet* p = reinterpret_cast<player_skill_vector_packet*>(packet);
+		p->packet_type = H2C_PLAYER_SKILL_VECTOR_PACKET;
 		p->skill_id = g_s_skill_id++;
 		for (char client_id = 0; client_id < MAX_CLIENTS; ++client_id) {
 			if (g_s_clients[client_id]) {
@@ -522,6 +525,7 @@ void h_process_packet(char* packet) {
 
 	case C2H_PLAYER_SKILL_ROTATOR_PACKET: {
 		player_skill_rotator_packet* p = reinterpret_cast<player_skill_rotator_packet*>(packet);
+		p->packet_type = H2C_PLAYER_SKILL_ROTATOR_PACKET;
 
 		switch (p->skill_type) {
 		case SKILL_FIRE_WALL:
@@ -567,6 +571,7 @@ void h_process_packet(char* packet) {
 
 	case C2H_SKILL_CREATE_PACKET: {
 		skill_create_packet* p = reinterpret_cast<skill_create_packet*>(packet);
+		p->packet_type = H2C_SKILL_CREATE_PACKET;
 		p->new_skill_id = g_s_skill_id++;
 		for (char client_id = 0; client_id < MAX_CLIENTS; ++client_id) {
 			if (g_s_clients[client_id]) {
@@ -590,6 +595,17 @@ void h_process_packet(char* packet) {
 				if (g_s_clients[other_id]) {
 					g_s_clients[other_id]->do_send(p);
 				}
+			}
+		}
+		break;
+	}
+
+	case C2H_PLAYER_ICE_AIM_PACKET: {
+		player_ice_aim_packet* p = reinterpret_cast<player_ice_aim_packet*>(packet);
+		p->packet_type = H2C_PLAYER_ICE_AIM_PACKET;
+		for (char client_id = 0; client_id < MAX_CLIENTS; ++client_id) {
+			if (g_s_clients[client_id]) {
+				g_s_clients[client_id]->do_send(p);
 			}
 		}
 		break;
@@ -659,7 +675,7 @@ extern void CALLBACK h_send_callback(DWORD err, DWORD num_bytes, LPWSAOVERLAPPED
 // Client CALLBACK
 void c_process_packet(char* packet) {
 	char packet_type = packet[1];
-	//UE_LOG(LogTemp, Warning, TEXT("[Client] Received Packet Type : %d"), packet_type);
+	UE_LOG(LogTemp, Warning, TEXT("[Client] Received Packet Type : %d"), packet_type);
 
 	switch (packet_type) {
 	case H2C_PLAYER_INFO_PACKET: {
@@ -867,7 +883,6 @@ void c_process_packet(char* packet) {
 			}
 			break;
 		}
-		//UE_LOG(LogTemp, Warning, TEXT("[Client] Received Collision Packet"));
 		break;
 	}
 
@@ -1068,6 +1083,12 @@ void c_process_packet(char* packet) {
 		}
 
 		UE_LOG(LogTemp, Warning, TEXT("[Client] Received Monster %d Attack Packet"), p->monster_id);
+		break;
+	}
+
+	case H2C_PLAYER_ICE_AIM_PACKET: {
+		player_ice_aim_packet* p = reinterpret_cast<player_ice_aim_packet*>(packet);
+		g_c_players[p->player_id]->StartIceAim();
 		break;
 	}
 	}

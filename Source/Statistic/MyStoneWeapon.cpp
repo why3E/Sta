@@ -51,6 +51,24 @@ void AMyStoneWeapon::SpawnStoneWave(FVector FireLocation)
         AMyStoneWave* StoneWave = GetWorld()->SpawnActor<AMyStoneWave>(StoneWaveClass, SpawnLocation, FRotator::ZeroRotator, SpawnParams);
         if (StoneWave)
         {
+            unsigned short skill_id = Cast<APlayerCharacter>(OwnerCharacter)->get_skill_id();
+
+            StoneWave->SetID(skill_id);
+            StoneWave->SetOwner(OwnerCharacter);
+
+            g_c_skills.emplace(skill_id, StoneWave);
+            if (g_c_collisions.count(skill_id)) {
+                while (!g_c_collisions[skill_id].empty()) {
+                    unsigned short other_id = g_c_collisions[skill_id].front();
+                    g_c_collisions[skill_id].pop();
+
+                    if (g_c_skills.count(other_id)) {
+                        StoneWave->Overlap(g_c_skills[other_id]);
+                        g_c_skills[other_id]->Overlap(g_c_skills[skill_id]);
+                    }
+                }
+            }
+
             StoneWave->Fire(FireLocation);
         }
     }
@@ -84,7 +102,24 @@ void AMyStoneWeapon::SpawnStoneSkill(FVector ImpactPoint)
         return;
     }
 
+    unsigned short skill_id = Cast<APlayerCharacter>(OwnerCharacter)->get_skill_id();
+
+    TempStoneSkill->SetID(skill_id);
     TempStoneSkill->SetOwner(OwnerCharacter);
+
+    g_c_skills.emplace(skill_id, TempStoneSkill);
+    if (g_c_collisions.count(skill_id)) {
+        while (!g_c_collisions[skill_id].empty()) {
+            unsigned short other_id = g_c_collisions[skill_id].front();
+            g_c_collisions[skill_id].pop();
+
+            if (g_c_skills.count(other_id)) {
+                TempStoneSkill->Overlap(g_c_skills[other_id]);
+                g_c_skills[other_id]->Overlap(g_c_skills[skill_id]);
+                UE_LOG(LogTemp, Error, TEXT("Skill %d and %d Collision Succeed!"), skill_id, other_id);
+            }
+        }
+    }
 
     StoneSkillImpactPoint = ImpactPoint;
 
@@ -101,6 +136,5 @@ void AMyStoneWeapon::ShootStoneSkill()
 
     // 실제 발사
     TempStoneSkill->Fire(StoneSkillImpactPoint);
-
     TempStoneSkill = nullptr;
 }

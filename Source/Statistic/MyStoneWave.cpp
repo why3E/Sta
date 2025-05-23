@@ -132,7 +132,6 @@ void AMyStoneWave::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* O
 
 }
 
-
 void AMyStoneWave::Overlap(AActor* OtherActor)
 {
 }

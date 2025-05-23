@@ -296,7 +296,6 @@ private:
 	bool bIsIceAiming = false;  // 얼음 조준 중 여부
 	float DefaultArmLength = 300.0f;
 	FVector DefaultCameraRelativeLocation = FVector(0.0f, 0.0f, 60.0f);
-	void StartIceAim();
 
 	// 발자국 효과음을 저장할 배열과 인덱스 변수 추가
 protected:
@@ -310,4 +309,6 @@ protected:
 public:
     // 발자국 효과음을 재생하는 함수
     void PlayFootstepSound();
+	void StartIceAim();
+	void ShootIceArrow();
 };

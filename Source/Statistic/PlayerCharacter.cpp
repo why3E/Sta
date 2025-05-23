@@ -423,23 +423,25 @@ void APlayerCharacter::StartIceAim()
 
 void APlayerCharacter::LeftClickRelease()
 {
-	bIsHold = false;
-	bIsIceAiming = false;
+	if (LeftClassType == EClassType::CT_Ice) {
+		GetFireTargetLocation();
 
-	GetFireTargetLocation();
-
-	player_skill_vector_packet p;
-	p.packet_size = sizeof(player_skill_vector_packet);
-	p.packet_type = C2H_PLAYER_SKILL_VECTOR_PACKET;
-	p.player_id = m_id;
-	p.skill_vx = FireLocation.X; p.skill_vy = FireLocation.Y; p.skill_vz = FireLocation.Z;
-	p.skill_type = SKILL_ICE_ARROW;
-	p.is_left = true;
-	do_send(&p);
+		player_skill_vector_packet p;
+		p.packet_size = sizeof(player_skill_vector_packet);
+		p.packet_type = C2H_PLAYER_SKILL_VECTOR_PACKET;
+		p.player_id = m_id;
+		p.skill_vx = FireLocation.X; p.skill_vy = FireLocation.Y; p.skill_vz = FireLocation.Z;
+		p.skill_type = SKILL_ICE_ARROW;
+		p.is_left = true;
+		do_send(&p);
+	}
 }
 
 void APlayerCharacter::ShootIceArrow() 
 {
+	bIsHold = false;
+	bIsIceAiming = false;
+
 	// 발사 처리
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 	if (AnimInstance && CurrentMontage)

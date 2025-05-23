@@ -22,7 +22,7 @@
 
 AEnemyCharacter::AEnemyCharacter()
 {
-    PrimaryActorTick.bCanEverTick = false;
+    PrimaryActorTick.bCanEverTick = true;
 
     GetCapsuleComponent()->InitCapsuleSize(42.f, 50.f);
 
@@ -41,7 +41,6 @@ AEnemyCharacter::AEnemyCharacter()
     ProcMeshComponent->SetupAttachment(RootComponent);
     ProcMeshComponent->SetVisibility(false);
     ProcMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-
 }
 
 void AEnemyCharacter::BeginPlay()
@@ -53,6 +52,16 @@ void AEnemyCharacter::BeginPlay()
 void AEnemyCharacter::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);
+
+    if (!g_is_host) {
+        FVector CurrentLocation = GetActorLocation();
+        FVector NewLocation = FMath::VInterpTo(CurrentLocation, m_target_location, DeltaTime, 5.0f);
+        SetActorLocation(NewLocation);
+
+        FRotator CurrentRotation = GetActorRotation();
+        FRotator NewRotation = FMath::RInterpTo(CurrentRotation, m_target_rotation, DeltaTime, 5.0f);
+        SetActorRotation(NewRotation);
+    }
 }
 
 void AEnemyCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)

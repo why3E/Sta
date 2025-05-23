@@ -66,15 +66,18 @@ protected:
 
 public:
     unsigned short m_id;
+    FVector m_target_location;
+    FRotator m_target_rotation;
 
 public:
     virtual void Overlap(AActor* OtherActor);
 
     unsigned short get_id() { return m_id; }
     void set_id(unsigned short id) { m_id = id; }
+    void set_target_location(FVector target_location) { m_target_location = target_location; }
+    void set_target_rotation(FRotator target_rotation) { m_target_rotation = target_rotation; }
 
     void do_send(void* buff);
-
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Hud")
     TSubclassOf<class ADamagePopupActor> DamagePopupActorClass;

@@ -225,7 +225,6 @@ void spawn_monster(FVector Location) {
 			NewAI->RunBehaviorTree(BTAsset);
 
 			NewAI->GetBlackboardComponent()->SetValueAsVector(TEXT("StartLocation"), NewMonster->GetActorLocation());
-			NewAI->GetBlackboardComponent()->SetValueAsObject(TEXT("TargetActor"), PlayerPawn);
 
 			UE_LOG(LogTemp, Warning, TEXT("BehaviorTree Loaded and Running"));
 		}
@@ -265,8 +264,8 @@ void server_thread() {
 	auto last_packet_t = std::chrono::system_clock::now();
 
 	spawn_monster(FVector(32'500, -40'000, 400));
-	spawn_monster(FVector(32'750, -39'000, 400));
-	spawn_monster(FVector(33'000, -38'000, 400));
+	//spawn_monster(FVector(32'750, -39'000, 400));
+	//spawn_monster(FVector(33'000, -38'000, 400));
 
 	while (g_is_running) {
 		// Game Logic
@@ -985,6 +984,10 @@ void c_process_packet(char* packet) {
 
 				g_c_monsters[info.monster_id] = NewMonster;
 
+				if (info.monster_hp <= 0.0f) {
+					Cast<AEnemyCharacter>(g_c_monsters[info.monster_id])->Die();
+				}
+
 				if (monster_count == (expected_count - 1)) {
 					ch_init_complete_packet init_complete_packet;
 					init_complete_packet.packet_size = sizeof(ch_init_complete_packet);
@@ -1078,14 +1081,11 @@ void c_process_packet(char* packet) {
 				});
 		} else {
 			AEnemyCharacter* Monster = Cast<AEnemyCharacter>(g_c_monsters[p.monster_id]);
-			FRotator NewRotation(0.f, p.monster_yaw, 0.f);
 
 			Monster->set_hp(p.monster_hp);
-			Monster->SetActorLocation(FVector(p.monster_x, p.monster_y, p.monster_z));
-			Monster->GetCharacterMovement()->Velocity = FVector(p.monster_vx, p.monster_vy, p.monster_vz);
-			Monster->SetActorRotation(NewRotation);
+			Monster->set_target_location(FVector(p.monster_x, p.monster_y, p.monster_z));
+			Monster->set_target_rotation(FRotator(0.f, p.monster_yaw, 0.f));
 		}
-		UE_LOG(LogTemp, Warning, TEXT("[Client] Received Monster %d Packet, X : %.2f, Y : %.2f"), p.monster_id, p.monster_x, p.monster_y);
 		break;
 	}
 
@@ -1096,7 +1096,6 @@ void c_process_packet(char* packet) {
 			Cast<AEnemyCharacter>(g_c_monsters[p->monster_id])->MeleeAttack();
 		}
 
-		UE_LOG(LogTemp, Warning, TEXT("[Client] Received Monster %d Attack Packet"), p->monster_id);
 		break;
 	}
 

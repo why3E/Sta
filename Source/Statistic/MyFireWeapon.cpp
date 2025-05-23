@@ -55,15 +55,15 @@ void AMyFireWeapon::SpawnFireBall(FVector ImpactPoint)
             TempFireBall->ActivateNiagara();
             UE_LOG(LogTemp, Warning, TEXT("FireBall %d spawniiiing"), skill_id);
 
-            g_skills.emplace(skill_id, TempFireBall);
-            if (g_collisions.count(skill_id)) {
-                while (!g_collisions[skill_id].empty()) {
-                    unsigned short other_id = g_collisions[skill_id].front();
-                    g_collisions[skill_id].pop();
+            g_c_skills.emplace(skill_id, TempFireBall);
+            if (g_c_collisions.count(skill_id)) {
+                while (!g_c_collisions[skill_id].empty()) {
+                    unsigned short other_id = g_c_collisions[skill_id].front();
+                    g_c_collisions[skill_id].pop();
 
-                    if (g_skills.count(other_id)) {
-                        TempFireBall->Overlap(g_skills[other_id]);
-                        g_skills[other_id]->Overlap(g_skills[skill_id]);
+                    if (g_c_skills.count(other_id)) {
+                        TempFireBall->Overlap(g_c_skills[other_id]);
+                        g_c_skills[other_id]->Overlap(g_c_skills[skill_id]);
                         UE_LOG(LogTemp, Error, TEXT("Skill %d and %d Collision Succeed!"), skill_id, other_id);
                     }
                 }
@@ -148,17 +148,17 @@ void AMyFireWeapon::SpawnFireSkill(FVector TargetLocation, FRotator TargetRotati
             FireSkill->SetOwner(OwnerCharacter);
             FireSkill->SpawnFireWall(SpawnLocation, TargetRotation);
 
-            g_skills.emplace(i + skill_id, FireSkill);
+            g_c_skills.emplace(i + skill_id, FireSkill);
             UGameplayStatics::FinishSpawningActor(FireSkill, SpawnTransform);
             
-            if (g_collisions.count(skill_id)) {
-                while (!g_collisions[skill_id].empty()) {
-                    unsigned short other_id = g_collisions[skill_id].front();
-                    g_collisions[skill_id].pop();
+            if (g_c_collisions.count(skill_id)) {
+                while (!g_c_collisions[skill_id].empty()) {
+                    unsigned short other_id = g_c_collisions[skill_id].front();
+                    g_c_collisions[skill_id].pop();
 
-                    if (g_skills.count(other_id)) {
-                        FireSkill->Overlap(g_skills[other_id]);
-                        g_skills[other_id]->Overlap(g_skills[skill_id]);
+                    if (g_c_skills.count(other_id)) {
+                        FireSkill->Overlap(g_c_skills[other_id]);
+                        g_c_skills[other_id]->Overlap(g_c_skills[skill_id]);
                         UE_LOG(LogTemp, Error, TEXT("Skill %d and %d Collision Succeed!"), skill_id, other_id);
                     }
                 }

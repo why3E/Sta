@@ -281,7 +281,7 @@ void AEnemyCharacter::do_send(void* buff)
     o->m_wsabuf[0].len = packet_size;
 
     DWORD send_bytes;
-    auto ret = WSASend(g_h_socket, o->m_wsabuf, 1, &send_bytes, 0, &(o->m_over), send_callback);
+    auto ret = WSASend(g_c_socket, o->m_wsabuf, 1, &send_bytes, 0, &(o->m_over), send_callback);
     if (ret == SOCKET_ERROR) {
         if (WSAGetLastError() != WSA_IO_PENDING) {
             delete o;

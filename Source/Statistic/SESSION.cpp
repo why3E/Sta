@@ -1,12 +1,14 @@
 #include "SESSION.h"
 
-SOCKET g_h_socket;
 std::atomic<bool> g_is_host;
+std::atomic<bool> g_is_running;
+
+SOCKET g_c_socket;
 
 std::array<APlayerCharacter*, MAX_CLIENTS> g_c_players;
-std::unordered_map<unsigned short, AMySkillBase*> g_skills; 
-std::unordered_map<unsigned short, std::queue<unsigned short>> g_collisions; 
-std::unordered_map<unsigned short, ACharacter*> g_monsters;
+std::unordered_map<unsigned short, AMySkillBase*> g_c_skills; 
+std::unordered_map<unsigned short, std::queue<unsigned short>> g_c_collisions; 
+std::unordered_map<unsigned short, ACharacter*> g_c_monsters;
 
 //////////////////////////////////////////////////
 // EXP_OVER

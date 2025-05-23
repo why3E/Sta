@@ -16,10 +16,6 @@
 
 #include "SESSION.h"
 
-#include <atomic>
-#include <chrono>
-#include <thread>
-
 constexpr short HOST_PORT = 3000;
 FString HOST_ADDRESS = TEXT("127.0.0.1");
 
@@ -27,7 +23,6 @@ FString HOST_ADDRESS = TEXT("127.0.0.1");
 // Server
 SOCKET g_s_socket;
 std::thread g_s_thread;
-std::atomic<bool> g_s_running;
 std::atomic<unsigned short> g_s_skill_id;
 std::atomic<unsigned short> g_s_monster_id;
 
@@ -41,8 +36,8 @@ extern void CALLBACK h_send_callback(DWORD err, DWORD num_bytes, LPWSAOVERLAPPED
 
 //////////////////////////////////////////////////
 // Client
-EXP_OVER g_recv_over;
-int g_remained;
+EXP_OVER g_c_recv_over;
+int g_c_remained;
 
 void c_process_packet(char* p);
 void CALLBACK c_recv_callback(DWORD err, DWORD num_bytes, LPWSAOVERLAPPED p_over, DWORD flags);
@@ -67,11 +62,12 @@ void AMyPlayerController::EndPlay(const EEndPlayReason::Type EndPlayReason)
 void AMyPlayerController::InitSocket()
 {
 	g_is_host = true;
-	g_skills.clear();
-	g_collisions.clear();
-	g_monsters.clear();
+	g_is_running = true;
 
-	g_s_running = true;
+	g_c_skills.clear();
+	g_c_monsters.clear();
+	g_c_collisions.clear();
+
 	g_s_skill_id = 0;
 	g_s_monster_id = 0;
 
@@ -81,8 +77,8 @@ void AMyPlayerController::InitSocket()
 	if (0 != ret) { UE_LOG(LogTemp, Warning, TEXT("WSAStartup Failed : %d"), WSAGetLastError()); }
 	else { UE_LOG(LogTemp, Warning, TEXT("WSAStartup Succeed")); }
 
-	g_h_socket = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_OVERLAPPED);
-	if (INVALID_SOCKET == g_h_socket) { UE_LOG(LogTemp, Warning, TEXT("Client Socket Create Failed : %d"), WSAGetLastError()); }
+	g_c_socket = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_OVERLAPPED);
+	if (INVALID_SOCKET == g_c_socket) { UE_LOG(LogTemp, Warning, TEXT("Client Socket Create Failed : %d"), WSAGetLastError()); }
 	else { UE_LOG(LogTemp, Warning, TEXT("Client Socket Create Succeed")); }
 
 	// [Host] : WSASocket
@@ -123,24 +119,26 @@ void AMyPlayerController::InitSocket()
 	inet_pton(AF_INET, IP_ADDRESS.c_str(), &addr.sin_addr);
 
 	// Connect to host
-	ret = WSAConnect(g_h_socket, reinterpret_cast<const sockaddr*>(&addr), sizeof(SOCKADDR_IN), NULL, NULL, NULL, NULL);
+	ret = WSAConnect(g_c_socket, reinterpret_cast<const sockaddr*>(&addr), sizeof(SOCKADDR_IN), NULL, NULL, NULL, NULL);
 	if (SOCKET_ERROR == ret) { UE_LOG(LogTemp, Warning, TEXT("WSAConnect Failed : %d"), WSAGetLastError()); }
 	else { UE_LOG(LogTemp, Warning, TEXT("WSAConnect Succeed")); }
 
 	DWORD recv_bytes;
 	DWORD recv_flag = 0;
-	ret = WSARecv(g_h_socket, g_recv_over.m_wsabuf, 1, &recv_bytes, &recv_flag, &g_recv_over.m_over, c_recv_callback);
+	ret = WSARecv(g_c_socket, g_c_recv_over.m_wsabuf, 1, &recv_bytes, &recv_flag, &g_c_recv_over.m_over, c_recv_callback);
 }
 
 void AMyPlayerController::CleanupSocket()
 {
-	g_s_running = false;
+	g_is_running = false;
 
 	if (g_is_host) {
 		// Join Server Thread
 		g_s_thread.join();
 
-		g_monsters.clear();
+		g_c_skills.clear();
+		g_c_monsters.clear();
+		g_c_collisions.clear();
 
 		// Delete SESSION
 		for (char client_id = 0; client_id < MAX_CLIENTS; ++client_id) {
@@ -158,7 +156,7 @@ void AMyPlayerController::CleanupSocket()
 		}
 	}
 
-	closesocket(g_h_socket);
+	closesocket(g_c_socket);
 	WSACleanup();
 }
 
@@ -253,7 +251,7 @@ void spawn_monster(FVector Location) {
 			UE_LOG(LogTemp, Error, TEXT("Failed to Load AnimBP"));
 		}
 
-		g_monsters[NewMonster->get_id()] = NewMonster;
+		g_c_monsters[NewMonster->get_id()] = NewMonster;
 		UE_LOG(LogTemp, Warning, TEXT("[Client] Spawned Monster %d and Stored in g_s_monsters"), NewMonster->get_id());
 	});
 }
@@ -269,15 +267,13 @@ void server_thread() {
 	spawn_monster(FVector(32'750, -39'000, 400));
 	spawn_monster(FVector(33'000, -38'000, 400));
 
-	while (g_s_running) {
+	while (g_is_running) {
 		// Game Logic
 		auto curr_t = std::chrono::system_clock::now();
 		auto exec_ms = std::chrono::duration_cast<std::chrono::milliseconds>(curr_t - last_update_t).count();
 
 		if (16 <= exec_ms) {
-			/*
-				Game Logic
-			*/
+
 
 			last_update_t = std::chrono::system_clock::now();
 		}
@@ -290,8 +286,8 @@ void server_thread() {
 			p.packet_size = sizeof(hc_monster_packet);
 			p.packet_type = H2C_MONSTER_PACKET;
 			
-			for (const auto& [monster_id, ptr] : g_monsters) {
-				AEnemyCharacter* monster = Cast< AEnemyCharacter>(ptr);
+			for (const auto& [monster_id, ptr] : g_c_monsters) {
+				AEnemyCharacter* monster = Cast<AEnemyCharacter>(ptr);
 
 				if (monster->get_is_attacking()) {
 					continue;
@@ -336,7 +332,7 @@ void accept_thread() {
 	INT addr_size = sizeof(SOCKADDR_IN);
 
 	// Accept Loop
-	while (g_s_running) {
+	while (g_is_running) {
 		// WSAAccept
 		auto c_socket = WSAAccept(g_s_socket, reinterpret_cast<sockaddr*>(&addr), &addr_size, NULL, NULL);
 		if (INVALID_SOCKET == c_socket) { 
@@ -365,12 +361,13 @@ void accept_thread() {
 					hc_player_info_packet p;
 					p.packet_size = sizeof(hc_player_info_packet);
 					p.packet_type = H2C_PLAYER_INFO_PACKET;
-					p.id = client_id;
-					p.yaw = 0.0f;
-					p.x = 37'975.0f; p.y = -40'000.0f; p.z = 950.0f;
-					p.vx = 0.0f; p.vy = 0.0f; p.vz = 0.0f;
-					p.hp = 100;
-					p.current_element = static_cast<char>(EClassType::CT_Wind);
+					p.player_id = client_id;
+					p.player_yaw = 0.0f;
+					p.player_x = 37'975.0f; p.player_y = -40'000.0f; p.player_z = 950.0f;
+					p.player_vx = 0.0f; p.player_vy = 0.0f; p.player_vz = 0.0f;
+					p.player_hp = 100;
+					p.current_element[0] = static_cast<char>(EClassType::CT_Wind);
+					p.current_element[1] = static_cast<char>(EClassType::CT_Fire);
 					g_s_clients[client_id]->do_send(&p);
 
 					// Send Player Info to Others
@@ -388,12 +385,13 @@ void accept_thread() {
 						if (client_id != other_id) {
 							if (g_s_clients[other_id]) {
 								APlayerCharacter* client = g_c_players[other_id];
-								p.id = client->get_id();
-								p.yaw = client->get_yaw();
-								p.x = client->GetActorLocation().X; p.y = client->GetActorLocation().Y; p.z = client->GetActorLocation().Z;
-								p.vx = client->get_velocity().X; p.vy = client->get_velocity().Y; p.vz = client->get_velocity().Z;
-								p.hp = client->get_hp();
-								p.current_element = client->get_current_element();
+								p.player_id = client->get_id();
+								p.player_yaw = client->get_yaw();
+								p.player_x = client->GetActorLocation().X; p.player_y = client->GetActorLocation().Y; p.player_z = client->GetActorLocation().Z;
+								p.player_vx = client->get_velocity().X; p.player_vy = client->get_velocity().Y; p.player_vz = client->get_velocity().Z;
+								p.player_hp = client->get_hp();
+								p.current_element[0] = client->get_current_element(true);
+								p.current_element[1] = client->get_current_element(false);
 								g_s_clients[client_id]->do_send(&p);
 							}
 						}
@@ -402,7 +400,7 @@ void accept_thread() {
 
 				{
 					// Send Monster Infos to Player
-					unsigned short monster_count = g_monsters.size();
+					unsigned short monster_count = g_c_monsters.size();
 					unsigned char packet_size = sizeof(hc_init_monster_packet) + (sizeof(monster_info) * monster_count);
 
 					hc_init_monster_packet* p = (hc_init_monster_packet*)malloc(packet_size);
@@ -413,8 +411,8 @@ void accept_thread() {
 
 					monster_info* monster_data = (monster_info*)(p + 1);
 					unsigned short i = 0;
-					for (const auto& [monster_id, ptr] : g_monsters) {
-						AEnemyCharacter* monster = Cast< AEnemyCharacter>(ptr);
+					for (const auto& [monster_id, ptr] : g_c_monsters) {
+						AEnemyCharacter* monster = Cast<AEnemyCharacter>(ptr);
 
 						if (monster->get_is_attacking()) {
 							continue;
@@ -463,10 +461,9 @@ void h_process_packet(char* packet) {
 		player_vector_packet* p = reinterpret_cast<player_vector_packet*>(packet);
 		p->packet_type = H2C_PLAYER_VECTOR_PACKET;
 		for (char other_id = 0; other_id < MAX_CLIENTS; ++other_id) {
-			if (p->id != other_id) {
+			if (p->player_id != other_id) {
 				if (g_s_clients[other_id]) {
 					g_s_clients[other_id]->do_send(p);
-					//UE_LOG(LogTemp, Warning, TEXT("[Host] Send Player %d's Vector Packet to Player %d"), p->id, other_id);
 				}
 			}
 		}
@@ -477,10 +474,9 @@ void h_process_packet(char* packet) {
 		player_stop_packet* p = reinterpret_cast<player_stop_packet*>(packet);
 		p->packet_type = H2C_PLAYER_STOP_PACKET;
 		for (char other_id = 0; other_id < MAX_CLIENTS; ++other_id) {
-			if (p->id != other_id) {
+			if (p->player_id != other_id) {
 				if (g_s_clients[other_id]) {
 					g_s_clients[other_id]->do_send(p);
-					//UE_LOG(LogTemp, Warning, TEXT("[Host] Send Player %d's Stop Packet to Player %d"), p->id, other_id);
 				}
 			}
 		}
@@ -491,10 +487,9 @@ void h_process_packet(char* packet) {
 		player_rotate_packet* p = reinterpret_cast<player_rotate_packet*>(packet);
 		p->packet_type = H2C_PLAYER_ROTATE_PACKET;
 		for (char other_id = 0; other_id < MAX_CLIENTS; ++other_id) {
-			if (p->id != other_id) {
+			if (p->player_id != other_id) {
 				if (g_s_clients[other_id]) {
 					g_s_clients[other_id]->do_send(p);
-					//UE_LOG(LogTemp, Warning, TEXT("[Host] Send Player %d's Rotation Packet to Player %d"), p->id, other_id);
 				}
 			}
 		}
@@ -505,10 +500,9 @@ void h_process_packet(char* packet) {
 		player_jump_packet* p = reinterpret_cast<player_jump_packet*>(packet);
 		p->packet_type = H2C_PLAYER_JUMP_PACKET;
 		for (char other_id = 0; other_id < MAX_CLIENTS; ++other_id) {
-			if (p->id != other_id) {
+			if (p->player_id != other_id) {
 				if (g_s_clients[other_id]) {
 					g_s_clients[other_id]->do_send(p);
-					//UE_LOG(LogTemp, Warning, TEXT("[Host] Send Player %d's Jump Packet to Player %d"), p->id, other_id);
 				}
 			}
 		}
@@ -516,49 +510,32 @@ void h_process_packet(char* packet) {
 	}
 
 	case C2H_PLAYER_SKILL_VECTOR_PACKET: {
-		ch_player_skill_vector_packet* ch_p = reinterpret_cast<ch_player_skill_vector_packet*>(packet);
-		hc_player_skill_vector_packet hc_p;
-		hc_p.packet_size = sizeof(hc_player_skill_vector_packet);
-		hc_p.packet_type = H2C_PLAYER_SKILL_VECTOR_PACKET;
-		hc_p.player_id = ch_p->player_id;
-		hc_p.skill_id = g_s_skill_id++;
-		hc_p.skill_type = ch_p->skill_type;
-		hc_p.x = ch_p->x; hc_p.y = ch_p->y; hc_p.z = ch_p->z;
-		hc_p.is_left = ch_p->is_left;
+		player_skill_vector_packet* p = reinterpret_cast<player_skill_vector_packet*>(packet);
+		p->skill_id = g_s_skill_id++;
 		for (char client_id = 0; client_id < MAX_CLIENTS; ++client_id) {
 			if (g_s_clients[client_id]) {
-				g_s_clients[client_id]->do_send(&hc_p);
-				//UE_LOG(LogTemp, Warning, TEXT("[Host] Send Player %d's Skill Packet to Player %d"), ch_p->player_id, client_id);
+				g_s_clients[client_id]->do_send(p);
 			}
 		}
 		break;
 	}
 
 	case C2H_PLAYER_SKILL_ROTATOR_PACKET: {
-		ch_player_skill_rotator_packet* ch_p = reinterpret_cast<ch_player_skill_rotator_packet*>(packet);
-		hc_player_skill_rotator_packet hc_p;
-		hc_p.packet_size = sizeof(hc_player_skill_rotator_packet);
-		hc_p.packet_type = H2C_PLAYER_SKILL_ROTATOR_PACKET;
-		hc_p.player_id = ch_p->player_id;
+		player_skill_rotator_packet* p = reinterpret_cast<player_skill_rotator_packet*>(packet);
 
-		switch (ch_p->skill_type) {
+		switch (p->skill_type) {
 		case SKILL_FIRE_WALL:
-			hc_p.skill_id = g_s_skill_id.fetch_add(5);
+			p->skill_id = g_s_skill_id.fetch_add(5);
 			break;
 
 		default:
-			hc_p.skill_id = g_s_skill_id++;
+			p->skill_id = g_s_skill_id++;
 			break;
 		}
 
-		hc_p.skill_type = ch_p->skill_type;
-		hc_p.x = ch_p->x; hc_p.y = ch_p->y; hc_p.z = ch_p->z;
-		hc_p.pitch = ch_p->pitch; hc_p.yaw = ch_p->yaw; hc_p.roll = ch_p->roll;
-		hc_p.is_left = ch_p->is_left;
 		for (char client_id = 0; client_id < MAX_CLIENTS; ++client_id) {
 			if (g_s_clients[client_id]) {
-				g_s_clients[client_id]->do_send(&hc_p);
-				//UE_LOG(LogTemp, Warning, TEXT("[Host] Send Player %d's Skill Packet to Player %d"), p->player_id, client_id);
+				g_s_clients[client_id]->do_send(p);
 			}
 		}
 		break;
@@ -568,10 +545,9 @@ void h_process_packet(char* packet) {
 		player_change_element_packet* p = reinterpret_cast<player_change_element_packet*>(packet);
 		p->packet_type = H2C_PLAYER_CHANGE_ELEMENT_PACKET;
 		for (char other_id = 0; other_id < MAX_CLIENTS; ++other_id) {
-			if (p->id != other_id) {
+			if (p->player_id != other_id) {
 				if (g_s_clients[other_id]) {
 					g_s_clients[other_id]->do_send(p);
-					//UE_LOG(LogTemp, Warning, TEXT("[Host] Send Player %d's Skill Packet to Player %d"), p->id, other_id);
 				}
 			}
 		}
@@ -586,31 +562,23 @@ void h_process_packet(char* packet) {
 				g_s_clients[client_id]->do_send(p);
 			}
 		}
-		//UE_LOG(LogTemp, Warning, TEXT("[Host] %d and %d Collision"), p->attacker_id, p->victim_id);
 		break;
 	}
 
 	case C2H_SKILL_CREATE_PACKET: {
-		ch_skill_create_packet* ch_p = reinterpret_cast<ch_skill_create_packet*>(packet);
-		hc_skill_create_packet hc_p;
-		hc_p.packet_size = sizeof(hc_skill_create_packet);
-		hc_p.packet_type = H2C_SKILL_CREATE_PACKET;
-		hc_p.skill_type = ch_p->skill_type;
-		hc_p.old_skill_id = ch_p->old_skill_id;
-		hc_p.new_skill_id = g_s_skill_id++;
+		skill_create_packet* p = reinterpret_cast<skill_create_packet*>(packet);
+		p->new_skill_id = g_s_skill_id++;
 		for (char client_id = 0; client_id < MAX_CLIENTS; ++client_id) {
 			if (g_s_clients[client_id]) {
-				g_s_clients[client_id]->do_send(&hc_p);
+				g_s_clients[client_id]->do_send(p);
 			}
 		}
-		//UE_LOG(LogTemp, Warning, TEXT("[Host] Skill %d Create"), p->new_skill_id);
 		break;
 	}
 
 	case C2H_INIT_COMPLETE_PACKET: {
 		ch_init_complete_packet* p = reinterpret_cast<ch_init_complete_packet*>(packet);
-		g_s_clients[p->client_id]->m_state = ST_INGAME;
-		//UE_LOG(LogTemp, Warning, TEXT("[Host] Client %d Init Complete"), p->client_id);
+		g_s_clients[p->player_id]->m_state = ST_INGAME;
 		break;
 	}
 
@@ -624,7 +592,6 @@ void h_process_packet(char* packet) {
 				}
 			}
 		}
-		//UE_LOG(LogTemp, Warning, TEXT("[Host] Skill %d Create"), p->new_skill_id);
 		break;
 	}
 	}
@@ -643,9 +610,9 @@ extern void CALLBACK h_recv_callback(DWORD err, DWORD num_bytes, LPWSAOVERLAPPED
 		hc_player_leave_packet p;
 		p.packet_size = sizeof(hc_player_leave_packet);
 		p.packet_type = H2C_PLAYER_LEAVE_PACKET;
-		p.id = g_s_clients[o->m_id]->m_id;
+		p.player_id = g_s_clients[o->m_id]->m_id;
 
-		g_s_clients[p.id] = nullptr;
+		g_s_clients[p.player_id] = nullptr;
 		for (char other_id = 0; other_id < MAX_CLIENTS; ++other_id) {
 			if (g_s_clients[other_id]) {
 				g_s_clients[other_id]->do_send(&p);
@@ -703,24 +670,22 @@ void c_process_packet(char* packet) {
 
 		APlayerCharacter* MyPlayer = Cast<APlayerCharacter>(UGameplayStatics::GetPlayerCharacter(World, 0));
 		if (MyPlayer) {
-			MyPlayer->set_id(p->id);
-			MyPlayer->set_yaw(p->yaw);
-			MyPlayer->SetActorLocation(FVector(p->x, p->y, p->z));
-			MyPlayer->set_velocity(p->vx, p->vy, p->vz);
+			MyPlayer->set_id(p->player_id);
+			MyPlayer->set_yaw(p->player_yaw);
+			MyPlayer->SetActorLocation(FVector(p->player_x, p->player_y, p->player_z));
+			MyPlayer->set_velocity(p->player_vx, p->player_vy, p->player_vz);
 			MyPlayer->set_is_player(true);
-			MyPlayer->set_hp(p->hp);
-			MyPlayer->set_current_element(p->current_element);
+			MyPlayer->set_hp(p->player_hp);
+			MyPlayer->set_current_element(p->current_element[0], true);
+			MyPlayer->set_current_element(p->current_element[1], false);
 
-			g_c_players[p->id] = MyPlayer;
-
-			//UE_LOG(LogTemp, Warning, TEXT("[Client] Registered Local Player (ID: %d) in g_c_players"), p->id);
+			g_c_players[p->player_id] = MyPlayer;
 		}
 		break;
 	}
 
 	case H2C_PLAYER_ENTER_PACKET: {
 		hc_player_info_packet* p = reinterpret_cast<hc_player_info_packet*>(packet);
-		UE_LOG(LogTemp, Warning, TEXT("[Client] Player %d has Entered the Game"), p->id);
 	
 		UWorld* World = GEngine->GetWorldFromContextObjectChecked(GEngine->GameViewport);
 		if (!World) return;
@@ -748,13 +713,14 @@ void c_process_packet(char* packet) {
 			Params
 		);
 
-		NewPlayer->set_id(p->id);
-		NewPlayer->set_yaw(p->yaw);
-		NewPlayer->SetActorLocation(FVector(p->x, p->y, p->z));
-		NewPlayer->set_velocity(p->vx, p->vy, p->vz);
+		NewPlayer->set_id(p->player_id);
+		NewPlayer->set_yaw(p->player_yaw);
+		NewPlayer->SetActorLocation(FVector(p->player_x, p->player_y, p->player_z));
+		NewPlayer->set_velocity(p->player_vx, p->player_vy, p->player_vz);
 		NewPlayer->set_is_player(true);
-		NewPlayer->set_hp(p->hp);
-		NewPlayer->set_current_element(p->current_element);
+		NewPlayer->set_hp(p->player_hp);
+		NewPlayer->set_current_element(p->current_element[0], true);
+		NewPlayer->set_current_element(p->current_element[1], false);
 		NewPlayer->set_is_player(false);
 
 		AAIController* NewAI = World->SpawnActor<AAIController>(
@@ -793,71 +759,63 @@ void c_process_packet(char* packet) {
 		}
 
 
-		g_c_players[p->id] = NewPlayer;
+		g_c_players[p->player_id] = NewPlayer;
 		//UE_LOG(LogTemp, Warning, TEXT("[Client] Spawned Player %d and Stored in g_c_players"), p->id);
 		break;
 	}
 
 	case H2C_PLAYER_LEAVE_PACKET: {
 		hc_player_leave_packet* p = reinterpret_cast<hc_player_leave_packet*>(packet);
-		UE_LOG(LogTemp, Warning, TEXT("[Client] Player %d has Leaved the Game"), p->id);
 
-		g_c_players[p->id]->Destroy();
-		g_c_players[p->id] = nullptr;
+		g_c_players[p->player_id]->Destroy();
+		g_c_players[p->player_id] = nullptr;
 		break;
 	}
 
 	case H2C_PLAYER_VECTOR_PACKET: {
 		player_vector_packet* p = reinterpret_cast<player_vector_packet*>(packet);
-		FVector Position(p->x, p->y, p->z);
-		FVector Velocity(p->vx, p->vy, p->vz);
-		g_c_players[p->id]->SetActorLocation(Position, false);
-		g_c_players[p->id]->set_velocity(Velocity.X, Velocity.Y, Velocity.Z);
-		//UE_LOG(LogTemp, Warning, TEXT("[Client] Player %d Moved, vx : %.2f, vy : %.2f"), p->id, p->vx, p->vy);
+		FVector Position(p->player_x, p->player_y, p->player_z);
+		FVector Velocity(p->player_vx, p->player_vy, p->player_vz);
+		g_c_players[p->player_id]->SetActorLocation(Position, false);
+		g_c_players[p->player_id]->set_velocity(Velocity.X, Velocity.Y, Velocity.Z);
 		break;
 	}
 
 	case H2C_PLAYER_STOP_PACKET: {
 		player_stop_packet* p = reinterpret_cast<player_stop_packet*>(packet);
-		FVector Position(p->x, p->y, p->z);
-		g_c_players[p->id]->SetActorLocation(Position, false);
-		g_c_players[p->id]->set_velocity(0.0f, 0.0f, 0.0f);
-		//UE_LOG(LogTemp, Warning, TEXT("[Client] Received Player %d's Stop Packet"), p->id);
+		FVector Position(p->player_x, p->player_y, p->player_z);
+		g_c_players[p->player_id]->SetActorLocation(Position, false);
+		g_c_players[p->player_id]->set_velocity(0.0f, 0.0f, 0.0f);
 		break;
 	}
 
 	case H2C_PLAYER_ROTATE_PACKET: {
 		player_rotate_packet* p = reinterpret_cast<player_rotate_packet*>(packet);
-		g_c_players[p->id]->rotate(p->yaw);
-		//UE_LOG(LogTemp, Warning, TEXT("[Client] Received Player %d's Rotation Packet"), p->id);
+		g_c_players[p->player_id]->rotate(p->player_yaw);
 		break;
 	}
 
 	case H2C_PLAYER_JUMP_PACKET: {
 		player_jump_packet* p = reinterpret_cast<player_jump_packet*>(packet);
-		g_c_players[p->id]->LaunchCharacter(FVector(0, 0, 800), false, true);
-		//UE_LOG(LogTemp, Warning, TEXT("[Client] Received Player %d's Jump Packet"), p->id);
+		g_c_players[p->player_id]->LaunchCharacter(FVector(0, 0, 800), false, true);
 		break;
 	}
 
 	case H2C_PLAYER_SKILL_VECTOR_PACKET: {
-		hc_player_skill_vector_packet* p = reinterpret_cast<hc_player_skill_vector_packet*>(packet);
-		g_c_players[p->player_id]->use_skill(p->skill_id, p->skill_type, FVector(p->x, p->y, p->z), p->is_left);
-		//UE_LOG(LogTemp, Warning, TEXT("[Client] Received Player %d's Skill %d Packet"), p->player_id, p->skill_id);
+		player_skill_vector_packet* p = reinterpret_cast<player_skill_vector_packet*>(packet);
+		g_c_players[p->player_id]->use_skill(p->skill_id, p->skill_type, FVector(p->skill_vx, p->skill_vy, p->skill_vz), p->is_left);
 		break;
 	}
 
 	case H2C_PLAYER_SKILL_ROTATOR_PACKET: {
-		hc_player_skill_rotator_packet* p = reinterpret_cast<hc_player_skill_rotator_packet*>(packet);
-		g_c_players[p->player_id]->use_skill(p->skill_id, p->skill_type, FVector(p->x, p->y, p->z), FRotator(p->pitch, p->yaw, p->roll), p->is_left);
-		//UE_LOG(LogTemp, Warning, TEXT("[Client] Received Player %d's Skill %d Packet"), p->player_id, p->skill_id);
+		player_skill_rotator_packet* p = reinterpret_cast<player_skill_rotator_packet*>(packet);
+		g_c_players[p->player_id]->use_skill(p->skill_id, p->skill_type, FVector(p->skill_x, p->skill_y, p->skill_z), FRotator(p->skill_pitch, p->skill_yaw, p->skill_roll), p->is_left);
 		break;
 	}
 
 	case H2C_PLAYER_CHANGE_ELEMENT_PACKET: {
 		player_change_element_packet* p = reinterpret_cast<player_change_element_packet*>(packet);
-		g_c_players[p->id]->change_element(p->element_type, p->is_left);
-		//UE_LOG(LogTemp, Warning, TEXT("[Client] Received Player %d's Skill Packet"), p->player_id);
+		g_c_players[p->player_id]->change_element(p->element_type, p->is_left);
 		break;
 	}
 
@@ -865,50 +823,46 @@ void c_process_packet(char* packet) {
 		collision_packet* p = reinterpret_cast<collision_packet*>(packet);
 		switch (p->collision_type) {
 		case SKILL_SKILL_COLLISION:
-			if (g_skills.count(p->attacker_id) && g_skills.count(p->victim_id)) {
-				g_skills[p->attacker_id]->Overlap(g_skills[p->victim_id]);
-				g_skills[p->victim_id]->Overlap(g_skills[p->attacker_id]);
-				//UE_LOG(LogTemp, Error, TEXT("[Client] Skill %d and %d Collision"), p->attacker_id, p->victim_id);
+			if (g_c_skills.count(p->attacker_id) && g_c_skills.count(p->victim_id)) {
+				g_c_skills[p->attacker_id]->Overlap(g_c_skills[p->victim_id]);
+				g_c_skills[p->victim_id]->Overlap(g_c_skills[p->attacker_id]);
 			}
 			else {
-				g_collisions[p->attacker_id].push(p->victim_id);
-				g_collisions[p->victim_id].push(p->attacker_id);
-				//UE_LOG(LogTemp, Error, TEXT("[Client] Skill %d and %d Delayed"), p->attacker_id, p->victim_id);
+				g_c_collisions[p->attacker_id].push(p->victim_id);
+				g_c_collisions[p->victim_id].push(p->attacker_id);
 			}
 			break;
 
 		case SKILL_MONSTER_COLLISION:
-			if (g_skills.count(p->attacker_id) && g_monsters.count(p->victim_id)) {
-				g_skills[p->attacker_id]->Overlap(g_monsters[p->victim_id]);
-				Cast<AEnemyCharacter>(g_monsters[p->victim_id])->Overlap(g_skills[p->attacker_id]);
+			if (g_c_skills.count(p->attacker_id) && g_c_monsters.count(p->victim_id)) {
+				g_c_skills[p->attacker_id]->Overlap(g_c_monsters[p->victim_id]);
+				Cast<AEnemyCharacter>(g_c_monsters[p->victim_id])->Overlap(g_c_skills[p->attacker_id]);
 			}
-			//UE_LOG(LogTemp, Error, TEXT("[Client] Skill %d and Monster %d Collision"), p->attacker_id, p->victim_id);
 			break;
 
 		case SKILL_PLAYER_COLLISION:
-			if (g_skills.count(p->attacker_id) && g_c_players[p->victim_id]) {
-				g_skills[p->attacker_id]->Overlap(g_monsters[p->victim_id]);
+			if (g_c_skills.count(p->attacker_id) && g_c_players[p->victim_id]) {
+				g_c_skills[p->attacker_id]->Overlap(g_c_monsters[p->victim_id]);
 			}
-			//UE_LOG(LogTemp, Error, TEXT("[Client] Skill %d and Player %d Collision"), p->attacker_id, p->victim_id);
 			break;
 		}
 	}
 
 	case H2C_SKILL_CREATE_PACKET: {
-		hc_skill_create_packet* p = reinterpret_cast<hc_skill_create_packet*>(packet);
+		skill_create_packet* p = reinterpret_cast<skill_create_packet*>(packet);
 		switch (p->skill_type) {
 		case SKILL_WIND_FIRE_BOMB:
-			if (g_skills.count(p->old_skill_id)) {
-				if (g_skills[p->old_skill_id]->IsA(AMyWindCutter::StaticClass())) {
-					Cast<AMyWindCutter>(g_skills[p->old_skill_id])->MixBombAttack(EClassType::CT_Fire, p->new_skill_id);
+			if (g_c_skills.count(p->old_skill_id)) {
+				if (g_c_skills[p->old_skill_id]->IsA(AMyWindCutter::StaticClass())) {
+					Cast<AMyWindCutter>(g_c_skills[p->old_skill_id])->MixBombAttack(EClassType::CT_Fire, p->new_skill_id);
 				}
 			}
 			break;
 
 		case SKILL_WIND_WIND_TORNADO:
-			if (g_skills.count(p->old_skill_id)) {
-				if (g_skills[p->old_skill_id]->IsA(AMyWindSkill::StaticClass())) {
-					Cast<AMyWindSkill>(g_skills[p->old_skill_id])->SpawnMixTonado(p->new_skill_id);
+			if (g_c_skills.count(p->old_skill_id)) {
+				if (g_c_skills[p->old_skill_id]->IsA(AMyWindSkill::StaticClass())) {
+					Cast<AMyWindSkill>(g_c_skills[p->old_skill_id])->SpawnMixTonado(p->new_skill_id);
 				}
 			}
 			break;
@@ -1000,13 +954,13 @@ void c_process_packet(char* packet) {
 					UE_LOG(LogTemp, Error, TEXT("Failed to Load AnimBP"));
 				}
 
-				g_monsters[info.monster_id] = NewMonster;
+				g_c_monsters[info.monster_id] = NewMonster;
 
 				if (monster_count == (expected_count - 1)) {
 					ch_init_complete_packet p;
 					p.packet_size = sizeof(ch_init_complete_packet);
 					p.packet_type = C2H_INIT_COMPLETE_PACKET;
-					p.client_id = client_id;
+					p.player_id = client_id;
 
 					g_c_players[client_id]->do_send(&p);
 				}
@@ -1021,7 +975,7 @@ void c_process_packet(char* packet) {
 	case H2C_MONSTER_PACKET: {
 		hc_monster_packet p = *reinterpret_cast<hc_monster_packet*>(packet);
 
-		if (!g_monsters.count(p.monster_id)) {
+		if (!g_c_monsters.count(p.monster_id)) {
 			AsyncTask(ENamedThreads::GameThread, [p]() {
 				UWorld* World = GEngine->GetWorldFromContextObjectChecked(GEngine->GameViewport);
 				if (!World) return;
@@ -1090,11 +1044,11 @@ void c_process_packet(char* packet) {
 					UE_LOG(LogTemp, Error, TEXT("Failed to Load AnimBP"));
 				}
 
-				g_monsters[p.monster_id] = NewMonster;
+				g_c_monsters[p.monster_id] = NewMonster;
 				UE_LOG(LogTemp, Warning, TEXT("[Client] Spawned Monster %d and Stored in g_s_monsters"), p.monster_id);
 				});
 		} else {
-			AEnemyCharacter* Monster = Cast<AEnemyCharacter>(g_monsters[p.monster_id]);
+			AEnemyCharacter* Monster = Cast<AEnemyCharacter>(g_c_monsters[p.monster_id]);
 			FRotator NewRotation(0.f, p.monster_yaw, 0.f);
 
 			Monster->set_hp(p.monster_hp);
@@ -1109,8 +1063,8 @@ void c_process_packet(char* packet) {
 	case H2C_MONSTER_ATTACK_PACKET: {
 		hc_monster_packet* p = reinterpret_cast<hc_monster_packet*>(packet);
 
-		if (g_monsters.count(p->monster_id)) {
-			Cast<AEnemyCharacter>(g_monsters[p->monster_id])->MeleeAttack();
+		if (g_c_monsters.count(p->monster_id)) {
+			Cast<AEnemyCharacter>(g_c_monsters[p->monster_id])->MeleeAttack();
 		}
 
 		UE_LOG(LogTemp, Warning, TEXT("[Client] Received Monster %d Attack Packet"), p->monster_id);
@@ -1126,10 +1080,9 @@ void CALLBACK c_recv_callback(DWORD err, DWORD num_bytes, LPWSAOVERLAPPED p_over
 	}
 
 	// Process Packet
-	//UE_LOG(LogTemp, Warning, TEXT("[Client] Received Packet from Host"));
-	char* p = g_recv_over.m_buffer;
+	char* p = g_c_recv_over.m_buffer;
 	unsigned char packet_size = p[0];
-	int remained = g_remained + num_bytes;
+	int remained = g_c_remained + num_bytes;
 
 	while (packet_size <= remained) {
 		c_process_packet(p);
@@ -1141,16 +1094,16 @@ void CALLBACK c_recv_callback(DWORD err, DWORD num_bytes, LPWSAOVERLAPPED p_over
 		packet_size = p[0];
 	}
 
-	g_remained = remained;
+	g_c_remained = remained;
 	if (remained) {
-		memcpy(g_recv_over.m_buffer, p, remained);
+		memcpy(g_c_recv_over.m_buffer, p, remained);
 	}
 
 	DWORD recv_bytes;
 	DWORD recv_flag = 0;
-	g_recv_over.m_wsabuf[0].buf = g_recv_over.m_buffer + g_remained;
-	g_recv_over.m_wsabuf[0].len = sizeof(g_recv_over.m_buffer) - g_remained;
-	WSARecv(g_h_socket, g_recv_over.m_wsabuf, 1, &recv_bytes, &recv_flag, &g_recv_over.m_over, c_recv_callback);
+	g_c_recv_over.m_wsabuf[0].buf = g_c_recv_over.m_buffer + g_c_remained;
+	g_c_recv_over.m_wsabuf[0].len = sizeof(g_c_recv_over.m_buffer) - g_c_remained;
+	WSARecv(g_c_socket, g_c_recv_over.m_wsabuf, 1, &recv_bytes, &recv_flag, &g_c_recv_over.m_over, c_recv_callback);
 }
 
 void CALLBACK c_send_callback(DWORD err, DWORD num_bytes, LPWSAOVERLAPPED p_over, DWORD flags) {

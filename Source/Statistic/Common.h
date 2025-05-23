@@ -2,6 +2,9 @@
 
 #include <WS2tcpip.h>
 #include <iostream>
+#include <atomic>
+#include <chrono>
+#include <thread>
 #include <array>
 #include <mutex>
 #include <queue>
@@ -9,13 +12,7 @@
 
 //////////////////////////////////////////////////
 // Lobby
-constexpr char S2C_LOBBY_LIST_PACKET = 1;
-constexpr char S2C_JOIN_AVAILABILITY_PACKET = 2;
-constexpr char S2C_HOST_ADDRESS_PACKET = 3;
-constexpr char H2S_PLAYER_DISCONNECTION_PACKET = 4;
-constexpr char C2S_CREATE_OR_JOIN_PACKET = 5;
-constexpr char C2S_SELECTED_PAGE_PACKET = 6;
-constexpr char C2S_SELECTED_LOBBY_PACKET = 7;
+
 
 //////////////////////////////////////////////////
 // In-Game
@@ -56,6 +53,8 @@ constexpr char C2H_SKILL_CREATE_PACKET = 49;
 
 constexpr char ELEMENT_WIND = 1;
 constexpr char ELEMENT_FIRE = 2;
+constexpr char ELEMENT_EARTH = 3;
+constexpr char ELEMENT_ICE = 4;
 
 constexpr char SKILL_WIND_CUTTER = 1;
 constexpr char SKILL_WIND_TORNADO = 2;
@@ -75,132 +74,80 @@ constexpr char MAX_CLIENTS = 4;
 
 //////////////////////////////////////////////////
 // Lobby
-struct sc_lobby_list_packet {
-	unsigned char packet_size;
-	char packet_type;
-};
 
-struct sc_join_availability_packet {
-	unsigned char packet_size;
-	char packet_type;
-};
-
-struct sc_host_address_packet {
-	unsigned char packet_size;
-	char packet_type;
-};
-
-struct hs_player_disconnection_packet {
-	unsigned char packet_size;
-	char packet_type;
-};
-
-struct cs_create_or_join_packet {
-	unsigned char packet_size;
-	char packet_type;
-};
-
-struct cs_selected_page_packet {
-	unsigned char packet_size;
-	char packet_type;
-};
-
-struct cs_selected_lobby_packet {
-	unsigned char packet_size;
-	char packet_type;
-};
 
 //////////////////////////////////////////////////
 // In-Game
 struct hc_player_info_packet {
 	unsigned char packet_size;
 	char packet_type;
-	char id;
-	float yaw;
-	float x, y, z;
-	float vx, vy, vz;
-	char hp;
-	char current_element;
+	char player_id;
+	float player_yaw;
+	float player_x, player_y, player_z;
+	float player_vx, player_vy, player_vz;
+	char player_hp;
+	char current_element[2];
 };
 
 struct hc_player_leave_packet {
 	unsigned char packet_size;
 	char packet_type;
-	char id;
+	char player_id;
 };
 
 struct player_vector_packet {
 	unsigned char packet_size;
 	char packet_type;
-	char id;
-	float x, y, z;
-	float vx, vy, vz;
+	char player_id;
+	float player_x, player_y, player_z;
+	float player_vx, player_vy, player_vz;
 };
 
 struct player_stop_packet {
 	unsigned char packet_size;
 	char packet_type;
-	char id;
-	float x, y, z;
+	char player_id;
+	float player_x, player_y, player_z;
 };
 
 struct player_rotate_packet {
 	unsigned char packet_size;
 	char packet_type;
-	char id;
-	float yaw;
+	char player_id;
+	float player_yaw;
 };
 
 struct player_jump_packet {
 	unsigned char packet_size;
 	char packet_type;
-	char id;
+	char player_id;
 };
 
-struct hc_player_skill_vector_packet {
+struct player_skill_vector_packet {
 	unsigned char packet_size;
 	char packet_type;
 	char player_id;
 	unsigned short skill_id;
 	char skill_type;
-	float x, y, z;
+	float skill_vx, skill_vy, skill_vz;
 	bool is_left;
 };
 
-struct ch_player_skill_vector_packet {
-	unsigned char packet_size;
-	char packet_type;
-	char player_id;
-	char skill_type;
-	float x, y, z;
-	bool is_left;
-};
-
-struct hc_player_skill_rotator_packet {
+struct player_skill_rotator_packet {
 	unsigned char packet_size;
 	char packet_type;
 	char player_id;
 	unsigned short skill_id;
 	char skill_type;
-	float x, y, z;
-	float pitch, yaw, roll;
-	bool is_left;
-};
-
-struct ch_player_skill_rotator_packet {
-	unsigned char packet_size;
-	char packet_type;
-	char player_id;
-	char skill_type;
-	float x, y, z;
-	float pitch, yaw, roll;
+	float skill_x, skill_y, skill_z;
+	float skill_pitch, skill_yaw, skill_roll;
 	bool is_left;
 };
 
 struct player_change_element_packet {
 	unsigned char packet_size;
 	char packet_type;
-	char id;
+	char player_id;
 	char element_type;
 	bool is_left;
 };
@@ -213,21 +160,13 @@ struct collision_packet {
 	unsigned char victim_id;
 };
 
-struct ch_skill_create_packet {
-	unsigned char packet_size;
-	char packet_type;
-	char skill_type;
-	unsigned char old_skill_id;
-	float x, y, z;
-};
-
-struct hc_skill_create_packet {
+struct skill_create_packet {
 	unsigned char packet_size;
 	char packet_type;
 	char skill_type;
 	unsigned char old_skill_id;
 	unsigned char new_skill_id;
-	float x, y, z;
+	float skill_x, skill_y, skill_z;
 };
 
 struct monster_info {
@@ -249,7 +188,7 @@ struct hc_init_monster_packet {
 struct ch_init_complete_packet {
 	unsigned char packet_size;
 	char packet_type;
-	char client_id;
+	char player_id;
 };
 
 struct hc_monster_packet {

@@ -228,7 +228,7 @@ private:
 	float m_yaw;
 	FVector m_velocity;
 	char m_hp;
-	char m_current_element;
+	char m_current_element[2];
 
 	unsigned short m_skill_id;
 
@@ -242,7 +242,7 @@ public:
 	float get_yaw() { return m_yaw; }
 	FVector get_velocity() { return m_velocity; }
 	char get_hp() { return m_hp; }
-	char get_current_element() { return m_current_element; }
+	char get_current_element(bool is_left) { return is_left ? m_current_element[0] : m_current_element[1]; }
 	unsigned short get_skill_id() { return m_skill_id; }
 	bool get_is_player() { return m_is_player; }
 
@@ -250,7 +250,10 @@ public:
 	void set_yaw(float yaw) { m_yaw = yaw; }
 	void set_velocity(float x, float y, float z) { m_velocity.X = x; m_velocity.Y = y; m_velocity.Z = z; }
 	void set_hp(char hp) { m_hp = hp; }
-	void set_current_element(char current_element) { m_current_element = current_element; }
+	void set_current_element(char current_element, bool is_left) { 
+		if (is_left) m_current_element[0] = current_element; 
+		else m_current_element[1] = current_element; 
+	}
 	void set_is_player(bool is_player) { m_is_player = is_player; }
 
 	void use_skill(unsigned short skill_id, char skill_type, FVector v, bool is_left);

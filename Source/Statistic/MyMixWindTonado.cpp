@@ -77,7 +77,7 @@ void AMyMixWindTonado::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActo
             // Skill - Skill Collision
             AMySkillBase* ptr = Cast<AMySkillBase>(OtherActor);
 
-            if (g_skills.count(ptr->m_id)) {
+            if (g_c_skills.count(ptr->m_id)) {
                 if (m_id < ptr->m_id) {
                     collision_packet p;
                     p.packet_size = sizeof(collision_packet);
@@ -94,7 +94,7 @@ void AMyMixWindTonado::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActo
             // Skill - Monster Collision
             AEnemyCharacter* ptr = Cast<AEnemyCharacter>(OtherActor);
 
-            if (g_monsters.count(ptr->get_id())) {
+            if (g_c_monsters.count(ptr->get_id())) {
                 if (ptr->get_hp() > 0.0f) {
                     collision_packet p;
                     p.packet_size = sizeof(collision_packet);

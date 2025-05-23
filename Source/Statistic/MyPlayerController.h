@@ -20,6 +20,4 @@ public:
 
 	void InitSocket();
 	void CleanupSocket();
-
-
 };

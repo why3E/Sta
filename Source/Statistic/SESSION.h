@@ -6,13 +6,15 @@ class APlayerCharacter;
 class AMySkillBase;
 class ACharacter;
 
-extern SOCKET g_h_socket;
 extern std::atomic<bool> g_is_host;
+extern std::atomic<bool> g_is_running;
+
+extern SOCKET g_c_socket;
 
 extern std::array<APlayerCharacter*, MAX_CLIENTS> g_c_players;
-extern std::unordered_map<unsigned short, AMySkillBase*> g_skills;
-extern std::unordered_map<unsigned short, std::queue<unsigned short>> g_collisions;
-extern std::unordered_map<unsigned short, ACharacter*> g_monsters;
+extern std::unordered_map<unsigned short, AMySkillBase*> g_c_skills;
+extern std::unordered_map<unsigned short, ACharacter*> g_c_monsters;
+extern std::unordered_map<unsigned short, std::queue<unsigned short>> g_c_collisions;
 
 //////////////////////////////////////////////////
 // EXP_OVER

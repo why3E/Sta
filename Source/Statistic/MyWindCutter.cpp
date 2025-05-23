@@ -107,7 +107,7 @@ void AMyWindCutter::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* 
         // Skill - Skill Collision
         AMySkillBase* ptr = Cast<AMySkillBase>(OtherActor);
 
-        if (g_skills.count(ptr->m_id)) {
+        if (g_c_skills.count(ptr->m_id)) {
             if (m_id < ptr->m_id) {
                 collision_packet p;
                 p.packet_size = sizeof(collision_packet);
@@ -123,7 +123,7 @@ void AMyWindCutter::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* 
         // Skill - Monster Collision
         AEnemyCharacter* ptr = Cast<AEnemyCharacter>(OtherActor);
 
-        if (g_monsters.count(ptr->get_id())) {
+        if (g_c_monsters.count(ptr->get_id())) {
             if (ptr->get_hp() > 0.0f) {
                 collision_packet p;
                 p.packet_size = sizeof(collision_packet);
@@ -168,12 +168,12 @@ void AMyWindCutter::Overlap(AActor* OtherActor) {
         // BombAttack
         FVector SpawnLocation = GetActorLocation();
 
-        ch_skill_create_packet p;
-        p.packet_size = sizeof(ch_skill_create_packet);
+        skill_create_packet p;
+        p.packet_size = sizeof(skill_create_packet);
         p.packet_type = C2H_SKILL_CREATE_PACKET;
         p.skill_type = SKILL_WIND_FIRE_BOMB;
         p.old_skill_id = m_id;
-        p.x = SpawnLocation.X; p.y = SpawnLocation.Y; p.z = SpawnLocation.Z;
+        p.skill_x = SpawnLocation.X; p.skill_y = SpawnLocation.Y; p.skill_z = SpawnLocation.Z;
 
         Cast<APlayerCharacter>(Owner)->do_send(&p);
 
@@ -270,17 +270,17 @@ void AMyWindCutter::MixBombAttack(EClassType MixType, unsigned short skill_id)
         BombAttack->SetOwner(GetOwner());
         BombAttack->SpawnBombAttack(SpawnLocation, MixType);
 
-        g_skills[skill_id] = BombAttack;
+        g_c_skills[skill_id] = BombAttack;
         UGameplayStatics::FinishSpawningActor(BombAttack, SpawnTransform);
 
-        if (g_collisions.count(skill_id)) {
-            while (!g_collisions[skill_id].empty()) {
-                unsigned short other_id = g_collisions[skill_id].front();
-                g_collisions[skill_id].pop();
+        if (g_c_collisions.count(skill_id)) {
+            while (!g_c_collisions[skill_id].empty()) {
+                unsigned short other_id = g_c_collisions[skill_id].front();
+                g_c_collisions[skill_id].pop();
 
-                if (g_skills.count(other_id)) {
-                    BombAttack->Overlap(g_skills[other_id]);
-                    g_skills[other_id]->Overlap(g_skills[skill_id]);
+                if (g_c_skills.count(other_id)) {
+                    BombAttack->Overlap(g_c_skills[other_id]);
+                    g_c_skills[other_id]->Overlap(g_c_skills[skill_id]);
                     UE_LOG(LogTemp, Error, TEXT("Skill %d and %d Collision Succeed!"), skill_id, other_id);
                 }
             }

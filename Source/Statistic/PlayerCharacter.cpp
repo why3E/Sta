@@ -26,7 +26,8 @@ APlayerCharacter::APlayerCharacter()
 	m_yaw = 0.0f;
 	m_velocity = FVector(0.0f, 0.0f, 0.0f);
 	m_hp = 100;
-	m_current_element = ELEMENT_WIND;
+	m_current_element[0] = ELEMENT_WIND;
+	m_current_element[1] = ELEMENT_FIRE;
 
 	m_skill_id = 0;
 
@@ -307,9 +308,9 @@ void APlayerCharacter::BasicMove(const FInputActionValue& Value)
 			player_vector_packet p;
 			p.packet_size = sizeof(player_vector_packet);
 			p.packet_type = C2H_PLAYER_VECTOR_PACKET;
-			p.id = m_id;
-			p.x = Position.X; p.y = Position.Y; p.z = Position.Z;
-			p.vx = Velocity.X; p.vy = Velocity.Y; p.vz = Velocity.Z;
+			p.player_id = m_id;
+			p.player_x = Position.X; p.player_y = Position.Y; p.player_z = Position.Z;
+			p.player_vx = Velocity.X; p.player_vy = Velocity.Y; p.player_vz = Velocity.Z;
 
 			do_send(&p);
 			//UE_LOG(LogTemp, Warning, TEXT("[Client %d] Send Vector Packet to Host"), m_id);
@@ -340,8 +341,8 @@ void APlayerCharacter::BasicLook(const FInputActionValue& Value)
 		player_rotate_packet p;
 		p.packet_size = sizeof(player_rotate_packet);
 		p.packet_type = C2H_PLAYER_ROTATE_PACKET;
-		p.id = m_id;
-		p.yaw = CurrentYaw;
+		p.player_id = m_id;
+		p.player_yaw = CurrentYaw;
 
 		do_send(&p);
 		//UE_LOG(LogTemp, Warning, TEXT("[Client %d] Send Rotation Packet to Host"), m_id);
@@ -356,7 +357,7 @@ void APlayerCharacter::StartJump()
 		player_jump_packet p;
 		p.packet_size = sizeof(player_jump_packet);
 		p.packet_type = C2H_PLAYER_JUMP_PACKET;
-		p.id = m_id;
+		p.player_id = m_id;
 
 		do_send(&p);
 		//UE_LOG(LogTemp, Warning, TEXT("[Client %d] Send Jump Start Packet to Host"), m_id);
@@ -854,8 +855,8 @@ void APlayerCharacter::Tick(float DeltaTime) {
 				player_stop_packet p;
 				p.packet_size = sizeof(player_stop_packet);
 				p.packet_type = C2H_PLAYER_STOP_PACKET;
-				p.id = m_id;
-				p.x = Position.X; p.y = Position.Y; p.z = Position.Z;
+				p.player_id = m_id;
+				p.player_x = Position.X; p.player_y = Position.Y; p.player_z = Position.Z;
 
 				do_send(&p);
 				//UE_LOG(LogTemp, Warning, TEXT("[Client %d] Send Stop Packet to Host"), m_id);
@@ -1177,7 +1178,7 @@ void APlayerCharacter::change_element() {
 	player_change_element_packet p;
 	p.packet_size = sizeof(player_change_element_packet);
 	p.packet_type = C2H_PLAYER_CHANGE_ELEMENT_PACKET;
-	p.id = m_id;
+	p.player_id = m_id;
 	p.is_left = true;
 
 	switch (LeftClassType) {
@@ -1188,13 +1189,19 @@ void APlayerCharacter::change_element() {
 		break;
 
 	case EClassType::CT_Fire:
-		UE_LOG(LogTemp, Warning, TEXT("Class changed to Wind"));
+		UE_LOG(LogTemp, Warning, TEXT("Class changed to Stone"));
 		ChangeClass(EClassType::CT_Stone, true);
 		p.element_type = static_cast<char>(EClassType::CT_Stone);
 		break;
 
 	case EClassType::CT_Stone:
-		UE_LOG(LogTemp, Warning, TEXT("Class changed to "));
+		UE_LOG(LogTemp, Warning, TEXT("Class changed to Ice"));
+		ChangeClass(EClassType::CT_Ice, true);
+		p.element_type = static_cast<char>(EClassType::CT_Ice);
+		break;
+
+	case EClassType::CT_Ice:
+		UE_LOG(LogTemp, Warning, TEXT("Class changed to Wind"));
 		ChangeClass(EClassType::CT_Wind, true);
 		p.element_type = static_cast<char>(EClassType::CT_Wind);
 		break;
@@ -1224,7 +1231,7 @@ void APlayerCharacter::do_send(void* buff) {
 	o->m_wsabuf[0].len = packet_size;
 
 	DWORD send_bytes;
-	auto ret = WSASend(g_h_socket, o->m_wsabuf, 1, &send_bytes, 0, &(o->m_over), send_callback);
+	auto ret = WSASend(g_c_socket, o->m_wsabuf, 1, &send_bytes, 0, &(o->m_over), send_callback);
 	if (ret == SOCKET_ERROR) {
 		if (WSAGetLastError() != WSA_IO_PENDING) {
 			delete o;

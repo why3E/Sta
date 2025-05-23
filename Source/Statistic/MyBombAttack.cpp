@@ -101,7 +101,7 @@ void AMyBombAttack::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* 
             // Skill - Monster Collision
             AEnemyCharacter* ptr = Cast<AEnemyCharacter>(OtherActor);
 
-            if (g_monsters.count(ptr->get_id())) {
+            if (g_c_monsters.count(ptr->get_id())) {
                 if (ptr->get_hp() > 0.0f) {
                     collision_packet p;
                     p.packet_size = sizeof(collision_packet);

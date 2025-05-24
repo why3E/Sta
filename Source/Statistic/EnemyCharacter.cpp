@@ -6,6 +6,8 @@
 #include "AIController.h"
 #include "BrainComponent.h"
 
+#include "BehaviorTree/BehaviorTree.h"
+#include "BehaviorTree/BlackboardComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "DrawDebugHelpers.h"
@@ -18,6 +20,7 @@
 #include "Kismet/KismetMathLibrary.h"        
 #include "Components/WidgetComponent.h" 
 #include "DamagePopupActor.h"
+
 #include "SESSION.h"
 
 AEnemyCharacter::AEnemyCharacter()
@@ -94,8 +97,6 @@ void AEnemyCharacter::MeleeAttack()
 {
     if (bIsAttacking || !AttackMontage) return;
 
-
-
     UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
     if (AnimInstance)
     {
@@ -127,6 +128,11 @@ void AEnemyCharacter::ReceiveSkillHit(const FSkillInfo& Info, AActor* Causer)
 
 void AEnemyCharacter::Die()
 {
+    // Remove Collision
+    GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+    GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+    GetCapsuleComponent()->SetCanEverAffectNavigation(false);
+
     GetMesh()->SetVisibility(false);
     CopySkeletalMeshToProcedural(0);
     ProcMeshComponent->SetVisibility(true);
@@ -146,7 +152,57 @@ void AEnemyCharacter::Die()
     FVector PlaneNormal = FVector(1.f, 0.f, 1.f).GetSafeNormal();
     SliceProcMesh(PlanePosition, PlaneNormal);
 
-    UE_LOG(LogTemp, Warning, TEXT("Enemy died and switched to Procedural Mesh."));
+    if (g_is_host) {
+        GetWorldTimerManager().SetTimer(RespawnTimerHandle, this, &AEnemyCharacter::Respawn, 10.0f, false);
+    }
+}
+
+void AEnemyCharacter::Reset() {
+    HP = 100.f;
+
+    // Reset Collision
+    GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+    GetMesh()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+    GetCapsuleComponent()->SetCanEverAffectNavigation(true);
+
+    // Reset Mesh
+    GetMesh()->SetVisibility(true);
+
+    ProcMeshComponent->SetVisibility(false);
+    ProcMeshComponent->SetSimulatePhysics(false);
+    ProcMeshComponent->ClearAllMeshSections();
+
+    if (CachedOtherHalfMesh) {
+        CachedOtherHalfMesh->DestroyComponent();
+        CachedOtherHalfMesh = nullptr;
+    }
+}
+
+void AEnemyCharacter::Respawn() {
+    Reset();
+
+    AAIController* AICon = Cast<AAIController>(GetController());
+
+    UBlackboardComponent* BB = AICon->GetBlackboardComponent();
+    SetActorLocation(BB->GetValueAsVector(TEXT("StartLocation")));
+
+    UBehaviorTree* BTAsset = LoadObject<UBehaviorTree>(
+        nullptr,
+        TEXT("/Game/Slime/AI/BT_EnemyAI.BT_EnemyAI")
+    );
+    AICon->RunBehaviorTree(BTAsset);
+
+    {
+        MonsterEvent monster_event = RespawnEvent(m_id, BB->GetValueAsVector(TEXT("StartLocation")));
+        std::lock_guard<std::mutex> lock(g_s_monster_events_l);
+        g_s_monster_events.push(monster_event);
+    }
+}
+
+void AEnemyCharacter::Respawn(FVector respawn_location) {
+    Reset();
+
+    SetActorLocation(respawn_location);
 }
 
 void AEnemyCharacter::BaseAttackCheck()
@@ -269,6 +325,8 @@ void AEnemyCharacter::SliceProcMesh(FVector PlanePosition, FVector PlaneNormal)
     {
         FVector RandomImpulse = UKismetMathLibrary::RandomUnitVector() * ImpulseStrength;
         OutOtherHalfProcMesh->AddImpulse(RandomImpulse, NAME_None, true);
+
+        CachedOtherHalfMesh = OutOtherHalfProcMesh;
     }
 
     UE_LOG(LogTemp, Warning, TEXT("Sliced Procedural Mesh with random impulses!"));
@@ -286,23 +344,6 @@ void AEnemyCharacter::Overlap(AActor* OtherActor)
 
     ReceiveSkillHit(Info, Skill);
     UE_LOG(LogTemp, Warning, TEXT("Skill Hit to Monster %d"), get_id());
-}
-
-void AEnemyCharacter::do_send(void* buff)
-{
-    EXP_OVER* o = new EXP_OVER;
-    unsigned char packet_size = reinterpret_cast<unsigned char*>(buff)[0];
-    memcpy(o->m_buffer, buff, packet_size);
-    o->m_wsabuf[0].len = packet_size;
-
-    DWORD send_bytes;
-    auto ret = WSASend(g_c_socket, o->m_wsabuf, 1, &send_bytes, 0, &(o->m_over), send_callback);
-    if (ret == SOCKET_ERROR) {
-        if (WSAGetLastError() != WSA_IO_PENDING) {
-            delete o;
-            return;
-        }
-    }
 }
 
 void AEnemyCharacter::ShowHud(float Damage, bool bIsCritical)

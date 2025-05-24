@@ -38,6 +38,10 @@ public:
     UFUNCTION()
     void Die();
 
+    void Reset();
+    void Respawn();
+    void Respawn(FVector respawn_location);
+
 protected:
     virtual void ReceiveSkillHit(const FSkillInfo& Info, AActor* Causer) override;
     virtual void BaseAttackCheck() override;
@@ -45,9 +49,13 @@ protected:
 
 private:
     bool bIsAttacking;
+    FTimerHandle RespawnTimerHandle;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats", Meta = (AllowPrivateAccess = "true"))
     float HP = 100.f;
+
+    UPROPERTY()
+    UProceduralMeshComponent* CachedOtherHalfMesh = nullptr;
 
 public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
@@ -76,8 +84,6 @@ public:
 
     void set_id(unsigned short id) { m_id = id; }
     void set_target_location(FVector target_location) { m_target_location = target_location; }
-
-    void do_send(void* buff);
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Hud")
     TSubclassOf<class ADamagePopupActor> DamagePopupActorClass;

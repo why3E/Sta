@@ -349,7 +349,7 @@ void server_thread() {
 						break;
 					}
 
-					case EventType::Attack:
+					case EventType::Attack: {
 						hc_monster_attack_packet p;
 						p.packet_size = sizeof(hc_monster_attack_packet);
 						p.packet_type = H2C_MONSTER_ATTACK_PACKET;
@@ -363,6 +363,24 @@ void server_thread() {
 							}
 						}
 						break;
+					}
+
+					case EventType::Respawn: {
+						hc_monster_respawn_packet p;
+						p.packet_size = sizeof(hc_monster_respawn_packet);
+						p.packet_type = H2C_MONSTER_RESPAWN_PACKET;
+						p.monster_id = monster_event.data.respawn.monster_id;
+						p.monster_respawn_x = monster_event.data.respawn.respawn_location.X; p.monster_respawn_y = monster_event.data.respawn.respawn_location.Y; p.monster_respawn_z = monster_event.data.respawn.respawn_location.Z;
+
+						for (char client_id = 0; client_id < MAX_CLIENTS; ++client_id) {
+							if (client_id) {
+								if (g_s_clients[client_id]) {
+									g_s_clients[client_id]->do_send(&p);
+								}
+							}
+						}
+						break;
+					}
 					}
 				}
 			}
@@ -1083,6 +1101,18 @@ void c_process_packet(char* packet) {
 			if (nullptr == g_c_monsters[p->monster_id]) { break; }
 
 			Cast<AEnemyCharacter>(g_c_monsters[p->monster_id])->MeleeAttack();
+		}
+
+		break;
+	}
+
+	case H2C_MONSTER_RESPAWN_PACKET: {
+		hc_monster_respawn_packet* p = reinterpret_cast<hc_monster_respawn_packet*>(packet);
+
+		if (g_c_monsters.count(p->monster_id)) {
+			if (nullptr == g_c_monsters[p->monster_id]) { break; }
+
+			Cast<AEnemyCharacter>(g_c_monsters[p->monster_id])->Respawn(FVector(p->monster_respawn_x, p->monster_respawn_y, p->monster_respawn_z));
 		}
 
 		break;

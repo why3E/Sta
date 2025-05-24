@@ -23,6 +23,7 @@ constexpr char H2C_PLAYER_LEAVE_PACKET = 3;
 constexpr char H2C_INIT_MONSTER_PACKET = 11;
 constexpr char H2C_MONSTER_MOVE_PACKET = 12;
 constexpr char H2C_MONSTER_ATTACK_PACKET = 13;
+constexpr char H2C_MONSTER_RESPAWN_PACKET = 14;
 
 constexpr char H2C_PLAYER_VECTOR_PACKET = 21;
 constexpr char H2C_PLAYER_STOP_PACKET = 22;
@@ -206,13 +207,21 @@ struct hc_monster_attack_packet {
 	unsigned char monster_id;
 };
 
+struct hc_monster_respawn_packet {
+	unsigned char packet_size;
+	char packet_type;
+	unsigned char monster_id;
+	float monster_respawn_x; float monster_respawn_y; float monster_respawn_z;
+};
+
 #pragma pack(pop)
 
 //////////////////////////////////////////////////
 // Monster
 enum class EventType {
 	Target,
-	Attack
+	Attack,
+	Respawn
 };
 
 struct TargetEvent {
@@ -224,12 +233,18 @@ struct AttackEvent {
 	int monster_id;
 };
 
+struct RespawnEvent {
+	int monster_id;
+	FVector respawn_location;
+};
+
 struct MonsterEvent {
 	EventType event_type;
 
 	union Data {
 		TargetEvent target;
 		AttackEvent attack;
+		RespawnEvent respawn;
 
 		Data() {}  
 		~Data() {} 
@@ -245,6 +260,11 @@ struct MonsterEvent {
 		new (&data.attack) AttackEvent(e);
 	}
 
+	MonsterEvent(const RespawnEvent& e) {
+		event_type = EventType::Respawn;
+		new (&data.attack) RespawnEvent(e);
+	}
+
 	~MonsterEvent() {
 		switch (event_type) {
 		case EventType::Target:
@@ -253,6 +273,10 @@ struct MonsterEvent {
 
 		case EventType::Attack:
 			data.attack.~AttackEvent();
+			break;
+
+		case EventType::Respawn:
+			data.respawn.~RespawnEvent();
 			break;
 		}
 	}

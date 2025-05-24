@@ -1,5 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
+#include "SESSION.h"
+#include "EnemyCharacter.h"
 #include "BTTask_Wander.h"
 #include "AIController.h"
 #include "NavigationSystem.h"
@@ -31,6 +33,12 @@ EBTNodeResult::Type UBTTask_Wander::ExecuteTask(UBehaviorTreeComponent& OwnerCom
     FVector Destination = Origin + RandomDirection * SearchRadius;
     BlackboardComp->SetValueAsVector(TEXT("WanderLocation"), Destination);
 
+    {
+        MonsterEvent monster_event = TargetEvent(Cast<AEnemyCharacter>(AIPawn)->get_id(), Destination);
+        std::lock_guard<std::mutex> lock(g_s_monster_events_l);
+        g_s_monster_events.push(monster_event);
+    }
+
     return EBTNodeResult::InProgress;
 }
 
@@ -56,9 +64,7 @@ void UBTTask_Wander::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemo
     FVector Destination = BlackboardComp->GetValueAsVector(TEXT("WanderLocation"));
     FVector CurrentLocation = AIPawn->GetActorLocation();
 
-    // Move
     FVector Direction = (Destination - CurrentLocation).GetSafeNormal2D();
-    AIPawn->AddMovementInput(Direction, 1.0f);
 
     // Rotate
     FRotator TargetRotation = Direction.Rotation();
@@ -67,9 +73,12 @@ void UBTTask_Wander::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemo
     FRotator NewRotation = FMath::RInterpTo(CurrentRotation, TargetRotation, GetWorld()->GetDeltaSeconds(), 5.0f);
     AIPawn->SetActorRotation(NewRotation);
 
+    // Move
+    AIPawn->AddMovementInput(Direction, 1.0f);
+
     // Finish Task
     float Distance = FVector::Dist2D(CurrentLocation, Destination);
-    if (Distance < 10.0f) { 
+    if (Distance < 100.0f) { 
         FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded);
     }
 }

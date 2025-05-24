@@ -54,13 +54,23 @@ void AEnemyCharacter::Tick(float DeltaTime)
     Super::Tick(DeltaTime);
 
     if (!g_is_host) {
-        FVector CurrentLocation = GetActorLocation();
-        FVector NewLocation = FMath::VInterpTo(CurrentLocation, m_target_location, DeltaTime, 5.0f);
-        SetActorLocation(NewLocation);
+        if (get_is_attacking()) { return; }
 
+        float Distance = FVector::Dist2D(GetActorLocation(), m_target_location);
+
+        if (Distance < 100.0f) { return; }
+
+        FVector Direction = (m_target_location - GetActorLocation()).GetSafeNormal2D();
+
+        // Rotate
+        FRotator TargetRotation = Direction.Rotation();
         FRotator CurrentRotation = GetActorRotation();
-        FRotator NewRotation = FMath::RInterpTo(CurrentRotation, m_target_rotation, DeltaTime, 5.0f);
+        FRotator NewRotation = FMath::RInterpTo(CurrentRotation, TargetRotation, DeltaTime, 5.0f);
+
         SetActorRotation(NewRotation);
+
+        // Move
+        AddMovementInput(Direction, 1.0f);
     }
 }
 
@@ -82,14 +92,7 @@ void AEnemyCharacter::MeleeAttack()
 {
     if (bIsAttacking || !AttackMontage) return;
 
-    if (g_is_host) {
-        monster_attack_packet p;
-        p.packet_size = sizeof(monster_attack_packet);
-        p.packet_type = C2H_MONSTER_ATTACK_PACKET;
-        p.monster_id = m_id;
 
-        do_send(&p);
-    }
 
     UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
     if (AnimInstance)

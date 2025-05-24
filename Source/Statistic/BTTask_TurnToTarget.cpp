@@ -32,16 +32,6 @@ void UBTTask_TurnToTarget::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* No
     FVector StartLocation = BlackboardComp->GetValueAsVector(TEXT("StartLocation"));
     FVector MyLocation = Character->GetActorLocation();
 
-    // 플레이어와 시작 위치 간의 거리 계산
-    float DistanceToStart = FVector::Dist2D(StartLocation, TargetLocation);
-
-    // 거리가 3000 이상이면 태스크 종료
-    if (DistanceToStart > 3000.0f)
-    {
-        FinishLatentTask(OwnerComp, EBTNodeResult::Failed);
-        return;
-    }
-
     FVector ToTarget = (TargetLocation - MyLocation);
     FVector Direction = ToTarget.GetSafeNormal2D();
 

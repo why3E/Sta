@@ -21,11 +21,10 @@ constexpr char H2C_PLAYER_ENTER_PACKET = 2;
 constexpr char H2C_PLAYER_LEAVE_PACKET = 3;
 
 constexpr char H2C_INIT_MONSTER_PACKET = 11;
-constexpr char H2C_MONSTER_PACKET = 12;
+constexpr char H2C_MONSTER_MOVE_PACKET = 12;
 constexpr char H2C_MONSTER_ATTACK_PACKET = 13;
 
 constexpr char C2H_INIT_COMPLETE_PACKET = 14;
-constexpr char C2H_MONSTER_ATTACK_PACKET = 15;
 
 constexpr char H2C_PLAYER_VECTOR_PACKET = 21;
 constexpr char H2C_PLAYER_STOP_PACKET = 22;
@@ -91,7 +90,7 @@ struct hc_player_info_packet {
 	float player_yaw;
 	float player_x, player_y, player_z;
 	float player_vx, player_vy, player_vz;
-	char player_hp;
+	float player_hp;
 	char current_element[2];
 };
 
@@ -181,12 +180,11 @@ struct skill_create_packet {
 	float skill_x, skill_y, skill_z;
 };
 
-struct monster_info {
+struct monster_init_info {
 	unsigned short monster_id;
-	char monster_hp;
+	float monster_hp;
 	float monster_x; float monster_y; float monster_z;
-	float monster_vx; float monster_vy; float monster_vz;
-	float monster_yaw;
+	float monster_target_x; float monster_target_y; float monster_target_z;
 };
 
 struct hc_init_monster_packet {
@@ -194,7 +192,7 @@ struct hc_init_monster_packet {
 	char packet_type;
 	char client_id;
 	unsigned short monster_count;
-	monster_info monsters[0];
+	monster_init_info monsters[0];
 };
 
 struct ch_init_complete_packet {
@@ -203,20 +201,67 @@ struct ch_init_complete_packet {
 	char player_id;
 };
 
-struct hc_monster_packet {
+struct hc_monster_move_packet {
 	unsigned char packet_size;
 	char packet_type;
 	unsigned char monster_id;
-	float monster_hp;
-	float monster_x, monster_y, monster_z;
-	float monster_vx, monster_vy, monster_vz;
-	float monster_yaw;
+	float monster_target_x; float monster_target_y; float monster_target_z;
 };
 
-struct monster_attack_packet {
+struct hc_monster_attack_packet {
 	unsigned char packet_size;
 	char packet_type;
 	unsigned char monster_id;
 };
 
 #pragma pack(pop)
+
+//////////////////////////////////////////////////
+// Monster
+enum class EventType {
+	Target,
+	Attack
+};
+
+struct TargetEvent {
+	int monster_id;
+	FVector target_location;
+};
+
+struct AttackEvent {
+	int monster_id;
+};
+
+struct MonsterEvent {
+	EventType event_type;
+
+	union Data {
+		TargetEvent target;
+		AttackEvent attack;
+
+		Data() {}  
+		~Data() {} 
+	} data;
+
+	MonsterEvent(const TargetEvent& e) {
+		event_type = EventType::Target;
+		new (&data.target) TargetEvent(e);
+	}
+
+	MonsterEvent(const AttackEvent& e) {
+		event_type = EventType::Attack;
+		new (&data.attack) AttackEvent(e);
+	}
+
+	~MonsterEvent() {
+		switch (event_type) {
+		case EventType::Target:
+			data.target.~TargetEvent();
+			break;
+
+		case EventType::Attack:
+			data.attack.~AttackEvent();
+			break;
+		}
+	}
+};

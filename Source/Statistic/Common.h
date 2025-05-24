@@ -24,8 +24,6 @@ constexpr char H2C_INIT_MONSTER_PACKET = 11;
 constexpr char H2C_MONSTER_MOVE_PACKET = 12;
 constexpr char H2C_MONSTER_ATTACK_PACKET = 13;
 
-constexpr char C2H_INIT_COMPLETE_PACKET = 14;
-
 constexpr char H2C_PLAYER_VECTOR_PACKET = 21;
 constexpr char H2C_PLAYER_STOP_PACKET = 22;
 constexpr char H2C_PLAYER_ROTATE_PACKET = 23;
@@ -74,6 +72,7 @@ constexpr char SKILL_MONSTER_COLLISION = 2;
 constexpr char SKILL_PLAYER_COLLISION = 3;
 
 constexpr char MAX_CLIENTS = 4;
+constexpr unsigned short MAX_MONSTERS_PER_PACKET = 5;
 
 #pragma pack(push, 1)
 
@@ -190,15 +189,8 @@ struct monster_init_info {
 struct hc_init_monster_packet {
 	unsigned char packet_size;
 	char packet_type;
-	char client_id;
 	unsigned short monster_count;
 	monster_init_info monsters[0];
-};
-
-struct ch_init_complete_packet {
-	unsigned char packet_size;
-	char packet_type;
-	char player_id;
 };
 
 struct hc_monster_move_packet {

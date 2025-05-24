@@ -10,12 +10,8 @@ AMySkillBase::AMySkillBase() {
 }
 
 AMySkillBase::~AMySkillBase() {
-    if (!IsValid(this)) return; 
-
     if (g_c_skills.count(m_id)) {
-        if (g_c_skills[m_id] == this) { 
-            g_c_skills.erase(m_id);
-        }
+        g_c_skills.erase(m_id);
     }
 }
 

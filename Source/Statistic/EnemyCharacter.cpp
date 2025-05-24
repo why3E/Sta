@@ -47,6 +47,8 @@ void AEnemyCharacter::BeginPlay()
 {
     Super::BeginPlay();
     bIsAttacking = false;
+
+    UE_LOG(LogTemp, Warning, TEXT("Slime Position: %s"), *GetActorLocation().ToString());
 }
 
 void AEnemyCharacter::Tick(float DeltaTime)
@@ -133,7 +135,8 @@ void AEnemyCharacter::Die()
     AAIController* AICon = Cast<AAIController>(GetController());
     if (AICon) {
         AICon->StopMovement();
-        if(AICon->BrainComponent)
+
+        if (AICon->BrainComponent)
         {
             AICon->BrainComponent->StopLogic(TEXT("Character Died"));
         }

@@ -256,6 +256,44 @@ void spawn_monster(FVector Location) {
 	});
 }
 
+void spawn_monster_from_json() {
+	FString FilePath = FPaths::ProjectContentDir() + TEXT("Data/MonsterSpawnLocations.json");
+	FString JsonString;
+
+	UE_LOG(LogTemp, Warning, TEXT("Loading JSON from: %s"), *FilePath);
+
+	if (!FFileHelper::LoadFileToString(JsonString, *FilePath)) 	{
+		UE_LOG(LogTemp, Error, TEXT("Failed to load JSON file!"));
+		return;
+	}
+
+	TSharedPtr<FJsonValue> JsonParsed;
+	TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(JsonString);
+
+	if (!FJsonSerializer::Deserialize(Reader, JsonParsed) || !JsonParsed.IsValid()) {
+		UE_LOG(LogTemp, Error, TEXT("Failed to parse JSON!"));
+		return;
+	}
+
+	const TArray<TSharedPtr<FJsonValue>>* Coordinates;
+	if (!JsonParsed->TryGetArray(Coordinates)) {
+		UE_LOG(LogTemp, Error, TEXT("JSON is not an array!"));
+		return;
+	}
+
+	for (const TSharedPtr<FJsonValue>& Value : *Coordinates) {
+		const TSharedPtr<FJsonObject>* Obj;
+
+		if (Value->TryGetObject(Obj)) {
+			float x = (*Obj)->GetNumberField("x");
+			float y = (*Obj)->GetNumberField("y");
+			float z = (*Obj)->GetNumberField("z");
+
+			spawn_monster(FVector(x, y, z));
+		}
+	}
+}
+
 void server_thread() {
 	// Create Accept Thread
 	std::thread a_thread(accept_thread);
@@ -263,9 +301,7 @@ void server_thread() {
 	auto last_update_t = std::chrono::system_clock::now();
 	auto last_packet_t = std::chrono::system_clock::now();
 
-	spawn_monster(FVector(32'500, -40'000, 400));
-	//spawn_monster(FVector(32'750, -39'000, 400));
-	//spawn_monster(FVector(33'000, -38'000, 400));
+	spawn_monster_from_json();
 
 	while (g_is_running) {
 		// Game Logic
@@ -387,6 +423,11 @@ void accept_thread() {
 					p.current_element[1] = static_cast<char>(EClassType::CT_Fire);
 					g_s_clients[client_id]->do_send(&p);
 
+					if (client_id == 0) {
+						slot_found = true;
+						break;
+					}
+
 					// Send Player Info to Others
 					p.packet_type = H2C_PLAYER_ENTER_PACKET;
 					for (char other_id = 0; other_id < MAX_CLIENTS; ++other_id) {
@@ -416,37 +457,44 @@ void accept_thread() {
 				}
 
 				{
-					// Send Monster Infos to Player
-					unsigned short monster_count = g_c_monsters.size();
-					unsigned char packet_size = sizeof(hc_init_monster_packet) + (sizeof(monster_init_info) * monster_count);
+					unsigned short total = g_c_monsters.size();
+					unsigned short offset = 0;
 
-					hc_init_monster_packet* p = (hc_init_monster_packet*)malloc(packet_size);
-					p->packet_size = packet_size;
-					p->packet_type = H2C_INIT_MONSTER_PACKET;
-					p->client_id = client_id;
-					p->monster_count = monster_count;
+					auto iter = g_c_monsters.begin();
 
-					monster_init_info* monster_data = (monster_init_info*)(p + 1);
-					unsigned short i = 0;
-					for (const auto& [monster_id, ptr] : g_c_monsters) {
-						AEnemyCharacter* monster = Cast<AEnemyCharacter>(ptr);
+					while (offset < total) {
+						// Send Monster Infos to Player
+						unsigned short monster_count = FMath::Min((unsigned short)(total - offset), MAX_MONSTERS_PER_PACKET);
+						unsigned char packet_size = sizeof(hc_init_monster_packet) + (sizeof(monster_init_info) * monster_count);
 
-						if (monster->get_is_attacking()) {
-							continue;
+						hc_init_monster_packet* p = (hc_init_monster_packet*)malloc(packet_size);
+						p->packet_size = packet_size;
+						p->packet_type = H2C_INIT_MONSTER_PACKET;
+						p->monster_count = monster_count;
+
+						monster_init_info* monster_data = (monster_init_info*)(p + 1);
+						unsigned short i = 0;
+
+						while ((i < monster_count) && (iter != g_c_monsters.end())) {
+							AEnemyCharacter* monster = Cast<AEnemyCharacter>(iter->second);
+
+							FVector Location = monster->GetActorLocation();
+							FVector TargetLocation = monster->get_target_location();
+
+							monster_data[i].monster_id = iter->first;
+							monster_data[i].monster_hp = monster->get_hp();
+							monster_data[i].monster_x = Location.X; monster_data[i].monster_y = Location.Y; monster_data[i].monster_z = Location.Z;
+							monster_data[i].monster_target_x = TargetLocation.X; monster_data[i].monster_target_y = TargetLocation.Y; monster_data[i].monster_target_z = TargetLocation.Z;
+
+							++i;
+							++offset;
+							++iter;
 						}
 
-						FVector Location = monster->GetActorLocation();
-						FVector TargetLocation = monster->get_target_location();
-
-						monster_data[i].monster_id = monster_id;
-						monster_data[i].monster_hp = monster->get_hp();
-						monster_data[i].monster_x = Location.X; monster_data[i].monster_y = Location.Y; monster_data[i].monster_z = Location.Z;
-						monster_data[i].monster_target_x = TargetLocation.X; monster_data[i].monster_target_y = TargetLocation.Y; monster_data[i].monster_target_z = TargetLocation.Z;
-						++i;
-						UE_LOG(LogTemp, Error, TEXT("[Host] %.2f, %.2f"), TargetLocation.X, TargetLocation.Y);
+						g_s_clients[client_id]->do_send(p);
+						UE_LOG(LogTemp, Warning, TEXT("[Host] Send %d Monsters to Clinet"), monster_count);
+						free(p);
 					}
-					g_s_clients[client_id]->do_send(p);
-					free(p);
 				}
 
 				slot_found = true;
@@ -600,13 +648,6 @@ void h_process_packet(char* packet) {
 				g_s_clients[client_id]->do_send(p);
 			}
 		}
-		break;
-	}
-
-	case C2H_INIT_COMPLETE_PACKET: {
-		ch_init_complete_packet* p = reinterpret_cast<ch_init_complete_packet*>(packet);
-		g_s_clients[p->player_id]->m_state = ST_INGAME;
-
 		break;
 	}
 
@@ -878,10 +919,11 @@ void c_process_packet(char* packet) {
 		switch (p->collision_type) {
 		case SKILL_SKILL_COLLISION:
 			if (g_c_skills.count(p->attacker_id) && g_c_skills.count(p->victim_id)) {
-				if (nullptr != g_c_skills[p->attacker_id]) g_c_skills[p->attacker_id]->Overlap(g_c_skills[p->victim_id]);
-				if (nullptr != g_c_skills[p->victim_id]) g_c_skills[p->victim_id]->Overlap(g_c_skills[p->attacker_id]);
-			}
-			else {
+				if ((nullptr != g_c_skills[p->attacker_id]) && (nullptr != g_c_skills[p->victim_id])) {
+					g_c_skills[p->attacker_id]->Overlap(g_c_skills[p->victim_id]);
+					g_c_skills[p->victim_id]->Overlap(g_c_skills[p->attacker_id]);
+				}
+			} else {
 				g_c_collisions[p->attacker_id].push(p->victim_id);
 				g_c_collisions[p->victim_id].push(p->attacker_id);
 			}
@@ -889,8 +931,10 @@ void c_process_packet(char* packet) {
 
 		case SKILL_MONSTER_COLLISION:
 			if (g_c_skills.count(p->attacker_id) && g_c_monsters.count(p->victim_id)) {
-				if (nullptr != g_c_skills[p->attacker_id]) g_c_skills[p->attacker_id]->Overlap(g_c_monsters[p->victim_id]);
-				if (nullptr != g_c_monsters[p->victim_id]) Cast<AEnemyCharacter>(g_c_monsters[p->victim_id])->Overlap(g_c_skills[p->attacker_id]);
+				if ((nullptr != g_c_skills[p->attacker_id]) && (nullptr != g_c_monsters[p->victim_id])) {
+					g_c_skills[p->attacker_id]->Overlap(g_c_monsters[p->victim_id]);
+					Cast<AEnemyCharacter>(g_c_monsters[p->victim_id])->Overlap(g_c_skills[p->attacker_id]);
+				}
 			}
 			break;
 
@@ -930,24 +974,13 @@ void c_process_packet(char* packet) {
 
 	case H2C_INIT_MONSTER_PACKET: {
 		hc_init_monster_packet* p = reinterpret_cast<hc_init_monster_packet*>(packet);
-		char client_id = p->client_id;
-		unsigned short monster_count = 0;
-		unsigned short expected_count = p->monster_count;
 
-		if (0 == expected_count) {
-			ch_init_complete_packet init_complete_packet;
-			init_complete_packet.packet_size = sizeof(ch_init_complete_packet);
-			init_complete_packet.packet_type = C2H_INIT_COMPLETE_PACKET;
-			init_complete_packet.player_id = client_id;
+		unsigned short monster_count = p->monster_count;
 
-			g_c_players[client_id]->do_send(&init_complete_packet);
-			break;
-		}
-
-		for (unsigned short i = 0; i < expected_count; ++i) {
+		for (unsigned short i = 0; i < monster_count; ++i) {
 			monster_init_info info = p->monsters[i];
 
-			AsyncTask(ENamedThreads::GameThread, [info, monster_count, expected_count, client_id]() {
+			AsyncTask(ENamedThreads::GameThread, [info]() {
 				UWorld* World = GEngine->GetWorldFromContextObjectChecked(GEngine->GameViewport);
 				if (!World) return;
 
@@ -982,7 +1015,6 @@ void c_process_packet(char* packet) {
 				NewMonster->set_hp(info.monster_hp);
 				NewMonster->SetActorLocation(FVector(info.monster_x, info.monster_y, info.monster_z));
 				NewMonster->set_target_location(FVector(info.monster_target_x, info.monster_target_y, info.monster_target_z));
-				UE_LOG(LogTemp, Error, TEXT("[Client] %.2f, %.2f"), info.monster_target_x, info.monster_target_y);
 
 				// AI Controller
 				AEnemyAIController* NewAI = World->SpawnActor<AEnemyAIController>(
@@ -1025,18 +1057,8 @@ void c_process_packet(char* packet) {
 					Cast<AEnemyCharacter>(g_c_monsters[info.monster_id])->Die();
 				}
 
-				if (monster_count == (expected_count - 1)) {
-					ch_init_complete_packet init_complete_packet;
-					init_complete_packet.packet_size = sizeof(ch_init_complete_packet);
-					init_complete_packet.packet_type = C2H_INIT_COMPLETE_PACKET;
-					init_complete_packet.player_id = client_id;
-
-					g_c_players[client_id]->do_send(&init_complete_packet);
-				}
-				UE_LOG(LogTemp, Warning, TEXT("[Client] Spawned Monster %d and Stored in g_s_monsters"), info.monster_id);
+				UE_LOG(LogTemp, Warning, TEXT("[Client] Spawned Monster %d and Stored in g_c_monsters"), info.monster_id);
 			});
-
-			++monster_count;
 		}
 		break;
 	}

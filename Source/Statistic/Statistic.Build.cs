@@ -18,7 +18,8 @@ public class Statistic : ModuleRules
 			"Niagara",
 			"UMG",
 			"ProceduralMeshComponent",
-			"Kismet"
+			"Kismet",
+			"Json", "JsonUtilities"
 		});
 	}
 }

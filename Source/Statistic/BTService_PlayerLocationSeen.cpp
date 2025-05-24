@@ -26,10 +26,6 @@ void UBTService_PlayerLocationSeen::TickNode(UBehaviorTreeComponent& OwnerComp, 
     UBlackboardComponent* BlackboardComp = AIController->GetBlackboardComponent();
     if (!BlackboardComp) { return; }
 
-    //if (BlackboardComp->IsVectorValueSet(TEXT("LastKnownPlayerLocation"))) {
-    //    UE_LOG(LogTemp, Warning, TEXT("LPL : %s"), *BlackboardComp->GetValueAsVector(TEXT("LastKnownPlayerLocation")).ToString());
-    //}
-
     char c_id = 0;
     float min_dist = 2000.0f;
     bool found_target = false;

@@ -77,6 +77,10 @@ void AMyBombAttack::SpawnBombAttack(FVector ImpactPoint, EClassType MixType)
     {
         MixBombAttackNiagaraComponent->SetAsset(FireEffect);
     }
+    if (MixType == EClassType::CT_Ice && IceEffect)
+    {
+        MixBombAttackNiagaraComponent->SetAsset(IceEffect);
+    }
     else if (MixBombAttackEffect)
     {
         MixBombAttackNiagaraComponent->SetAsset(MixBombAttackEffect);

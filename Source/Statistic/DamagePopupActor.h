@@ -25,7 +25,7 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
-	void InitDamage(float damage, bool isCritical =false);
+	void InitDamage(float damage, EClassType Type);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Damage")
 	UWidgetComponent* widgetComp;

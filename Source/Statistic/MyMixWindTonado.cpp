@@ -158,6 +158,12 @@ void AMyMixWindTonado::SkillMixWindTonado(EClassType MixType, unsigned short ski
             MixWindTonadoNiagaraComponent->Activate(true); // 재실행
         }
         break;
+    case EClassType::CT_Ice:
+        if (IceEffect) {
+            MixWindTonadoNiagaraComponent->SetAsset(IceEffect);
+            MixWindTonadoNiagaraComponent->Activate(true); // 재실행
+        }
+        break;
 
     default:
         break;

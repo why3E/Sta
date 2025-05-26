@@ -193,8 +193,8 @@ void APlayerCharacter::BeginPlay()
         } 
     }
 
-    ChangeClass(EClassType::CT_Wind, true);
-    ChangeClass(EClassType::CT_Fire, false);
+    ChangeClass(EClassType::CT_Fire, true);
+    ChangeClass(EClassType::CT_Ice, false);
 
     playerCurrentHp = playerMaxHp;
     playerCurrentMp = playerMaxMp;
@@ -244,9 +244,10 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 	EnhancedInputComponent->BindAction(IA_Dash, ETriggerEvent::Completed, this, &APlayerCharacter::DashEnd);
 
 	EnhancedInputComponent->BindAction(IA_BasicAttack, ETriggerEvent::Started, this, &APlayerCharacter::LeftClick);
-	EnhancedInputComponent->BindAction(IA_BasicAttack, ETriggerEvent::Completed, this, &APlayerCharacter::LeftClickRelease);
+	EnhancedInputComponent->BindAction(IA_BasicAttack, ETriggerEvent::Completed, this, &APlayerCharacter::ClickRelease);
 
-	EnhancedInputComponent->BindAction(IA_RightAttack, ETriggerEvent::Triggered, this, &APlayerCharacter::RightClick);
+	EnhancedInputComponent->BindAction(IA_RightAttack, ETriggerEvent::Started, this, &APlayerCharacter::RightClick);
+	EnhancedInputComponent->BindAction(IA_RightAttack, ETriggerEvent::Completed, this, &APlayerCharacter::ClickRelease);
 
 	EnhancedInputComponent->BindAction(IA_QSkill, ETriggerEvent::Triggered, this, &APlayerCharacter::QSkill);
 	EnhancedInputComponent->BindAction(IA_ESkill, ETriggerEvent::Triggered, this, &APlayerCharacter::ESkill);
@@ -388,7 +389,6 @@ void APlayerCharacter::LeftClick()
     // 왼쪽 무기가 얼음 타입인지 확인
     if (LeftClassType == EClassType::CT_Ice)
     {
-        // 얼음 조준/확대/활성화 로직 호출 (예시 함수)
 		player_ice_aim_packet p;
 		p.packet_size = sizeof(player_ice_aim_packet);
 		p.packet_type = C2H_PLAYER_ICE_AIM_PACKET;
@@ -399,7 +399,22 @@ void APlayerCharacter::LeftClick()
 
     BasicAttack();
 }
+void APlayerCharacter::RightClick()
+{
+	bIsLeft = false;
 
+	if (RightClassType == EClassType::CT_Ice)
+    {
+		player_ice_aim_packet p;
+		p.packet_size = sizeof(player_ice_aim_packet);
+		p.packet_type = C2H_PLAYER_ICE_AIM_PACKET;
+		p.player_id = m_id;
+		do_send(&p);
+		return;
+    }
+
+	BasicAttack();
+}
 void APlayerCharacter::StartIceAim()
 {
 	this->CurrentMontage = bIsLeft ? CurrentLeftMontage : CurrentRightMontage;
@@ -421,19 +436,35 @@ void APlayerCharacter::StartIceAim()
     }
 }
 
-void APlayerCharacter::LeftClickRelease()
+void APlayerCharacter::ClickRelease()
 {
-	if (LeftClassType == EClassType::CT_Ice) {
-		GetFireTargetLocation();
+	if(bIsLeft){
+		if (LeftClassType == EClassType::CT_Ice) {
+			GetFireTargetLocation();
 
-		player_skill_vector_packet p;
-		p.packet_size = sizeof(player_skill_vector_packet);
-		p.packet_type = C2H_PLAYER_SKILL_VECTOR_PACKET;
-		p.player_id = m_id;
-		p.skill_vx = FireLocation.X; p.skill_vy = FireLocation.Y; p.skill_vz = FireLocation.Z;
-		p.skill_type = SKILL_ICE_ARROW;
-		p.is_left = true;
-		do_send(&p);
+			player_skill_vector_packet p;
+			p.packet_size = sizeof(player_skill_vector_packet);
+			p.packet_type = C2H_PLAYER_SKILL_VECTOR_PACKET;
+			p.player_id = m_id;
+			p.skill_vx = FireLocation.X; p.skill_vy = FireLocation.Y; p.skill_vz = FireLocation.Z;
+			p.skill_type = SKILL_ICE_ARROW;
+			p.is_left = true;
+			do_send(&p);
+		}
+	}
+	else{
+		if (RightClassType == EClassType::CT_Ice) {
+			GetFireTargetLocation();
+
+			player_skill_vector_packet p;
+			p.packet_size = sizeof(player_skill_vector_packet);
+			p.packet_type = C2H_PLAYER_SKILL_VECTOR_PACKET;
+			p.player_id = m_id;
+			p.skill_vx = FireLocation.X; p.skill_vy = FireLocation.Y; p.skill_vz = FireLocation.Z;
+			p.skill_type = SKILL_ICE_ARROW;
+			p.is_left = false;
+			do_send(&p);
+		}
 	}
 }
 
@@ -457,12 +488,6 @@ void APlayerCharacter::ShootIceArrow()
 			AnimInstance->Montage_JumpToSection(FName("IceShoot"), CurrentMontage);
 		}
 	}
-}
-
-void APlayerCharacter::RightClick()
-{
-	bIsLeft = false;
-	BasicAttack();
 }
 
 //---------------------------------------------------------------------------------------------------------------------

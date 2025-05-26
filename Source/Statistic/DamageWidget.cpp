@@ -1,4 +1,5 @@
 #include "DamageWidget.h"
+#include "Enums.h"
 #include "Components/TextBlock.h"
 
 void UDamageWidget::NativeConstruct()
@@ -34,7 +35,7 @@ void UDamageWidget::ShowWidget()
     }
 }
 
-void UDamageWidget::PlayNormalDamageAnimation(float Damage)
+void UDamageWidget::PlayNormalDamageAnimation(float Damage, EClassType Type)
 {
     if (damageAnimNormalDamage)
     {
@@ -43,6 +44,27 @@ void UDamageWidget::PlayNormalDamageAnimation(float Damage)
 
         // 데미지 텍스트 설정
         TextBlock_Damage->SetText(FText::AsNumber(Damage));
+
+        if(Type == EClassType::CT_Fire)
+        {
+            TextBlock_Damage->SetColorAndOpacity(FLinearColor::Red);
+        }
+        else if(Type == EClassType::CT_Ice)
+        {
+            TextBlock_Damage->SetColorAndOpacity(FLinearColor::Blue);
+        }
+        else if(Type == EClassType::CT_Wind)
+        {
+            TextBlock_Damage->SetColorAndOpacity(FLinearColor::Green);
+        }
+        else if(Type == EClassType::CT_Stone)
+        {
+            TextBlock_Damage->SetColorAndOpacity(FLinearColor(0.6f, 0.3f, 0.1f, 1.0f));
+        }
+        else
+        {
+            TextBlock_Damage->SetColorAndOpacity(FLinearColor::White);
+        }
 
         // 텍스트를 보이게 설정
         ShowWidget();

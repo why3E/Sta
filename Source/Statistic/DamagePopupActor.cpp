@@ -38,12 +38,12 @@ void ADamagePopupActor::Tick(float DeltaTime)
 
 }
 
-void ADamagePopupActor::InitDamage(float damage, bool isCritical)
+void ADamagePopupActor::InitDamage(float damage, EClassType Type)
 {
 	damageWidgetInstance = Cast<UDamageWidget>(widgetComp->GetUserWidgetObject());
 	if(damageWidgetInstance)
 	{
-		damageWidgetInstance->PlayNormalDamageAnimation(damage);
+		damageWidgetInstance->PlayNormalDamageAnimation(damage , Type);
 	}
 	else
 	{

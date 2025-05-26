@@ -3,7 +3,9 @@
 
 #include "MyIceWeapon.h"
 #include "MyIceArrow.h"
+#include "MyIceSkill.h"
 #include "PlayerCharacter.h"
+#include "Kismet/GameplayStatics.h"
 #include "GameFramework/Character.h"
 
 AMyIceWeapon::AMyIceWeapon()
@@ -21,7 +23,11 @@ AMyIceWeapon::AMyIceWeapon()
     {
         IceArrowClass =  IceArrowRef.Class;
     }
-
+    static ConstructorHelpers::FClassFinder<AActor> IceWallRef(TEXT("/Game/Weapon/MyIceSkill.MyIceSkill_C"));
+    if (IceWallRef.Succeeded())
+    {
+        IceSkillClass =  IceWallRef.Class;
+    }
     WeaponType = EWeaponType::WT_Ice;
 
     IceSocket = TEXT("IcePosition");
@@ -96,3 +102,50 @@ void AMyIceWeapon::ShootIceArrow(FVector FirePoint)
     WeaponMesh->SetVisibility(false);
 }
 
+void AMyIceWeapon::SpawnIceSkill(FVector Location, FRotator Rotation)
+{
+    if (!IceSkillClass)
+    {
+        UE_LOG(LogTemp, Error, TEXT("IceWallClass is not set!"));
+        return;
+    }
+
+    // 스폰 파라미터 설정
+    FActorSpawnParameters SpawnParams;
+    SpawnParams.Owner = this;
+    SpawnParams.Instigator = GetInstigator();
+
+    // 지형 높이 확인
+    FHitResult HitResult;
+    FVector Start = Location + FVector(0.0f, 0.0f, 500.0f); // 위에서 아래로 라인트레이스
+    FVector End = Location - FVector(0.0f, 0.0f, 500.0f);   // 아래로 500 유닛
+
+    FVector SpawnLocation = Location;
+    if (GetWorld()->LineTraceSingleByChannel(HitResult, Start, End, ECC_Visibility))
+    {
+        // 지형의 충돌 지점 높이로 Z값 조정
+        SpawnLocation.Z = HitResult.ImpactPoint.Z;
+    }
+
+    FTransform SpawnTransform(Rotation, SpawnLocation);
+
+    // 아이스월 생성
+    AMyIceSkill* IceWall = GetWorld()->SpawnActorDeferred<AMyIceSkill>(
+        IceSkillClass,
+        SpawnTransform,
+        OwnerCharacter,
+        nullptr,
+        ESpawnActorCollisionHandlingMethod::AlwaysSpawn
+    );
+
+    if (IceWall)
+    {
+        IceWall->SetOwner(OwnerCharacter);
+        UGameplayStatics::FinishSpawningActor(IceWall, SpawnTransform);
+        UE_LOG(LogTemp, Warning, TEXT("IceWall spawned at location: %s"), *SpawnLocation.ToString());
+    }
+    else
+    {
+        UE_LOG(LogTemp, Error, TEXT("Failed to spawn IceWall!"));
+    }
+}

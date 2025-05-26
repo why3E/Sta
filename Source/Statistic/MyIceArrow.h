@@ -45,7 +45,7 @@ protected:
     // 히트 효과 나이아가라 파티클 시스템
     UPROPERTY(EditAnywhere, Category = "Particle", meta = (AllowPrivateAccess = "true"))
     TObjectPtr<class UNiagaraSystem> HitEffectNiagaraSystem;
-
+    
     // Projectile Movement 컴포넌트
     UPROPERTY(VisibleAnywhere, Category = "Movement", meta = (AllowPrivateAccess = "true"))
     TObjectPtr<class UProjectileMovementComponent> MovementComponent;

@@ -115,8 +115,7 @@ void AEnemyCharacter::ReceiveSkillHit(const FSkillInfo& Info, AActor* Causer)
 {
     HP -= Info.Damage;
 
-    // 수정된 부분: 개별 팝업 출력
-    ShowHud(Info.Damage, false);
+    ShowHud(Info.Damage, Info.Element);
 
     UE_LOG(LogTemp, Warning, TEXT("Damage: %f, HP: %f"), Info.Damage, HP);
 
@@ -346,7 +345,7 @@ void AEnemyCharacter::Overlap(AActor* OtherActor)
     UE_LOG(LogTemp, Warning, TEXT("Skill Hit to Monster %d"), get_id());
 }
 
-void AEnemyCharacter::ShowHud(float Damage, bool bIsCritical)
+void AEnemyCharacter::ShowHud(float Damage, EClassType Type)
 {
     if (!DamagePopupActorClass)
     {
@@ -364,7 +363,7 @@ void AEnemyCharacter::ShowHud(float Damage, bool bIsCritical)
     ADamagePopupActor* popupActor = GetWorld()->SpawnActor<ADamagePopupActor>(DamagePopupActorClass, spawnLoc, spawnRot);
     if (popupActor)
     {
-        popupActor->InitDamage(Damage, bIsCritical);
+        popupActor->InitDamage(Damage, Type);
         UE_LOG(LogTemp, Warning, TEXT("Damage Popup Actor Spawned"));
     }
 }

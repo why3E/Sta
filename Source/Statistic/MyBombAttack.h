@@ -36,6 +36,9 @@ protected:
 
     UPROPERTY(EditAnywhere, Category = "Effects")
     TObjectPtr<class UNiagaraSystem> FireEffect;
+    
+    UPROPERTY(EditAnywhere, Category = "Effects")
+    TObjectPtr<class UNiagaraSystem> IceEffect;
 
     UPROPERTY(EditAnywhere, Category = "Damage")
     float SkillDamage = 20.0f;

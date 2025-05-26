@@ -55,7 +55,7 @@ protected:
 	void DashStart();
 	void DashEnd();
 	void LeftClick();
-	void LeftClickRelease();
+	void ClickRelease();
 	void RightClick();
 	void BasicAttack();
 	void SkillAttack();

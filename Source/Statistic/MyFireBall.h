@@ -44,11 +44,11 @@ protected:
     TObjectPtr<class USphereComponent> CollisionComponent;
 
     // 나이아가라 파티클 시스템
-    UPROPERTY(VisibleAnywhere, Category = "Particle", meta = (AllowPrivateAccess = "true"))
+    UPROPERTY(VisibleAnywhere, Category = "Effects", meta = (AllowPrivateAccess = "true"))
     TObjectPtr<class UNiagaraComponent> FireBallNiagaraComponent;
 
     // 히트 효과 나이아가라 파티클 시스템
-    UPROPERTY(EditAnywhere, Category = "Particle", meta = (AllowPrivateAccess = "true"))
+    UPROPERTY(EditAnywhere, Category = "Effects", meta = (AllowPrivateAccess = "true"))
     TObjectPtr<class UNiagaraSystem> HitEffectNiagaraSystem;
 
     // Projectile Movement 컴포넌트

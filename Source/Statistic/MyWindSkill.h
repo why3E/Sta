@@ -29,7 +29,6 @@ public:
 	void SpawnWindTonado(FVector Location);
 
 protected:
-	// ✅ 메시 기반 충돌 (Convex 콜리전 포함)
 	UPROPERTY(VisibleAnywhere, Category = "Collision")
 	TObjectPtr<class UStaticMeshComponent> CollisionMesh;
 
@@ -47,6 +46,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, Category = "Effects")
 	TObjectPtr<UNiagaraSystem> FireEffect;
+
+	UPROPERTY(EditAnywhere, Category = "Effects")
+	TObjectPtr<UNiagaraSystem> IceEffect;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Settings")
     TSubclassOf<class AMyMixWindTonado> MixWindTonadoClass;

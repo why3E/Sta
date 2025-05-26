@@ -36,7 +36,7 @@ public:
 
     // 일반 데미지 애니메이션 재생
     UFUNCTION()
-    void PlayNormalDamageAnimation(float Damage);
+    void PlayNormalDamageAnimation(float Damage, EClassType Type);
 
 protected:
     // 위젯 초기화

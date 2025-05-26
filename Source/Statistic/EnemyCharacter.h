@@ -6,6 +6,7 @@
 #include "ReceiveDamageInterface.h"
 #include "ProceduralMeshComponent.h"
 #include "DamageWidget.h" // UDamageWidget 헤더 추가
+#include "Enums.h"
 #include "EnemyCharacter.generated.h"
 
 UCLASS()
@@ -89,5 +90,5 @@ public:
     TSubclassOf<class ADamagePopupActor> DamagePopupActorClass;
 
     UFUNCTION(BlueprintCallable, Category = "Hud")
-    void ShowHud(float Damage, bool bIsCritical = false);
+    void ShowHud(float Damage, EClassType Type);
 };

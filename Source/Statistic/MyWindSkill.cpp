@@ -184,7 +184,13 @@ void AMyWindSkill::SkillMixWindTonado(EClassType MixType, unsigned short skill_i
     case EClassType::CT_Wind:
         SpawnMixTonado(skill_id);
         break;
-
+    case EClassType::CT_Ice:
+        if (IceEffect)
+        {
+            WindTonadoNiagaraComponent->SetAsset(IceEffect);
+            WindTonadoNiagaraComponent->Activate(true); // 재실행
+        }
+        break;
     default:
         
         break;

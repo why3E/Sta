@@ -139,7 +139,9 @@ void AMyIceArrow::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* Ot
 void AMyIceArrow::Overlap(AActor* OtherActor) {
     // 충돌 상태 설정
     bIsHit = true;
-
+    if (HitEffectNiagaraSystem) {
+        UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), HitEffectNiagaraSystem, GetActorLocation());
+    }
     // 발사체 제거
     Destroy();
 }
@@ -147,7 +149,9 @@ void AMyIceArrow::Overlap(AActor* OtherActor) {
 void AMyIceArrow::Overlap(ACharacter* OtherActor) {
     // 충돌 상태 설정
     bIsHit = true;
-
+    if (HitEffectNiagaraSystem) {
+        UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), HitEffectNiagaraSystem, GetActorLocation());
+    }
     // 발사체 제거
     Destroy();
 }

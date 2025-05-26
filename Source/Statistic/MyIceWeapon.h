@@ -30,11 +30,15 @@ public:
 	// 생성 및 발사 함수
 	void ShootIceArrow(FVector FirePoint);
 
+	void SpawnIceSkill(FVector Location, FRotator Rotation);
+
 protected:
 	// 클래스
 	UPROPERTY(VisibleAnywhere, Category = "Quiver", meta = (AllowPrivateAccess = "true"))
 	TSubclassOf<AActor> IceArrowClass;
-	
+	UPROPERTY(VisibleAnywhere, Category = "Quiver", meta = (AllowPrivateAccess = "true"))
+	TSubclassOf<AActor> IceSkillClass;
+
 	UPROPERTY()
 	TObjectPtr<class AMyIceArrow> TempIceArrow;
 

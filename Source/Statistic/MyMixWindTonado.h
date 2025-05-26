@@ -74,6 +74,9 @@ private:
 	UPROPERTY(EditAnywhere, Category = "Effects")
 	TObjectPtr<UNiagaraSystem> FireEffect;
 
+	UPROPERTY(EditAnywhere, Category = "Effects")
+	TObjectPtr<UNiagaraSystem> IceEffect;
+
 public:
 	virtual void Overlap(AActor* OtherActor);
 

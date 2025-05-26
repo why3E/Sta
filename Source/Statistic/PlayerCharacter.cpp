@@ -193,8 +193,8 @@ void APlayerCharacter::BeginPlay()
         } 
     }
 
-    ChangeClass(EClassType::CT_Fire, true);
-    ChangeClass(EClassType::CT_Ice, false);
+    ChangeClass(EClassType::CT_Wind, true);
+    ChangeClass(EClassType::CT_Stone, false);
 
     playerCurrentHp = playerMaxHp;
     playerCurrentMp = playerMaxMp;
@@ -499,17 +499,17 @@ void APlayerCharacter::BasicAttack()
 
 	EClassType ClassType = bIsLeft ? LeftClassType : RightClassType;
 
-	if (bIsQDrawingCircle)
+	if (bIsQDrawing)
 	{
 		if(!bIsLeft) return;
 	}
 
-	if (bisEDrawingRectangle)
+	if (bisEDrawing)
 	{
 		if(bIsLeft) return;
 	}
 
-	if (bIsQDrawingCircle || bisEDrawingRectangle)
+	if (bIsQDrawing || bisEDrawing)
     {
 		UE_LOG(LogTemp, Error, TEXT("CurrentImpactPoint: %s"), *CurrentImpactPoint.ToString());
 		UE_LOG(LogTemp, Error, TEXT("CurrentImpactRot: %s"), *CurrentImpactRot.ToString());
@@ -969,25 +969,25 @@ void APlayerCharacter::Tick(float DeltaTime) {
 
 void APlayerCharacter::QSkill()
 {
-    if (bIsQDrawingCircle)
+    if (bIsQDrawing)
     {
         // QSkill 취소
-        bIsQDrawingCircle = false;
+        bIsQDrawing = false;
         GetWorld()->GetTimerManager().ClearTimer(CircleUpdateTimerHandle);
         UE_LOG(LogTemp, Warning, TEXT("QSkill canceled."));
     }
     else
     {
-        if (bisEDrawingRectangle)
+        if (bisEDrawing)
         {
             // ESkill 취소
-            bisEDrawingRectangle = false;
+            bisEDrawing = false;
             GetWorld()->GetTimerManager().ClearTimer(RectangleUpdateTimerHandle);
             UE_LOG(LogTemp, Warning, TEXT("ESkill canceled for QSkill."));
         }
 
         // QSkill 활성화
-        bIsQDrawingCircle = true;
+        bIsQDrawing = true;
 
         // 카메라 위치와 방향 가져오기
         FVector CameraLocation;
@@ -1020,25 +1020,25 @@ void APlayerCharacter::QSkill()
 
 void APlayerCharacter::ESkill()
 {
-    if (bisEDrawingRectangle)
+    if (bisEDrawing)
     {
         // ESkill 취소
-        bisEDrawingRectangle = false;
+        bisEDrawing = false;
         GetWorld()->GetTimerManager().ClearTimer(RectangleUpdateTimerHandle);
         UE_LOG(LogTemp, Warning, TEXT("ESkill canceled."));
     }
     else
     {
-        if (bIsQDrawingCircle)
+        if (bIsQDrawing)
         {
             // QSkill 취소
-            bIsQDrawingCircle = false;
+            bIsQDrawing = false;
             GetWorld()->GetTimerManager().ClearTimer(CircleUpdateTimerHandle);
             UE_LOG(LogTemp, Warning, TEXT("QSkill canceled for ESkill."));
         }
 
         // ESkill 활성화
-        bisEDrawingRectangle = true;
+        bisEDrawing = true;
 
         // 카메라 위치와 방향 가져오기
         FVector CameraLocation;
@@ -1071,7 +1071,7 @@ void APlayerCharacter::ESkill()
 
 void APlayerCharacter::UpdateCircle()
 {
-    if (bIsQDrawingCircle)
+    if (bIsQDrawing)
     {
         // 카메라 위치와 방향 가져오기
         FVector CameraLocation;
@@ -1104,7 +1104,7 @@ void APlayerCharacter::UpdateCircle()
 
 void APlayerCharacter::UpdateRectangle()
 {
-    if (bisEDrawingRectangle)
+    if (bisEDrawing)
     {
         // 카메라 위치와 방향 가져오기
         FVector CameraLocation;
@@ -1213,7 +1213,7 @@ void APlayerCharacter::use_skill(unsigned short skill_id, char skill_type, FVect
 		CurrentImpactPoint = v;
 		bIsLeft = is_left;
 		SkillAttack();
-		bIsQDrawingCircle = false;
+		bIsQDrawing = false;
 		GetWorld()->GetTimerManager().ClearTimer(CircleUpdateTimerHandle);
 		break;
 
@@ -1233,7 +1233,7 @@ void APlayerCharacter::use_skill(unsigned short skill_id, char skill_type, FVect
 		CurrentImpactRot = r;
 		bIsLeft = is_left;
 		SkillAttack();
-		bIsQDrawingCircle = false;
+		bIsQDrawing = false;
 		GetWorld()->GetTimerManager().ClearTimer(CircleUpdateTimerHandle);
 		break;
 	}

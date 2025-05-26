@@ -201,8 +201,8 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
     TSubclassOf<AMyWeapon> IceWeaponBP;
 private:
-    bool bIsQDrawingCircle = false; // 원을 그리고 있는지 여부
-	bool bisEDrawingRectangle = false; // 원을 그리고 있는지 여부
+    bool bIsQDrawing = false; 
+	bool bisEDrawing = false; 
     FVector CurrentImpactPoint;   // 현재 충돌 지점
 	FRotator CurrentImpactRot;     // 현재 충돌 회전
     FTimerHandle CircleUpdateTimerHandle; // 원 업데이트를 위한 타이머 핸들

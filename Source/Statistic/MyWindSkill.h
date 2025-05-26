@@ -21,40 +21,55 @@ public:
 protected:
 	virtual void BeginPlay() override;
 	virtual void PostInitializeComponents() override;
-
-public:
+	virtual void EndPlay(EEndPlayReason::Type EndPlayReason) override;
 	virtual void Tick(float DeltaTime) override;
 
-	// 토네이도 생성 함수
+public:
+	// 토네이도 스폰
 	void SpawnWindTonado(FVector Location);
 
+	// 스킬 믹스 처리
+	virtual void SkillMixWindTonado(EClassType MixType, unsigned short skill_id) override;
+	void SpawnMixTonado(unsigned short skill_id);
+
+	// 외부에서 수동 충돌 감지할 때 호출
+	virtual void Overlap(AActor* OtherActor) override;
+	virtual void Overlap(ACharacter* OtherActor) override;
+
 protected:
+	/** 콜리전 메시 */
 	UPROPERTY(VisibleAnywhere, Category = "Collision")
 	TObjectPtr<class UStaticMeshComponent> CollisionMesh;
 
-	// 나이아가라 파티클 컴포넌트
+	/** 나이아가라 토네이도 이펙트 */
 	UPROPERTY(VisibleAnywhere, Category = "Effects")
 	TObjectPtr<class UNiagaraComponent> WindTonadoNiagaraComponent;
 
-	// 나이아가라 에셋
+	/** 기본 이펙트 */
 	UPROPERTY(EditAnywhere, Category = "Effects")
 	TObjectPtr<class UNiagaraSystem> WindTonadoEffect;
 
-	// 지속 시간
-	UPROPERTY(EditAnywhere, Category = "Settings")
-	float WindTonadoDuration = 10.0f;
-
+	/** 속성에 따른 이펙트 */
 	UPROPERTY(EditAnywhere, Category = "Effects")
 	TObjectPtr<UNiagaraSystem> FireEffect;
 
 	UPROPERTY(EditAnywhere, Category = "Effects")
 	TObjectPtr<UNiagaraSystem> IceEffect;
 
+	/** 토네이도 지속 시간 */
+	UPROPERTY(EditAnywhere, Category = "Settings")
+	float WindTonadoDuration = 10.0f;
+
+	/** 믹스 토네이도 클래스 */
 	UPROPERTY(EditDefaultsOnly, Category = "Settings")
-    TSubclassOf<class AMyMixWindTonado> MixWindTonadoClass;
+	TSubclassOf<class AMyMixWindTonado> MixWindTonadoClass;
+
+	/** 현재 오버랩된 캐릭터 목록 */
+	UPROPERTY()
+	TSet<class APlayerCharacter*> OverlappingCharacters;
 
 private:
-	// 충돌 감지 함수
+	/** 컴포넌트 오버랩 진입 시 */
 	UFUNCTION()
 	void OnBeginOverlap(
 		UPrimitiveComponent* OverlappedComp,
@@ -65,20 +80,18 @@ private:
 		const FHitResult& SweepResult
 	);
 
-	// Tick 기반 충돌 확인용 타이머
-	FTimerHandle CheckOverlapTimerHandle;
+	/** 컴포넌트 오버랩 이탈 시 */
+	UFUNCTION()
+	void OnEndOverlap(
+		UPrimitiveComponent* OverlappedComp,
+		AActor* OtherActor,
+		UPrimitiveComponent* OtherComp,
+		int32 OtherBodyIndex
+	);
 
-	// 반복적으로 오버랩된 액터를 감지
+	/** Tick 기반 오버랩 검사 (예비용) */
 	void CheckOverlappingActors();
 
-	// 스폰된 액터 제거 시 호출
-	virtual void EndPlay(EEndPlayReason::Type EndPlayReason) override;
-
-public:
-	virtual void Overlap(AActor* OtherActor);
-	virtual void Overlap(ACharacter* OtherActor);
-
-	// MixWindTonado 스킬 사용
-	virtual void SkillMixWindTonado(EClassType MixType, unsigned short skill_id) override;
-	void SpawnMixTonado(unsigned short skill_id);
+	/** 충돌 체크 타이머 */
+	FTimerHandle CheckOverlapTimerHandle;
 };

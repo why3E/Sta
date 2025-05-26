@@ -35,6 +35,13 @@ AMyIceSkill::AMyIceSkill()
 void AMyIceSkill::BeginPlay()
 {
     Super::BeginPlay();
+    /*GetWorld()->GetTimerManager().SetTimer(
+            BreakTimerHandle,
+            this,
+            &AMyIceSkill::SmallAndDestroy,
+            0.5f,
+            true // 1회성
+        );*/
 
     // Tick 기반 충돌 체크 시작
     //GetWorld()->GetTimerManager().SetTimer(CheckOverlapTimerHandle, this, &AMyIceSkill::CheckOverlappingActors, 1.0f, true);
@@ -104,7 +111,7 @@ void AMyIceSkill::SmallAndDestroy()
         }
 
         // 타이머로 점점 작아지게
-        TargetScale = 0.1f; // 최종 스케일
+        TargetScale = 0.2f; // 최종 스케일
         ShrinkInterpSpeed = 2.0f; // 보간 속도
         GetWorld()->GetTimerManager().SetTimer(
             ShrinkTimerHandle,

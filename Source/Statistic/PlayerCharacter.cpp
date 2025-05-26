@@ -193,7 +193,7 @@ void APlayerCharacter::BeginPlay()
         } 
     }
 
-    ChangeClass(EClassType::CT_Wind, true);
+    ChangeClass(EClassType::CT_Ice, true);
     ChangeClass(EClassType::CT_Stone, false);
 
     playerCurrentHp = playerMaxHp;
@@ -389,6 +389,11 @@ void APlayerCharacter::LeftClick()
     // 왼쪽 무기가 얼음 타입인지 확인
     if (LeftClassType == EClassType::CT_Ice)
     {
+		if(bIsQDrawing)
+		{
+			SkillAttack();
+			return;
+		}
 		player_ice_aim_packet p;
 		p.packet_size = sizeof(player_ice_aim_packet);
 		p.packet_type = C2H_PLAYER_ICE_AIM_PACKET;
@@ -661,8 +666,13 @@ void APlayerCharacter::SkillAttack()
         // 섹션 이름 설정
         FName SectionName = FName(*CurrentMontageSectionName);
 
+		float AttackSpeedRate = 4.0f;
+		if (CurrentWeapon && CurrentWeapon->IsA(AMyIceWeapon::StaticClass()))
+		{
+			AttackSpeedRate = 1.0f;
+		}
         // 몽타주 재생
-        AnimInstance->Montage_Play(CurrentMontage, 4.0f);
+        AnimInstance->Montage_Play(CurrentMontage, AttackSpeedRate);
         AnimInstance->Montage_JumpToSection(SectionName, CurrentMontage);
 
         // 다음 콤보를 위한 입력 초기화 및 타이머 재설정

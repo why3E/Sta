@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Components/Image.h"
 #include "Blueprint/UserWidget.h"
 #include "PlayerWidget.generated.h"
 
@@ -37,6 +38,18 @@ public:
 	UPROPERTY(meta = (BindWidgetAnim), Transient)
 	class UWidgetAnimation* SkillEAnim;
 
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<class UImage> Qskill;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<class UImage> Eskill;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<class UImage> QAttack;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<class UImage> EAttack;
+
 	void UpdateHpBar(float CurrentHp, float MaxHp);
 	void UpdateMpBar(float CurrentMp, float MaxMp);
 	void UpdateCountDown(float CoolTime, bool bIsQSkill);
@@ -50,4 +63,14 @@ private:
 	FTimerHandle th_skillECoolTime; // 타이머 핸들
 
 	bool IsQSkill = false;
+
+public:
+	UFUNCTION(BlueprintCallable)
+	void SetQSkillIcon(EClassType QSkillType);
+
+	UFUNCTION(BlueprintCallable)
+	void SetESkillIcon(EClassType ESkillType);
+
+	UFUNCTION(BlueprintCallable)
+	void SetSkillIconInternal(UImage* Image,UImage* Image2, EClassType Type);
 };

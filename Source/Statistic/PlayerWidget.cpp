@@ -2,6 +2,7 @@
 #include "Components/ProgressBar.h"
 #include "Components/TextBlock.h"
 #include "TimerManager.h"
+#include "Enums.h"
 #include "Engine/World.h"
 
 void UPlayerWidget::NativeConstruct()
@@ -88,6 +89,7 @@ void UPlayerWidget::UpdateCoolTimeText()
 void UPlayerWidget::UpdateCountDown(float CoolTime, bool bIsQSkill)
 {
     IsQSkill = bIsQSkill;
+
     if (bIsQSkill){
         CurrentQCoolTime = CoolTime;
 
@@ -121,6 +123,67 @@ void UPlayerWidget::UpdateCountDown(float CoolTime, bool bIsQSkill)
         if(SkillEAnim)
         {
             PlayAnimation(SkillEAnim);
+        }
+    }
+}
+
+void UPlayerWidget::SetQSkillIcon(EClassType QSkillType)
+{
+    SetSkillIconInternal(Qskill, QAttack, QSkillType);
+}
+
+void UPlayerWidget::SetESkillIcon(EClassType ESkillType)
+{
+    SetSkillIconInternal(Eskill,EAttack, ESkillType);
+}
+
+void UPlayerWidget::SetSkillIconInternal(UImage* Image, UImage* Image2, EClassType Type)
+{
+    if (!Image) return;
+    if (!Image2) return;
+    
+    FString Path;
+    FString Path2;
+
+    switch (Type)
+    {
+    case EClassType::CT_Fire:
+        Path = TEXT("/Game/HUD/Fire_Skill.Fire_Skill");
+        Path2 = TEXT("/Game/HUD/Fire_Attack.Fire_Attack");
+        break;
+    case EClassType::CT_Ice:
+        Path = TEXT("/Game/HUD/Ice_Skill.Ice_Skill");
+        Path2 = TEXT("/Game/HUD/Ice_Attack.Ice_Attack");
+        break;
+    case EClassType::CT_Wind:
+        Path = TEXT("/Game/HUD/Wind_Skill.Wind_Skill");
+        Path2 = TEXT("/Game/HUD/Wind_Attack.Wind_Attack");
+        break;
+    case EClassType::CT_Stone:
+        Path = TEXT("/Game/HUD/Stone_Skill.Stone_Skill");
+        Path2 = TEXT("/Game/HUD/Stone_Attack.Stone_Attack");
+        break;
+    default:
+        Path = TEXT("");
+        Path2 = TEXT("");
+        break;
+    }
+    
+    UE_LOG(LogTemp, Warning, TEXT("Setting skill icon from path: %s"), *Path);
+    if (!Path.IsEmpty())
+    {
+        UTexture2D* Texture = LoadObject<UTexture2D>(nullptr, *Path);
+        if (Texture)
+        {
+            Image->SetBrushFromTexture(Texture);
+        }
+    }
+    if (!Path2.IsEmpty())
+    {
+        UTexture2D* Texture2 = LoadObject<UTexture2D>(nullptr, *Path2);
+        if (Texture2)
+        {
+            Image2->SetBrushFromTexture(Texture2);
         }
     }
 }

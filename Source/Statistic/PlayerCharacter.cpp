@@ -389,32 +389,36 @@ void APlayerCharacter::LeftClick()
     // 왼쪽 무기가 얼음 타입인지 확인
     if (LeftClassType == EClassType::CT_Ice)
     {
-		player_ice_aim_packet p;
-		p.packet_size = sizeof(player_ice_aim_packet);
+		player_skill_ready_packet p;
+		p.packet_size = sizeof(player_skill_ready_packet);
 		p.packet_type = C2H_PLAYER_ICE_AIM_PACKET;
 		p.player_id = m_id;
+		p.is_left = true;
 		do_send(&p);
 		return;
     }
 
     BasicAttack();
 }
+
 void APlayerCharacter::RightClick()
 {
 	bIsLeft = false;
 
 	if (RightClassType == EClassType::CT_Ice)
     {
-		player_ice_aim_packet p;
-		p.packet_size = sizeof(player_ice_aim_packet);
+		player_skill_ready_packet p;
+		p.packet_size = sizeof(player_skill_ready_packet);
 		p.packet_type = C2H_PLAYER_ICE_AIM_PACKET;
 		p.player_id = m_id;
+		p.is_left = false;
 		do_send(&p);
 		return;
     }
 
 	BasicAttack();
 }
+
 void APlayerCharacter::StartIceAim()
 {
 	this->CurrentMontage = bIsLeft ? CurrentLeftMontage : CurrentRightMontage;
@@ -438,7 +442,7 @@ void APlayerCharacter::StartIceAim()
 
 void APlayerCharacter::ClickRelease()
 {
-	if(bIsLeft){
+	if (bIsLeft){
 		if (LeftClassType == EClassType::CT_Ice) {
 			GetFireTargetLocation();
 
@@ -451,8 +455,7 @@ void APlayerCharacter::ClickRelease()
 			p.is_left = true;
 			do_send(&p);
 		}
-	}
-	else{
+	} else{
 		if (RightClassType == EClassType::CT_Ice) {
 			GetFireTargetLocation();
 
@@ -1196,6 +1199,15 @@ void APlayerCharacter::GetFireTargetLocation()
 	SetActorRotation(FRotator(ActorRot.Pitch, ControlRot.Yaw, ActorRot.Roll));
 }
 
+void APlayerCharacter::use_skill(char skill_type, bool is_left) {
+	switch (skill_type) {
+	case SKILL_ICE_ARROW:
+		bIsLeft = is_left;
+		StartIceAim();
+		break;
+	}
+}
+
 void APlayerCharacter::use_skill(unsigned short skill_id, char skill_type, FVector v, bool is_left) {
 	switch (skill_type) {
 	case SKILL_WIND_CUTTER:
@@ -1217,7 +1229,8 @@ void APlayerCharacter::use_skill(unsigned short skill_id, char skill_type, FVect
 		GetWorld()->GetTimerManager().ClearTimer(CircleUpdateTimerHandle);
 		break;
 
-	case SKILL_ICE_ARROW:m_skill_id = skill_id;
+	case SKILL_ICE_ARROW:
+		m_skill_id = skill_id;
 		FireLocation = v;
 		bIsLeft = is_left;
 		ShootIceArrow();

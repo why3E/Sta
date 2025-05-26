@@ -128,6 +128,13 @@ struct player_jump_packet {
 	char player_id;
 };
 
+struct player_skill_ready_packet {
+	unsigned char packet_size;
+	char packet_type;
+	char player_id;
+	bool is_left;
+};
+
 struct player_skill_vector_packet {
 	unsigned char packet_size;
 	char packet_type;
@@ -155,12 +162,6 @@ struct player_change_element_packet {
 	char player_id;
 	char element_type;
 	bool is_left;
-};
-
-struct player_ice_aim_packet {
-	unsigned char packet_size;
-	char packet_type;
-	char player_id;
 };
 
 struct collision_packet {

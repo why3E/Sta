@@ -256,6 +256,7 @@ public:
 	}
 	void set_is_player(bool is_player) { m_is_player = is_player; }
 
+	void use_skill(char skill_type, bool is_left);
 	void use_skill(unsigned short skill_id, char skill_type, FVector v, bool is_left);
 	void use_skill(unsigned short skill_id, char skill_type, FVector v, FRotator r, bool is_left);
 	void change_element();

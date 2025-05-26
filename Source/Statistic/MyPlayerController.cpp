@@ -670,7 +670,7 @@ void h_process_packet(char* packet) {
 	}
 
 	case C2H_PLAYER_ICE_AIM_PACKET: {
-		player_ice_aim_packet* p = reinterpret_cast<player_ice_aim_packet*>(packet);
+		player_skill_ready_packet* p = reinterpret_cast<player_skill_ready_packet*>(packet);
 		p->packet_type = H2C_PLAYER_ICE_AIM_PACKET;
 
 		for (char client_id = 0; client_id < MAX_CLIENTS; ++client_id) {
@@ -1119,11 +1119,11 @@ void c_process_packet(char* packet) {
 	}
 
 	case H2C_PLAYER_ICE_AIM_PACKET: {
-		player_ice_aim_packet* p = reinterpret_cast<player_ice_aim_packet*>(packet);
+		player_skill_ready_packet* p = reinterpret_cast<player_skill_ready_packet*>(packet);
 
 		if (nullptr == g_c_players[p->player_id]) { break; }
 
-		g_c_players[p->player_id]->StartIceAim();
+		g_c_players[p->player_id]->use_skill(SKILL_ICE_ARROW, p->is_left);
 		break;
 	}
 	}

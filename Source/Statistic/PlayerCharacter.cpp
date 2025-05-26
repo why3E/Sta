@@ -833,6 +833,7 @@ void APlayerCharacter::UpdateCachedData(bool bIsLeftType)
         SelectedMontage = nullptr;
         SelectedComboData = nullptr;
         break;
+
     }
 
     if (GetWorld() && WeaponClass)
@@ -855,6 +856,15 @@ void APlayerCharacter::UpdateCachedData(bool bIsLeftType)
             }
         }
     }
+	
+	if (bIsLeftType)
+	{
+		CharacterWidget->SetQSkillIcon(LeftClassType);
+	}
+	else
+	{
+		CharacterWidget->SetESkillIcon(RightClassType);
+	}
 }
 
 void APlayerCharacter::SetComboTimer()

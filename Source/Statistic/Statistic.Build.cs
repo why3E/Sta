@@ -19,7 +19,8 @@ public class Statistic : ModuleRules
 			"UMG",
 			"ProceduralMeshComponent",
 			"Kismet",
-			"Json", "JsonUtilities"
+			"Json", "JsonUtilities",
+			"SlateCore"
 		});
 	}
 }

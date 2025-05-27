@@ -174,14 +174,28 @@ APlayerCharacter::APlayerCharacter()
         IceWeaponBP = IceWeaponBPRef.Class;
     }
 
+	minimapCameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("MinimapSpringArmComp"));
+	minimapCameraBoom->SetupAttachment(RootComponent);
+
+	minimapCapture = CreateDefaultSubobject<USceneCaptureComponent2D>(TEXT("CaptureMinimap"));
+	minimapCapture->SetupAttachment(minimapCameraBoom);
+
+	minimapSprite = CreateDefaultSubobject<UPaperSpriteComponent>(TEXT("MinimapSprite"));
+	minimapSprite->SetupAttachment(GetMesh());
+
+	// 렌더 타겟은 null로 두기
+	minimapCapture->TextureTarget = nullptr;
+
+	// 기본적으로 비활성화
+	minimapCameraBoom->SetVisibility(false, true);
+	minimapCapture->SetVisibility(false, true);
+	minimapCapture->SetComponentTickEnabled(false);
+
 }
 
-// BeginPlay 안의 기존 부분을 교체
 void APlayerCharacter::BeginPlay()
 {
     Super::BeginPlay();
-
-	SetActorLocation(FVector(0.0f, 0.0f, 0.0f));
 
     APlayerController* PlayerController = Cast<APlayerController>(GetController());
     if (PlayerController && IMC_Basic)
@@ -199,19 +213,49 @@ void APlayerCharacter::BeginPlay()
     playerCurrentHp = playerMaxHp;
     playerCurrentMp = playerMaxMp;
 
-	if (PlayerController && PlayerWidgetClass)
-	{
-		CharacterWidget = CreateWidget<UPlayerWidget>(PlayerController, PlayerWidgetClass);
-		if (CharacterWidget)
-		{
-			CharacterWidget->AddToViewport();
-			UpdateUI();
-		}
-	}
-	DefaultArmLength = SpringArm->TargetArmLength;
-	DefaultCameraRelativeLocation = Camera->GetRelativeLocation();
+    if (PlayerController && PlayerWidgetClass)
+    {
+        CharacterWidget = CreateWidget<UPlayerWidget>(PlayerController, PlayerWidgetClass);
+        if (CharacterWidget)
+        {
+            CharacterWidget->AddToViewport();
+            UpdateUI();
+        }
+    }
 
+    DefaultArmLength = SpringArm->TargetArmLength;
+    DefaultCameraRelativeLocation = Camera->GetRelativeLocation();
+
+    if (IsLocallyControlled())
+	{
+        UTextureRenderTarget2D* RenderTarget = LoadObject<UTextureRenderTarget2D>(nullptr, TEXT("/Game/Map/CRT_MiniMap.CRT_MiniMap"));
+        if (RenderTarget)
+        {
+            minimapCapture->TextureTarget = RenderTarget;
+        }
+
+        minimapCameraBoom->SetWorldRotation(FRotator(-90.0f, 45.0f, 0.0f)); // 유지
+        minimapCameraBoom->TargetArmLength = 900.0f;
+
+        minimapCapture->ProjectionType = ECameraProjectionMode::Orthographic;
+        minimapCapture->OrthoWidth = 1700.0f;
+
+        minimapCapture->bCaptureEveryFrame = true;
+        minimapCapture->bCaptureOnMovement = true;
+
+        minimapCameraBoom->SetVisibility(true, true);
+        minimapCapture->SetVisibility(true, true);
+        minimapCapture->SetComponentTickEnabled(true);
+	}
+    else
+    {
+        // 서버나 다른 클라이언트 캐릭터는 미니맵 캡처 제거
+        minimapCameraBoom->SetVisibility(false, true);
+        minimapCapture->SetVisibility(false, true);
+        minimapCapture->SetComponentTickEnabled(false);
+    }
 }
+
 
 void APlayerCharacter::EndPlay(const EEndPlayReason::Type EndPlayReason) {
 	Super::EndPlay(EndPlayReason);

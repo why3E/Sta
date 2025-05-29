@@ -52,7 +52,7 @@ private:
     FTimerHandle RespawnTimerHandle;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats", Meta = (AllowPrivateAccess = "true"))
-    float HP = 10.f;
+    float HP = 100.f;
 
     UPROPERTY()
     UProceduralMeshComponent* CachedOtherHalfMesh = nullptr;

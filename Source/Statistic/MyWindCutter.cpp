@@ -2,6 +2,7 @@
 
 #include "MyWindCutter.h"
 #include "MyFireBall.h"
+#include "MyIceArrow.h"
 #include "EnemyCharacter.h"
 #include "PlayerCharacter.h"
 #include "Kismet/GameplayStatics.h"
@@ -159,6 +160,7 @@ void AMyWindCutter::Overlap(AActor* OtherActor) {
     {
         UGameplayStatics::PlaySoundAtLocation(this, WindCutterHitSound, GetActorLocation(),2.0f);
     }
+
     // 나이아가라 파티클 시스템 비활성화
     if (WindCutterNiagaraComponent) {
         WindCutterNiagaraComponent->Deactivate();
@@ -173,14 +175,30 @@ void AMyWindCutter::Overlap(AActor* OtherActor) {
         p.packet_type = C2H_SKILL_CREATE_PACKET;
         p.skill_type = SKILL_WIND_FIRE_BOMB;
         p.old_skill_id = m_id;
-        p.skill_x = SpawnLocation.X; p.skill_y = SpawnLocation.Y; p.skill_z = SpawnLocation.Z;
+        p.new_skill_x = SpawnLocation.X; p.new_skill_y = SpawnLocation.Y; p.new_skill_z = SpawnLocation.Z;
 
         Cast<APlayerCharacter>(Owner)->do_send(&p);
 
         bIsHit = true;
 
         return;
-    } 
+    } else if (OtherActor && OtherActor->IsA(AMyIceArrow::StaticClass())) {
+        // BombAttack
+        FVector SpawnLocation = GetActorLocation();
+
+        skill_create_packet p;
+        p.packet_size = sizeof(skill_create_packet);
+        p.packet_type = C2H_SKILL_CREATE_PACKET;
+        p.skill_type = SKILL_WIND_ICE_BOMB;
+        p.old_skill_id = m_id;
+        p.new_skill_x = SpawnLocation.X; p.new_skill_y = SpawnLocation.Y; p.new_skill_z = SpawnLocation.Z;
+
+        Cast<APlayerCharacter>(Owner)->do_send(&p);
+
+        bIsHit = true;
+
+        return;
+    }
 
     // 히트 효과 생성
     if (WindCutterNiagaraComponent) {

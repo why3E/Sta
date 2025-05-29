@@ -14,17 +14,30 @@ UCLASS()
 class STATISTIC_API AMyIceSkill : public AMySkillBase
 {
 	GENERATED_BODY()
+
 public:
 	AMyIceSkill();
 
 	// 얼음 스킬 생성 함수
 	void SpawnIceSkill(FVector Location, FRotator Rotation);
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void PostInitializeComponents() override;
 
 public:
 	virtual void Tick(float DeltaTime) override;
+
+private:
+	bool bIsBroken = false;
+
+public:
+	UFUNCTION()
+	void OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+
+	virtual void Overlap(AActor* OtherActor);
+	virtual void Overlap(ACharacter* OtherActor);
+
 protected:
 	UPROPERTY(VisibleAnywhere, Category = "Collision")
 	TObjectPtr<class UStaticMeshComponent> CollisionMesh;
@@ -52,6 +65,7 @@ public:
 
 protected:
     FTimerHandle BreakTimerHandle;
+
 protected:
     int32 SmallCallCount = 0;
     FTimerHandle ShrinkTimerHandle;
@@ -59,5 +73,4 @@ protected:
     float ShrinkInterpSpeed = 2.0f;
 
     void ShrinkTick();
-
 };

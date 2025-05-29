@@ -536,7 +536,7 @@ void accept_thread() {
 // Host CALLBACK
 void h_process_packet(char* packet) {
 	char packet_type = packet[1];
-	//UE_LOG(LogTemp, Warning, TEXT("[Host] Received Packet Type : %d"), packet_type);
+	UE_LOG(LogTemp, Warning, TEXT("[Host] Received Packet Type : %d"), packet_type);
 
 	switch (packet_type) {
 	case C2H_PLAYER_MOVE_PACKET: {
@@ -649,10 +649,8 @@ void h_process_packet(char* packet) {
 		p->packet_type = H2C_PLAYER_READY_SKILL_PACKET;
 
 		for (char other_id = 0; other_id < MAX_CLIENTS; ++other_id) {
-			if (p->id != other_id) {
-				if (g_s_clients[other_id]) {
-					g_s_clients[other_id]->do_send(p);
-				}
+			if (g_s_clients[other_id]) {
+				g_s_clients[other_id]->do_send(p);
 			}
 		}
 		break;
@@ -747,7 +745,7 @@ extern void CALLBACK h_send_callback(DWORD err, DWORD num_bytes, LPWSAOVERLAPPED
 // Client CALLBACK
 void c_process_packet(char* packet) {
 	char packet_type = packet[1];
-	//UE_LOG(LogTemp, Warning, TEXT("[Client] Received Packet Type : %d"), packet_type);
+	UE_LOG(LogTemp, Warning, TEXT("[Client] Received Packet Type : %d"), packet_type);
 
 	switch (packet_type) {
 	case H2C_PLAYER_INFO_PACKET: {
@@ -912,7 +910,7 @@ void c_process_packet(char* packet) {
 
 		if (nullptr == g_c_players[p->id]) { break; }
 
-		g_c_players[p->id]->StartIceAim();
+		g_c_players[p->id]->ready_skill(p->is_left);
 		break;
 	}
 
@@ -984,6 +982,16 @@ void c_process_packet(char* packet) {
 
 				if (g_c_skills[p->old_skill_id]->IsA(AMyWindCutter::StaticClass())) {
 					Cast<AMyWindCutter>(g_c_skills[p->old_skill_id])->MixBombAttack(EClassType::CT_Fire, p->new_skill_id);
+				}
+			}
+			break;
+
+		case SKILL_WIND_ICE_BOMB:
+			if (g_c_skills.count(p->old_skill_id)) {
+				if (nullptr != g_c_skills[p->old_skill_id]) { break; }
+
+				if (g_c_skills[p->old_skill_id]->IsA(AMyWindCutter::StaticClass())) {
+					Cast<AMyWindCutter>(g_c_skills[p->old_skill_id])->MixBombAttack(EClassType::CT_Ice, p->new_skill_id);
 				}
 			}
 			break;

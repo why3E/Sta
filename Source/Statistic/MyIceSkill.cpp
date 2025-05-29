@@ -1,8 +1,11 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 #include "MyIceSkill.h"
 #include "NiagaraFunctionLibrary.h"
-
-
+#include "EnemyCharacter.h"
+#include "PlayerCharacter.h"
+#include "MyFireBall.h" 
+#include "MyFireSkill.h"
+#include "MyStoneSkill.h"
 
 AMyIceSkill::AMyIceSkill()
 {
@@ -35,6 +38,7 @@ AMyIceSkill::AMyIceSkill()
 void AMyIceSkill::BeginPlay()
 {
     Super::BeginPlay();
+
     /*GetWorld()->GetTimerManager().SetTimer(
             BreakTimerHandle,
             this,
@@ -45,18 +49,78 @@ void AMyIceSkill::BeginPlay()
 
     // Tick 기반 충돌 체크 시작
     //GetWorld()->GetTimerManager().SetTimer(CheckOverlapTimerHandle, this, &AMyIceSkill::CheckOverlappingActors, 1.0f, true);
-   
 }
 
 void AMyIceSkill::PostInitializeComponents()
 {
     Super::PostInitializeComponents();
 
+    CollisionMesh->OnComponentBeginOverlap.AddDynamic(this, &AMyIceSkill::OnBeginOverlap);
 }
 
 void AMyIceSkill::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);
+}
+
+void AMyIceSkill::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult) {
+    if (!g_is_host || bIsBroken) { return; }
+
+    if (OtherActor && OtherActor != this) {
+        if (OtherActor->IsA(AMySkillBase::StaticClass())) {
+            if (OtherActor->IsA(AMyIceSkill::StaticClass())) {
+                return;
+            }
+
+            // Skill - Skill Collision
+            AMySkillBase* ptr = Cast<AMySkillBase>(OtherActor);
+
+            if (g_c_skills.count(ptr->m_id)) {
+                if (m_id < ptr->m_id) {
+                    collision_packet p;
+                    p.packet_size = sizeof(collision_packet);
+                    p.packet_type = C2H_COLLISION_PACKET;
+                    p.collision_type = SKILL_SKILL_COLLISION;
+                    p.attacker_id = m_id;
+                    p.victim_id = ptr->m_id;
+
+                    Cast<APlayerCharacter>(Owner)->do_send(&p);
+                }
+            }
+        } else if (OtherActor->IsA(AEnemyCharacter::StaticClass())) {
+            // Skill - Monster Collision
+            AEnemyCharacter* ptr = Cast<AEnemyCharacter>(OtherActor);
+
+            if (g_c_monsters.count(ptr->get_id())) {
+                if (ptr->get_hp() > 0.0f) {
+                    collision_packet p;
+                    p.packet_size = sizeof(collision_packet);
+                    p.packet_type = C2H_COLLISION_PACKET;
+                    p.collision_type = SKILL_MONSTER_COLLISION;
+                    p.attacker_id = m_id;
+                    p.victim_id = ptr->get_id();
+
+                    Cast<APlayerCharacter>(Owner)->do_send(&p);
+                }
+            }
+        }
+    }
+}
+
+void AMyIceSkill::Overlap(AActor* OtherActor) {
+    if (OtherActor && OtherActor->IsA(AMyStoneSkill::StaticClass())) {
+        BreakAndDestroy();
+        return;
+    }
+
+    if ((OtherActor && OtherActor->IsA(AMyFireBall::StaticClass())) ||
+        (OtherActor && OtherActor->IsA(AMyFireSkill::StaticClass()))) {
+        SmallAndDestroy();
+    } 
+}
+
+void AMyIceSkill::Overlap(ACharacter* OtherActor) {
+
 }
 
 void AMyIceSkill::SpawnIceSkill(FVector Location, FRotator Rotation)
@@ -69,9 +133,6 @@ void AMyIceSkill::SpawnIceSkill(FVector Location, FRotator Rotation)
         IceWallNiagaraComponent->SetAsset(IceWallEffect);
         IceWallNiagaraComponent->Activate(true); // 이펙트 실행
     }
-
-    
-    
 }
 
 // 효과 종료 시 호출될 함수 정의
@@ -82,6 +143,8 @@ void AMyIceSkill::OnIceWallEffectFinished(UNiagaraComponent* PSystem)
 
 void AMyIceSkill::BreakAndDestroy()
 {
+    bIsBroken = true;
+
     if (IceWallBreakEffect) {
         UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), IceWallBreakEffect, GetActorLocation());
     }
@@ -104,6 +167,8 @@ void AMyIceSkill::SmallAndDestroy()
     // 5번째: 충돌 비활성화 후 점점 작아지게(보간)
     if (SmallCallCount == 5)
     {
+        bIsBroken = true;
+
         // 충돌 비활성화
         if (CollisionMesh)
         {

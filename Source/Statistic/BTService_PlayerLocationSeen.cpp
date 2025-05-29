@@ -1,11 +1,12 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
+#include "BTService_PlayerLocationSeen.h"
+
 #include "SESSION.h"
 #include "AIController.h"
 #include "EnemyCharacter.h"
 #include "PlayerCharacter.h"
 #include "EnemyAIController.h"
-#include "BTService_PlayerLocationSeen.h"
 #include "BehaviorTree/BlackboardComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "GameFramework/Pawn.h"

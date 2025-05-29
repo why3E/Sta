@@ -10,6 +10,8 @@
 // 생성자
 AMyStoneSkill::AMyStoneSkill()
 {
+    SetElement(EClassType::CT_Stone);
+
     PrimaryActorTick.bCanEverTick = true;
 
     // 콜리전

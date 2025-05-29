@@ -1,6 +1,8 @@
 #include "MyWindSkill.h"
 #include "MyFireBall.h"
 #include "MyFireSkill.h"
+#include "MyIceArrow.h"
+#include "MyIceSkill.h"
 #include "EnemyCharacter.h"
 #include "PlayerCharacter.h"
 #include "Components/StaticMeshComponent.h"
@@ -107,22 +109,19 @@ void AMyWindSkill::PostInitializeComponents()
     CollisionMesh->OnComponentEndOverlap.AddDynamic(this, &AMyWindSkill::OnEndOverlap);
 }
 
-void AMyWindSkill::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
-    UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
-{
+void AMyWindSkill::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult) {
     if (!g_is_host) return;
 
-    if (OtherActor && OtherActor != this)
-    {
-        if (OtherActor->IsA(APlayerCharacter::StaticClass()))
-        {
+    if (OtherActor && OtherActor != this) {
+        if (OtherActor->IsA(APlayerCharacter::StaticClass())) {
             APlayerCharacter* Player = Cast<APlayerCharacter>(OtherActor);
-            if (Player && !OverlappingCharacters.Contains(Player))
-            {
+
+            if (Player && !OverlappingCharacters.Contains(Player)) {
                 OverlappingCharacters.Add(Player);
+
                 UCharacterMovementComponent* MoveComp = Player->GetCharacterMovement();
-                if (MoveComp)
-                {
+
+                if (MoveComp) {
                     MoveComp->GravityScale = 0.0f;
                     MoveComp->SetMovementMode(MOVE_Flying);
                 }
@@ -131,11 +130,10 @@ void AMyWindSkill::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* O
             }
         }
 
-        if (OtherActor->IsA(AMySkillBase::StaticClass()))
-        {
+        if (OtherActor->IsA(AMySkillBase::StaticClass())) {
             AMySkillBase* ptr = Cast<AMySkillBase>(OtherActor);
-            if (g_c_skills.count(ptr->m_id) && m_id < ptr->m_id)
-            {
+ 
+            if (g_c_skills.count(ptr->m_id) && m_id < ptr->m_id) {
                 collision_packet p;
                 p.packet_size = sizeof(collision_packet);
                 p.packet_type = C2H_COLLISION_PACKET;
@@ -148,11 +146,10 @@ void AMyWindSkill::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* O
             }
         }
 
-        if (OtherActor->IsA(APlayerCharacter::StaticClass()))
-        {
+        if (OtherActor->IsA(APlayerCharacter::StaticClass())) {
             APlayerCharacter* Player = Cast<APlayerCharacter>(OtherActor);
-            if (Player && !OverlappingCharacters.Contains(Player))
-            {
+
+            if (Player && !OverlappingCharacters.Contains(Player)) {
                 OverlappingCharacters.Add(Player);
 
                 UCharacterMovementComponent* MoveComp = Player->GetCharacterMovement();
@@ -194,12 +191,12 @@ void AMyWindSkill::OnEndOverlap(UPrimitiveComponent* OverlappedComp, AActor* Oth
 void AMyWindSkill::Overlap(AActor* OtherActor)
 {
     if ((OtherActor && OtherActor->IsA(AMyFireBall::StaticClass())) ||
-        (OtherActor && OtherActor->IsA(AMyFireSkill::StaticClass())))
-    {
+        (OtherActor && OtherActor->IsA(AMyFireSkill::StaticClass()))) {
         SkillMixWindTonado(EClassType::CT_Fire, m_id);
-    }
-    else if (OtherActor && OtherActor->IsA(AMyWindSkill::StaticClass()))
-    {
+    } else if ((OtherActor && OtherActor->IsA(AMyIceArrow::StaticClass())) ||
+        (OtherActor && OtherActor->IsA(AMyIceSkill::StaticClass()))) {
+        SkillMixWindTonado(EClassType::CT_Ice, m_id);
+    } else if (OtherActor && OtherActor->IsA(AMyWindSkill::StaticClass())) {
         if (Cast<AMySkillBase>(OtherActor)->GetId() > m_id)
         {
             Destroy();
@@ -212,9 +209,9 @@ void AMyWindSkill::Overlap(AActor* OtherActor)
         p.packet_type = C2H_SKILL_CREATE_PACKET;
         p.skill_type = SKILL_WIND_WIND_TORNADO;
         p.old_skill_id = m_id;
-        p.skill_x = SpawnLocation.X;
-        p.skill_y = SpawnLocation.Y;
-        p.skill_z = SpawnLocation.Z;
+        p.new_skill_x = SpawnLocation.X;
+        p.new_skill_y = SpawnLocation.Y;
+        p.new_skill_z = SpawnLocation.Z;
 
         Cast<APlayerCharacter>(Owner)->do_send(&p);
     }
@@ -261,9 +258,11 @@ void AMyWindSkill::SkillMixWindTonado(EClassType MixType, unsigned short skill_i
             WindTonadoNiagaraComponent->Activate(true);
         }
         break;
+
     case EClassType::CT_Wind:
         SpawnMixTonado(skill_id);
         break;
+
     case EClassType::CT_Ice:
         if (IceEffect)
         {
@@ -271,6 +270,7 @@ void AMyWindSkill::SkillMixWindTonado(EClassType MixType, unsigned short skill_i
             WindTonadoNiagaraComponent->Activate(true);
         }
         break;
+
     default:
         break;
     }

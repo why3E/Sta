@@ -9,6 +9,8 @@
 
 AMyStoneWave::AMyStoneWave()
 {
+	SetElement(EClassType::CT_Stone);
+
 	PrimaryActorTick.bCanEverTick = true;
 
 	CollisionComponent = CreateDefaultSubobject<UBoxComponent>(TEXT("CollisionComponent"));
@@ -121,10 +123,7 @@ void AMyStoneWave::OnNiagaraFinished(UNiagaraComponent* PSystem)
 	// Destroy(); // Timer가 따로 관리하므로 이건 생략 가능
 }
 
-void AMyStoneWave::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
-                                  UPrimitiveComponent* OtherComp, int32 OtherBodyIndex,
-                                  bool bFromSweep, const FHitResult& SweepResult)
-{
+void AMyStoneWave::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult) {
 	if (!g_is_host || !OtherActor || OtherActor == this) return;
 
 	if (OtherActor->IsA(AMySkillBase::StaticClass()))
@@ -160,4 +159,5 @@ void AMyStoneWave::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* O
 }
 
 void AMyStoneWave::Overlap(AActor* OtherActor) {}
+
 void AMyStoneWave::Overlap(ACharacter* OtherActor) {}

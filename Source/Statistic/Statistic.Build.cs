@@ -20,7 +20,7 @@ public class Statistic : ModuleRules
 			"ProceduralMeshComponent",
 			"Kismet",
 			"Json", "JsonUtilities",
-			"SlateCore"
+			"SlateCore", "Paper2D"
 		});
 	}
 }

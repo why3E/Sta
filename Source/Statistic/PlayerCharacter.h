@@ -15,6 +15,11 @@
 #include "ImpactPointInterface.h"
 #include "AnimationWeaponInterface.h"
 #include "ReceiveDamageInterface.h"
+
+#include "Components/SceneCaptureComponent2D.h"
+#include "Engine/TextureRenderTarget2D.h"
+#include "PaperSpriteComponent.h"
+
 #include "PlayerCharacter.generated.h"
 
 UCLASS()
@@ -312,4 +317,18 @@ public:
     void PlayFootstepSound();
 	void StartIceAim();
 	void ShootIceArrow();
+
+	//미니맵
+public:
+	UPROPERTY(VisibleAnywhere, Category = "MinimapCamera")
+	class USpringArmComponent* minimapCameraBoom;
+
+	UPROPERTY(VisibleAnywhere, Category = "MinimapCamera")
+	class USceneCaptureComponent2D* minimapCapture;
+
+	UPROPERTY(VisibleAnywhere, Category = "MinimapCamera")
+	class UPaperSpriteComponent* minimapSprite;
+
+public:
+    bool bRecentlyTeleported = false;
 };

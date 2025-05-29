@@ -137,6 +137,10 @@ void AEnemyCharacter::Die()
     ProcMeshComponent->SetVisibility(true);
     ProcMeshComponent->SetSimulatePhysics(true);
 
+    // 슬라이스 실행
+    FVector PlaneNormal = FVector(1.f, 0.f, 1.f).GetSafeNormal();
+    SliceProcMesh(PlaneNormal);
+
     AAIController* AICon = Cast<AAIController>(GetController());
     if (AICon) {
         AICon->StopMovement();
@@ -146,10 +150,6 @@ void AEnemyCharacter::Die()
             AICon->BrainComponent->StopLogic(TEXT("Character Died"));
         }
     }
-
-    FVector PlanePosition = ProcMeshComponent->GetComponentLocation() + FVector(0.f, 0.f, 30.f);
-    FVector PlaneNormal = FVector(1.f, 0.f, 1.f).GetSafeNormal();
-    SliceProcMesh(PlanePosition, PlaneNormal);
 
     if (g_is_host) {
         GetWorldTimerManager().SetTimer(RespawnTimerHandle, this, &AEnemyCharacter::Respawn, 10.0f, false);
@@ -226,12 +226,36 @@ void AEnemyCharacter::BaseAttackCheck()
         Color, false, 3.f);
 }
 
+FName AEnemyCharacter::GetSecondBoneName() const
+{
+    if (!GetMesh()) return NAME_None;
+
+    const int32 NumBones = GetMesh()->GetNumBones();
+    if (NumBones < 2) return NAME_None;
+
+    FName BoneName = GetMesh()->GetBoneName(1);
+    UE_LOG(LogTemp, Warning, TEXT("Second Bone Name: %s"), *BoneName.ToString());
+    return BoneName;
+}
+
 void AEnemyCharacter::CopySkeletalMeshToProcedural(int32 LODIndex)
 {
-    if (!GetMesh() || !ProcMeshComponent) return;
+    TargetBoneName = GetSecondBoneName();
+    if (!GetMesh() || !ProcMeshComponent || TargetBoneName.IsNone()) return;
 
-    ProcMeshComponent->SetWorldLocation(GetMesh()->GetComponentLocation());
-    ProcMeshComponent->SetWorldRotation(GetMesh()->GetComponentRotation());
+    ProcMeshComponent->ClearAllMeshSections();
+    FilteredVerticesArray.Reset();
+    Indices.Reset();
+    Normals.Reset();
+    UV.Reset();
+    Colors.Reset();
+    Tangents.Reset();
+    VertexIndexMap.Reset();
+
+    FVector MeshLocation = GetMesh()->GetComponentLocation();
+    FRotator MeshRotation = GetMesh()->GetComponentRotation();
+    ProcMeshComponent->SetWorldLocation(MeshLocation);
+    ProcMeshComponent->SetWorldRotation(MeshRotation);
 
     USkeletalMesh* SkeletalMesh = GetMesh()->GetSkeletalMeshAsset();
     if (!SkeletalMesh) return;
@@ -240,96 +264,147 @@ void AEnemyCharacter::CopySkeletalMeshToProcedural(int32 LODIndex)
     if (!RenderData || !RenderData->LODRenderData.IsValidIndex(LODIndex)) return;
 
     const FSkeletalMeshLODRenderData& LODRenderData = RenderData->LODRenderData[LODIndex];
+    FTransform MeshTransform = GetMesh()->GetComponentTransform();
+    FVector TargetBoneLocation = GetMesh()->GetBoneLocation(TargetBoneName);
 
-    TArray<FVector> Vertices;
-    TArray<int32> Indices;
-    TArray<FVector> Normals;
-    TArray<FVector2D> UVs;
-    TArray<FColor> Colors;
-    TArray<FProcMeshTangent> Tangents;
-
+    int32 vertexCounter = 0;
     for (const FSkelMeshRenderSection& Section : LODRenderData.RenderSections)
     {
-        int32 Base = Section.BaseVertexIndex;
-        int32 Count = Section.NumVertices;
+        const int32 NumSourceVertices = Section.NumVertices;
+        const int32 BaseVertexIndex = Section.BaseVertexIndex;
 
-        for (int32 i = 0; i < Count; i++)
+        for (int32 i = 0; i < NumSourceVertices; i++)
         {
-            int32 Idx = i + Base;
-            FVector3f Pos = LODRenderData.StaticVertexBuffers.PositionVertexBuffer.VertexPosition(Idx);
-            Vertices.Add(FVector(Pos));
+            const int32 VertexIndex = i + BaseVertexIndex;
+            const FVector3f SkinnedVectorPos = LODRenderData.StaticVertexBuffers.PositionVertexBuffer.VertexPosition(VertexIndex);
+            FVector WorldVertexPosition = MeshTransform.TransformPosition(FVector(SkinnedVectorPos));
+            float DistanceToBone = FVector::Dist(WorldVertexPosition, TargetBoneLocation);
 
-            FVector3f Normal = LODRenderData.StaticVertexBuffers.StaticMeshVertexBuffer.VertexTangentZ(Idx);
-            Normals.Add(FVector(Normal));
+            if (DistanceToBone <= CreateProceduralMeshDistance)
+            {
+                FVector LocalVertexPosition = FVector(SkinnedVectorPos);
+                VertexIndexMap.Add(VertexIndex, vertexCounter);
+                FilteredVerticesArray.Add(LocalVertexPosition);
+                vertexCounter += 1;
 
-            FVector3f Tangent = LODRenderData.StaticVertexBuffers.StaticMeshVertexBuffer.VertexTangentX(Idx);
-            Tangents.Add(FProcMeshTangent(FVector(Tangent), false));
+                const FVector3f Normal = LODRenderData.StaticVertexBuffers.StaticMeshVertexBuffer.VertexTangentZ(VertexIndex);
+                const FVector3f TangentX = LODRenderData.StaticVertexBuffers.StaticMeshVertexBuffer.VertexTangentX(VertexIndex);
+                const FVector2f SourceUVs = LODRenderData.StaticVertexBuffers.StaticMeshVertexBuffer.GetVertexUV(VertexIndex, 0);
 
-            FVector2f UV = LODRenderData.StaticVertexBuffers.StaticMeshVertexBuffer.GetVertexUV(Idx, 0);
-            UVs.Add(FVector2D(UV));
-
-            Colors.Add(FColor::White);
+                Normals.Add(FVector(Normal));
+                Tangents.Add(FProcMeshTangent(FVector(TangentX), false));
+                UV.Add(FVector2D(SourceUVs));
+                Colors.Add(FColor(0, 0, 0, 255));
+            }
         }
     }
 
     const FRawStaticIndexBuffer16or32Interface* IndexBuffer = LODRenderData.MultiSizeIndexContainer.GetIndexBuffer();
     if (!IndexBuffer) return;
 
-    int32 NumIndices = IndexBuffer->Num();
-    Indices.SetNumUninitialized(NumIndices);
-    for (int32 i = 0; i < NumIndices; i++)
-        Indices[i] = static_cast<int32>(IndexBuffer->Get(i));
-
-    ProcMeshComponent->CreateMeshSection(0, Vertices, Indices, Normals, UVs, Colors, Tangents, true);
-
-    if (Vertices.Num() > 0)
+    const int32 NumIndices = IndexBuffer->Num();
+    for (int32 i = 0; i < NumIndices; i += 3)
     {
-        ProcMeshComponent->ClearCollisionConvexMeshes();
-        ProcMeshComponent->AddCollisionConvexMesh(Vertices);
+        int32 OldIndex0 = static_cast<int32>(IndexBuffer->Get(i));
+        int32 OldIndex1 = static_cast<int32>(IndexBuffer->Get(i + 1));
+        int32 OldIndex2 = static_cast<int32>(IndexBuffer->Get(i + 2));
+
+        int32 NewIndex0 = VertexIndexMap.Contains(OldIndex0) ? VertexIndexMap[OldIndex0] : -1;
+        int32 NewIndex1 = VertexIndexMap.Contains(OldIndex1) ? VertexIndexMap[OldIndex1] : -1;
+        int32 NewIndex2 = VertexIndexMap.Contains(OldIndex2) ? VertexIndexMap[OldIndex2] : -1;
+
+        if (NewIndex0 >= 0 && NewIndex1 >= 0 && NewIndex2 >= 0)
+        {
+            Indices.Add(NewIndex0);
+            Indices.Add(NewIndex1);
+            Indices.Add(NewIndex2);
+        }
     }
+
+    ProcMeshComponent->CreateMeshSection(0, FilteredVerticesArray, Indices, Normals, UV, Colors, Tangents, true);
+    ProcMeshComponent->ClearCollisionConvexMeshes();
+    ProcMeshComponent->AddCollisionConvexMesh(FilteredVerticesArray);
 
     ProcMeshComponent->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
     ProcMeshComponent->SetCollisionObjectType(ECC_WorldDynamic);
-    ProcMeshComponent->SetSimulatePhysics(true);
+    ProcMeshComponent->SetSimulatePhysics(false);
     ProcMeshComponent->SetEnableGravity(true);
 
-    UMaterialInterface* Material = GetMesh()->GetMaterial(0);
-    if (Material) ProcMeshComponent->SetMaterial(0, Material);
+    UMaterialInterface* SkeletalMeshMaterial = GetMesh()->GetMaterial(0);
+    if (SkeletalMeshMaterial)
+        ProcMeshComponent->SetMaterial(0, SkeletalMeshMaterial);
 }
 
-void AEnemyCharacter::SliceProcMesh(FVector PlanePosition, FVector PlaneNormal)
+void AEnemyCharacter::SliceProcMesh(FVector PlaneNormal)
 {
-    if (!ProcMeshComponent) return;
+    // 자를 본 이름 자동 설정
+    TargetBoneName = GetSecondBoneName();
+    if (!GetMesh() || !ProcMeshComponent || TargetBoneName.IsNone()) return;
 
-    UProceduralMeshComponent* OutOtherHalfProcMesh = nullptr;
+    // 절단 기준 위치
+    FVector PlanePosition = GetMesh()->GetBoneLocation(TargetBoneName);
+
+    // 절단면 머티리얼 로드
+    UMaterialInterface* CapMaterial = LoadObject<UMaterialInterface>(
+        nullptr, TEXT("/Game/Materials/M_CutFace.M_CutFace")); // 경로는 본인 머티리얼에 맞게 수정
+
+    UProceduralMeshComponent* OtherHalfMesh = nullptr;
+
+    // 절단 수행
     UKismetProceduralMeshLibrary::SliceProceduralMesh(
         ProcMeshComponent,
         PlanePosition,
         PlaneNormal,
-        true,
-        OutOtherHalfProcMesh,
+        true,                            // bCreateOtherHalf
+        OtherHalfMesh,
         EProcMeshSliceCapOption::CreateNewSectionForCap,
-        nullptr
+        CapMaterial
     );
 
-    float ImpulseStrength = 500.f;
-
-    if (ProcMeshComponent)
+    if (!OtherHalfMesh)
     {
-        FVector RandomImpulse = UKismetMathLibrary::RandomUnitVector() * ImpulseStrength;
-        ProcMeshComponent->AddImpulse(RandomImpulse, NAME_None, true);
+        UE_LOG(LogTemp, Warning, TEXT("SliceProcMesh: Failed to slice at bone %s"), *TargetBoneName.ToString());
+        return;
     }
 
-    if (OutOtherHalfProcMesh)
+    // 반드시 등록! 그렇지 않으면 월드에 안 보임
+    OtherHalfMesh->RegisterComponent();
+
+    // 메시 겹침 방지 - PlaneNormal 방향으로 살짝 밀어줌
+    FVector Offset = PlaneNormal * 2.0f;
+    OtherHalfMesh->AddLocalOffset(Offset);
+
+    // 소켓에 부착 (필요한 경우)
+    FAttachmentTransformRules TransformRules(EAttachmentRule::SnapToTarget, true);
+    ProcMeshComponent->AttachToComponent(GetMesh(), TransformRules, ProceduralMeshAttachSocketName);
+    OtherHalfMesh->AttachToComponent(GetMesh(), TransformRules, OtherHalfMeshAttachSocketName);
+
+    // 메시 충돌 설정
+    ProcMeshComponent->SetSimulatePhysics(false);
+    OtherHalfMesh->SetSimulatePhysics(false);
+    ProcMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+    OtherHalfMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+
+    // 절단된 뼈에 물리 적용
+    GetMesh()->SetCollisionProfileName(TEXT("Ragdoll"));
+    GetMesh()->BreakConstraint(FVector(0.f, 0.f, 0.f), FVector::ZeroVector, TargetBoneName);
+    GetMesh()->SetSimulatePhysics(true);
+
+    // 튕김 방지를 위해 물리 적용은 0.2초 후에 딜레이
+    FTimerHandle TimerHandle;
+    GetWorld()->GetTimerManager().SetTimer(TimerHandle, [OtherHalfMesh]()
     {
-        FVector RandomImpulse = UKismetMathLibrary::RandomUnitVector() * ImpulseStrength;
-        OutOtherHalfProcMesh->AddImpulse(RandomImpulse, NAME_None, true);
+        if (OtherHalfMesh)
+        {
+            OtherHalfMesh->SetSimulatePhysics(true);
+        }
+    }, 0.2f, false);
 
-        CachedOtherHalfMesh = OutOtherHalfProcMesh;
-    }
-
-    UE_LOG(LogTemp, Warning, TEXT("Sliced Procedural Mesh with random impulses!"));
+    // 나중에 제거 위해 저장
+    CachedOtherHalfMesh = OtherHalfMesh;
 }
+
+
 
 void AEnemyCharacter::Overlap(AActor* OtherActor)
 {

@@ -46,14 +46,13 @@ public:
 protected:
     virtual void ReceiveSkillHit(const FSkillInfo& Info, AActor* Causer) override;
     virtual void BaseAttackCheck() override;
-    void CopySkeletalMeshToProcedural(int32 LODIndex);
 
 private:
     bool bIsAttacking;
     FTimerHandle RespawnTimerHandle;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats", Meta = (AllowPrivateAccess = "true"))
-    float HP = 100.f;
+    float HP = 10.f;
 
     UPROPERTY()
     UProceduralMeshComponent* CachedOtherHalfMesh = nullptr;
@@ -61,17 +60,10 @@ private:
 public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
     UAnimMontage* AttackMontage;
-	
-	UFUNCTION(BlueprintCallable, Category = "Slicing")
-	void SliceProcMesh(FVector PlanePosition, FVector PlaneNormal);
 
     void set_hp(float hp) { HP = hp; }
     float get_hp() { return HP; }
     bool get_is_attacking() { return bIsAttacking; }
-
-protected:
-    UPROPERTY(VisibleAnywhere, Category = "Components")
-    UProceduralMeshComponent* ProcMeshComponent;
 
 public:
     unsigned short m_id;
@@ -91,4 +83,39 @@ public:
 
     UFUNCTION(BlueprintCallable, Category = "Hud")
     void ShowHud(float Damage, EClassType Type);
+
+public:
+    // 절단용 함수들
+    void CopySkeletalMeshToProcedural(int32 LODIndex);
+    void SliceProcMesh(FVector PlaneNormal);
+
+    // 자를 본 이름 가져오기
+    FName GetSecondBoneName() const;
+
+private:
+    // ProceduralMesh용 데이터
+    UPROPERTY(VisibleAnywhere)
+    UProceduralMeshComponent* ProcMeshComponent;
+
+    TArray<FVector> FilteredVerticesArray;
+    TArray<int32> Indices;
+    TArray<FVector> Normals;
+    TArray<FVector2D> UV;
+    TArray<FColor> Colors;
+    TArray<FProcMeshTangent> Tangents;
+    TMap<int32, int32> VertexIndexMap;
+
+    UPROPERTY(EditAnywhere)
+    FName TargetBoneName;
+
+    UPROPERTY(EditAnywhere)
+    FName ProceduralMeshAttachSocketName;
+
+    UPROPERTY(EditAnywhere)
+    FName OtherHalfMeshAttachSocketName;
+
+    UPROPERTY(EditAnywhere)
+    float CreateProceduralMeshDistance = 50.0f;
+
+
 };

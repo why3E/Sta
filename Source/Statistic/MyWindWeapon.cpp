@@ -132,7 +132,7 @@ void AMyWindWeapon::ShootWindCutter()
     {
         if (WindCutterShootSound)
         {
-            UGameplayStatics::PlaySoundAtLocation(this, WindCutterShootSound, GetActorLocation(), 5.0f);
+            UGameplayStatics::PlaySoundAtLocation(this, WindCutterShootSound, GetActorLocation(), 1.0f);
         }
         // 부모 액터로부터 부착 해제
         TempWindCutter->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);

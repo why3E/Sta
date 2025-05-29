@@ -327,4 +327,7 @@ public:
 
 	UPROPERTY(VisibleAnywhere, Category = "MinimapCamera")
 	class UPaperSpriteComponent* minimapSprite;
+
+public:
+    bool bRecentlyTeleported = false;
 };

@@ -18,6 +18,9 @@
 			"DOTNET_HOST_PATH": "C:\\Program Files\\Epic Games\\UE_5.5\\Engine\\Binaries\\ThirdParty\\DotNet\\8.0.300\\win-x64\\dotnet.exe",
 			"DOTNET_MULTILEVEL_LOOKUP": "0",
 			"DOTNET_ROLL_FORWARD": "LatestMajor"
+		},
+		"files.associations": {
+			"*.rh": "cpp"
 		}
 	},
 	"extensions": {
@@ -37,7 +40,7 @@
 					"Statistic",
 					"Win64",
 					"Debug",
-					"C:\\Users\\jkkks\\Desktop\\Sta\\Statistic.uproject",
+					"C:\\Users\\jkkks\\Desktop\\sta\\Sta\\Statistic.uproject",
 					"-waitmutex"
 				],
 				"problemMatcher": "$msCompile",
@@ -54,7 +57,7 @@
 					"Statistic",
 					"Win64",
 					"Debug",
-					"C:\\Users\\jkkks\\Desktop\\Sta\\Statistic.uproject",
+					"C:\\Users\\jkkks\\Desktop\\sta\\Sta\\Statistic.uproject",
 					"-waitmutex"
 				],
 				"problemMatcher": "$msCompile",
@@ -74,7 +77,7 @@
 					"Statistic",
 					"Win64",
 					"Debug",
-					"C:\\Users\\jkkks\\Desktop\\Sta\\Statistic.uproject",
+					"C:\\Users\\jkkks\\Desktop\\sta\\Sta\\Statistic.uproject",
 					"-waitmutex"
 				],
 				"problemMatcher": "$msCompile",
@@ -91,7 +94,7 @@
 					"Statistic",
 					"Win64",
 					"DebugGame",
-					"C:\\Users\\jkkks\\Desktop\\Sta\\Statistic.uproject",
+					"C:\\Users\\jkkks\\Desktop\\sta\\Sta\\Statistic.uproject",
 					"-waitmutex"
 				],
 				"problemMatcher": "$msCompile",
@@ -108,7 +111,7 @@
 					"Statistic",
 					"Win64",
 					"DebugGame",
-					"C:\\Users\\jkkks\\Desktop\\Sta\\Statistic.uproject",
+					"C:\\Users\\jkkks\\Desktop\\sta\\Sta\\Statistic.uproject",
 					"-waitmutex"
 				],
 				"problemMatcher": "$msCompile",
@@ -128,7 +131,7 @@
 					"Statistic",
 					"Win64",
 					"DebugGame",
-					"C:\\Users\\jkkks\\Desktop\\Sta\\Statistic.uproject",
+					"C:\\Users\\jkkks\\Desktop\\sta\\Sta\\Statistic.uproject",
 					"-waitmutex"
 				],
 				"problemMatcher": "$msCompile",
@@ -145,7 +148,7 @@
 					"Statistic",
 					"Win64",
 					"Development",
-					"C:\\Users\\jkkks\\Desktop\\Sta\\Statistic.uproject",
+					"C:\\Users\\jkkks\\Desktop\\sta\\Sta\\Statistic.uproject",
 					"-waitmutex"
 				],
 				"problemMatcher": "$msCompile",
@@ -162,7 +165,7 @@
 					"Statistic",
 					"Win64",
 					"Development",
-					"C:\\Users\\jkkks\\Desktop\\Sta\\Statistic.uproject",
+					"C:\\Users\\jkkks\\Desktop\\sta\\Sta\\Statistic.uproject",
 					"-waitmutex"
 				],
 				"problemMatcher": "$msCompile",
@@ -182,7 +185,7 @@
 					"Statistic",
 					"Win64",
 					"Development",
-					"C:\\Users\\jkkks\\Desktop\\Sta\\Statistic.uproject",
+					"C:\\Users\\jkkks\\Desktop\\sta\\Sta\\Statistic.uproject",
 					"-waitmutex"
 				],
 				"problemMatcher": "$msCompile",
@@ -199,7 +202,7 @@
 					"Statistic",
 					"Win64",
 					"Test",
-					"C:\\Users\\jkkks\\Desktop\\Sta\\Statistic.uproject",
+					"C:\\Users\\jkkks\\Desktop\\sta\\Sta\\Statistic.uproject",
 					"-waitmutex"
 				],
 				"problemMatcher": "$msCompile",
@@ -216,7 +219,7 @@
 					"Statistic",
 					"Win64",
 					"Test",
-					"C:\\Users\\jkkks\\Desktop\\Sta\\Statistic.uproject",
+					"C:\\Users\\jkkks\\Desktop\\sta\\Sta\\Statistic.uproject",
 					"-waitmutex"
 				],
 				"problemMatcher": "$msCompile",
@@ -236,7 +239,7 @@
 					"Statistic",
 					"Win64",
 					"Test",
-					"C:\\Users\\jkkks\\Desktop\\Sta\\Statistic.uproject",
+					"C:\\Users\\jkkks\\Desktop\\sta\\Sta\\Statistic.uproject",
 					"-waitmutex"
 				],
 				"problemMatcher": "$msCompile",
@@ -253,7 +256,7 @@
 					"Statistic",
 					"Win64",
 					"Shipping",
-					"C:\\Users\\jkkks\\Desktop\\Sta\\Statistic.uproject",
+					"C:\\Users\\jkkks\\Desktop\\sta\\Sta\\Statistic.uproject",
 					"-waitmutex"
 				],
 				"problemMatcher": "$msCompile",
@@ -270,7 +273,7 @@
 					"Statistic",
 					"Win64",
 					"Shipping",
-					"C:\\Users\\jkkks\\Desktop\\Sta\\Statistic.uproject",
+					"C:\\Users\\jkkks\\Desktop\\sta\\Sta\\Statistic.uproject",
 					"-waitmutex"
 				],
 				"problemMatcher": "$msCompile",
@@ -290,7 +293,7 @@
 					"Statistic",
 					"Win64",
 					"Shipping",
-					"C:\\Users\\jkkks\\Desktop\\Sta\\Statistic.uproject",
+					"C:\\Users\\jkkks\\Desktop\\sta\\Sta\\Statistic.uproject",
 					"-waitmutex"
 				],
 				"problemMatcher": "$msCompile",
@@ -307,7 +310,7 @@
 					"StatisticEditor",
 					"Win64",
 					"Debug",
-					"C:\\Users\\jkkks\\Desktop\\Sta\\Statistic.uproject",
+					"C:\\Users\\jkkks\\Desktop\\sta\\Sta\\Statistic.uproject",
 					"-waitmutex"
 				],
 				"problemMatcher": "$msCompile",
@@ -324,7 +327,7 @@
 					"StatisticEditor",
 					"Win64",
 					"Debug",
-					"C:\\Users\\jkkks\\Desktop\\Sta\\Statistic.uproject",
+					"C:\\Users\\jkkks\\Desktop\\sta\\Sta\\Statistic.uproject",
 					"-waitmutex"
 				],
 				"problemMatcher": "$msCompile",
@@ -344,7 +347,7 @@
 					"StatisticEditor",
 					"Win64",
 					"Debug",
-					"C:\\Users\\jkkks\\Desktop\\Sta\\Statistic.uproject",
+					"C:\\Users\\jkkks\\Desktop\\sta\\Sta\\Statistic.uproject",
 					"-waitmutex"
 				],
 				"problemMatcher": "$msCompile",
@@ -361,7 +364,7 @@
 					"StatisticEditor",
 					"Win64",
 					"DebugGame",
-					"C:\\Users\\jkkks\\Desktop\\Sta\\Statistic.uproject",
+					"C:\\Users\\jkkks\\Desktop\\sta\\Sta\\Statistic.uproject",
 					"-waitmutex"
 				],
 				"problemMatcher": "$msCompile",
@@ -378,7 +381,7 @@
 					"StatisticEditor",
 					"Win64",
 					"DebugGame",
-					"C:\\Users\\jkkks\\Desktop\\Sta\\Statistic.uproject",
+					"C:\\Users\\jkkks\\Desktop\\sta\\Sta\\Statistic.uproject",
 					"-waitmutex"
 				],
 				"problemMatcher": "$msCompile",
@@ -398,7 +401,7 @@
 					"StatisticEditor",
 					"Win64",
 					"DebugGame",
-					"C:\\Users\\jkkks\\Desktop\\Sta\\Statistic.uproject",
+					"C:\\Users\\jkkks\\Desktop\\sta\\Sta\\Statistic.uproject",
 					"-waitmutex"
 				],
 				"problemMatcher": "$msCompile",
@@ -415,7 +418,7 @@
 					"StatisticEditor",
 					"Win64",
 					"Development",
-					"C:\\Users\\jkkks\\Desktop\\Sta\\Statistic.uproject",
+					"C:\\Users\\jkkks\\Desktop\\sta\\Sta\\Statistic.uproject",
 					"-waitmutex"
 				],
 				"problemMatcher": "$msCompile",
@@ -432,7 +435,7 @@
 					"StatisticEditor",
 					"Win64",
 					"Development",
-					"C:\\Users\\jkkks\\Desktop\\Sta\\Statistic.uproject",
+					"C:\\Users\\jkkks\\Desktop\\sta\\Sta\\Statistic.uproject",
 					"-waitmutex"
 				],
 				"problemMatcher": "$msCompile",
@@ -452,7 +455,7 @@
 					"StatisticEditor",
 					"Win64",
 					"Development",
-					"C:\\Users\\jkkks\\Desktop\\Sta\\Statistic.uproject",
+					"C:\\Users\\jkkks\\Desktop\\sta\\Sta\\Statistic.uproject",
 					"-waitmutex"
 				],
 				"problemMatcher": "$msCompile",
@@ -469,7 +472,7 @@
 			{
 				"name": "Launch Statistic (Debug)",
 				"request": "launch",
-				"program": "C:\\Users\\jkkks\\Desktop\\Sta\\Binaries\\Win64\\UnrealGame-Win64-Debug.exe",
+				"program": "C:\\Users\\jkkks\\Desktop\\sta\\Sta\\Binaries\\Win64\\UnrealGame-Win64-Debug.exe",
 				"preLaunchTask": "Statistic Win64 Debug Build",
 				"args": [
 				],
@@ -485,7 +488,7 @@
 			{
 				"name": "Launch Statistic (DebugGame)",
 				"request": "launch",
-				"program": "C:\\Users\\jkkks\\Desktop\\Sta\\Binaries\\Win64\\UnrealGame-Win64-DebugGame.exe",
+				"program": "C:\\Users\\jkkks\\Desktop\\sta\\Sta\\Binaries\\Win64\\UnrealGame-Win64-DebugGame.exe",
 				"preLaunchTask": "Statistic Win64 DebugGame Build",
 				"args": [
 				],
@@ -501,7 +504,7 @@
 			{
 				"name": "Launch Statistic (Development)",
 				"request": "launch",
-				"program": "C:\\Users\\jkkks\\Desktop\\Sta\\Binaries\\Win64\\UnrealGame.exe",
+				"program": "C:\\Users\\jkkks\\Desktop\\sta\\Sta\\Binaries\\Win64\\UnrealGame.exe",
 				"preLaunchTask": "Statistic Win64 Development Build",
 				"args": [
 				],
@@ -517,7 +520,7 @@
 			{
 				"name": "Launch Statistic (Test)",
 				"request": "launch",
-				"program": "C:\\Users\\jkkks\\Desktop\\Sta\\Binaries\\Win64\\UnrealGame-Win64-Test.exe",
+				"program": "C:\\Users\\jkkks\\Desktop\\sta\\Sta\\Binaries\\Win64\\UnrealGame-Win64-Test.exe",
 				"preLaunchTask": "Statistic Win64 Test Build",
 				"args": [
 				],
@@ -533,7 +536,7 @@
 			{
 				"name": "Launch Statistic (Shipping)",
 				"request": "launch",
-				"program": "C:\\Users\\jkkks\\Desktop\\Sta\\Binaries\\Win64\\UnrealGame-Win64-Shipping.exe",
+				"program": "C:\\Users\\jkkks\\Desktop\\sta\\Sta\\Binaries\\Win64\\UnrealGame-Win64-Shipping.exe",
 				"preLaunchTask": "Statistic Win64 Shipping Build",
 				"args": [
 				],
@@ -552,7 +555,7 @@
 				"program": "C:\\Program Files\\Epic Games\\UE_5.5\\Engine\\Binaries\\Win64\\UnrealEditor-Win64-Debug.exe",
 				"preLaunchTask": "StatisticEditor Win64 Debug Build",
 				"args": [
-					"C:\\Users\\jkkks\\Desktop\\Sta\\Statistic.uproject"
+					"C:\\Users\\jkkks\\Desktop\\sta\\Sta\\Statistic.uproject"
 				],
 				"cwd": "C:\\Program Files\\Epic Games\\UE_5.5",
 				"stopAtEntry": false,
@@ -569,7 +572,7 @@
 				"program": "C:\\Program Files\\Epic Games\\UE_5.5\\Engine\\Binaries\\Win64\\UnrealEditor-Win64-DebugGame.exe",
 				"preLaunchTask": "StatisticEditor Win64 DebugGame Build",
 				"args": [
-					"C:\\Users\\jkkks\\Desktop\\Sta\\Statistic.uproject"
+					"C:\\Users\\jkkks\\Desktop\\sta\\Sta\\Statistic.uproject"
 				],
 				"cwd": "C:\\Program Files\\Epic Games\\UE_5.5",
 				"stopAtEntry": false,
@@ -586,7 +589,7 @@
 				"program": "C:\\Program Files\\Epic Games\\UE_5.5\\Engine\\Binaries\\Win64\\UnrealEditor.exe",
 				"preLaunchTask": "StatisticEditor Win64 Development Build",
 				"args": [
-					"C:\\Users\\jkkks\\Desktop\\Sta\\Statistic.uproject"
+					"C:\\Users\\jkkks\\Desktop\\sta\\Sta\\Statistic.uproject"
 				],
 				"cwd": "C:\\Program Files\\Epic Games\\UE_5.5",
 				"stopAtEntry": false,
@@ -606,7 +609,7 @@
 				"args": [
 					"-projectfiles",
 					"-vscode",
-					"-project=C:\\Users\\jkkks\\Desktop\\Sta\\Statistic.uproject",
+					"-project=C:\\Users\\jkkks\\Desktop\\sta\\Sta\\Statistic.uproject",
 					"-game",
 					"-engine",
 					"-dotnet"

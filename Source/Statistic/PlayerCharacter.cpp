@@ -208,7 +208,7 @@ void APlayerCharacter::BeginPlay()
     }
 
     ChangeClass(EClassType::CT_Ice, true);
-    ChangeClass(EClassType::CT_Stone, false);
+    ChangeClass(EClassType::CT_Ice, false);
 
     playerCurrentHp = playerMaxHp;
     playerCurrentMp = playerMaxMp;
@@ -524,6 +524,8 @@ void APlayerCharacter::ShootIceArrow()
 {
 	bIsHold = false;
 	bIsIceAiming = false;
+
+	UE_LOG(LogTemp, Error, TEXT("Fire"));
 
 	// 발사 처리
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
@@ -991,31 +993,31 @@ void APlayerCharacter::Tick(float DeltaTime) {
 	UpdateUI();
 
 	if (m_is_player) {
-		if (GetCharacterMovement()->IsFalling()) {
-			// Send Player Vector Packet 
-			FVector Velocity = GetCharacterMovement()->Velocity;
+		//if (GetCharacterMovement()->IsFalling()) {
+		//	// Send Player Vector Packet 
+		//	FVector Velocity = GetCharacterMovement()->Velocity;
 
-			float DistanceDiff = FVector::Dist(Velocity, m_velocity);
+		//	float DistanceDiff = FVector::Dist(Velocity, m_velocity);
 
-			UE_LOG(LogTemp, Warning, TEXT("[Client %d] V.x : %.2f, V.y : %.2f, V.z : %.2f"), m_id, Velocity.X, Velocity.Y, Velocity.Z);
-			UE_LOG(LogTemp, Warning, TEXT("[Client %d] m.x : %.2f, m.y : %.2f, m.z : %.2f"), m_id, m_velocity.X, m_velocity.Y, m_velocity.Z);
+		//	UE_LOG(LogTemp, Warning, TEXT("[Client %d] V.x : %.2f, V.y : %.2f, V.z : %.2f"), m_id, Velocity.X, Velocity.Y, Velocity.Z);
+		//	UE_LOG(LogTemp, Warning, TEXT("[Client %d] m.x : %.2f, m.y : %.2f, m.z : %.2f"), m_id, m_velocity.X, m_velocity.Y, m_velocity.Z);
 
-			if (DistanceDiff > 10.0f) {
-				m_velocity = Velocity;
-				m_was_moving = true;
+		//	if (DistanceDiff > 10.0f) {
+		//		m_velocity = Velocity;
+		//		m_was_moving = true;
 
-				FVector Position = GetActorLocation();
+		//		FVector Position = GetActorLocation();
 
-				player_move_packet p;
-				p.packet_size = sizeof(player_move_packet);
-				p.packet_type = C2H_PLAYER_MOVE_PACKET;
-				p.id = m_id;
-				p.x = Position.X; p.y = Position.Y; p.z = Position.Z;
-				p.vx = Velocity.X; p.vy = Velocity.Y; p.vz = Velocity.Z;
+		//		player_move_packet p;
+		//		p.packet_size = sizeof(player_move_packet);
+		//		p.packet_type = C2H_PLAYER_MOVE_PACKET;
+		//		p.id = m_id;
+		//		p.x = Position.X; p.y = Position.Y; p.z = Position.Z;
+		//		p.vx = Velocity.X; p.vy = Velocity.Y; p.vz = Velocity.Z;
 
-				do_send(&p);
-			}
-		}
+		//		do_send(&p);
+		//	}
+		//}
 
 		// Stop
 		if (m_was_moving) {

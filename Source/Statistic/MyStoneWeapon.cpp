@@ -49,12 +49,13 @@ void AMyStoneWeapon::SpawnStoneWave(FVector FireLocation)
         SpawnParams.Instigator = GetInstigator();
 
         AMyStoneWave* StoneWave = GetWorld()->SpawnActor<AMyStoneWave>(StoneWaveClass, SpawnLocation, FRotator::ZeroRotator, SpawnParams);
+
         if (StoneWave)
         {
-            unsigned short skill_id = Cast<APlayerCharacter>(OwnerCharacter)->get_skill_id();
-
-            StoneWave->SetID(skill_id);
             StoneWave->SetOwner(OwnerCharacter);
+
+            unsigned short skill_id = Cast<APlayerCharacter>(OwnerCharacter)->get_skill_id();
+            StoneWave->SetID(skill_id);
 
             g_c_skills.emplace(skill_id, StoneWave);
             if (g_c_collisions.count(skill_id)) {
@@ -102,10 +103,10 @@ void AMyStoneWeapon::SpawnStoneSkill(FVector ImpactPoint)
         return;
     }
 
-    unsigned short skill_id = Cast<APlayerCharacter>(OwnerCharacter)->get_skill_id();
-
-    TempStoneSkill->SetID(skill_id);
     TempStoneSkill->SetOwner(OwnerCharacter);
+
+    unsigned short skill_id = Cast<APlayerCharacter>(OwnerCharacter)->get_skill_id();
+    TempStoneSkill->SetID(skill_id);
 
     g_c_skills.emplace(skill_id, TempStoneSkill);
     if (g_c_collisions.count(skill_id)) {

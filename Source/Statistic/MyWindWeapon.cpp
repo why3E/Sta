@@ -47,13 +47,13 @@ void AMyWindWeapon::SpawnWindCutter(FVector ImpactPoint)
 		UE_LOG(LogTemp, Warning, TEXT("WindCutter Spawned"));
 		if (OwnerCharacter)
         {
-            unsigned short skill_id = Cast<APlayerCharacter>(OwnerCharacter)->get_skill_id();
-
-            TempWindCutter->SetID(skill_id);
             TempWindCutter->SetOwner(OwnerCharacter);
             TempWindCutter->AttachToComponent(OwnerCharacter->GetMesh(), FAttachmentTransformRules::KeepRelativeTransform, WindCutterSocket);
             TempWindCutter->ActivateNiagara();
 
+            unsigned short skill_id = Cast<APlayerCharacter>(OwnerCharacter)->get_skill_id();
+            TempWindCutter->SetID(skill_id);
+            
             g_c_skills.emplace(skill_id, TempWindCutter);
             if (g_c_collisions.count(skill_id)) {
                 while (!g_c_collisions[skill_id].empty()) {
@@ -97,11 +97,11 @@ void AMyWindWeapon::SpawnWindSkill(FVector TargetLocation)
 
     if (WindSkill)
     {
-        unsigned short skill_id = Cast<APlayerCharacter>(OwnerCharacter)->get_skill_id();
-
-        WindSkill->SetID(skill_id);
         WindSkill->SetOwner(OwnerCharacter);
 		WindSkill->SpawnWindTonado(TargetLocation);
+
+        unsigned short skill_id = Cast<APlayerCharacter>(OwnerCharacter)->get_skill_id();
+        WindSkill->SetID(skill_id);
 
         g_c_skills.emplace(skill_id, WindSkill);
         UGameplayStatics::FinishSpawningActor(WindSkill, SpawnTransform);
@@ -118,7 +118,7 @@ void AMyWindWeapon::SpawnWindSkill(FVector TargetLocation)
                 }
             }
         }
-        UE_LOG(LogTemp, Warning, TEXT("WindSkill spawned at location: %s"), *TargetLocation.ToString());
+        //UE_LOG(LogTemp, Warning, TEXT("WindSkill spawned at location: %s"), *TargetLocation.ToString());
     }
     else
     {

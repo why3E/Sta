@@ -47,13 +47,12 @@ void AMyFireWeapon::SpawnFireBall(FVector ImpactPoint)
 	{
 		if (OwnerCharacter)
         {
-            unsigned short skill_id = Cast<APlayerCharacter>(OwnerCharacter)->get_skill_id();
-
-            TempFireBall->SetID(skill_id);
             TempFireBall->SetOwner(OwnerCharacter);
             TempFireBall->AttachToComponent(OwnerCharacter->GetMesh(), FAttachmentTransformRules::KeepRelativeTransform, FireBallSocket);
             TempFireBall->ActivateNiagara();
-            UE_LOG(LogTemp, Warning, TEXT("FireBall %d spawniiiing"), skill_id);
+
+            unsigned short skill_id = Cast<APlayerCharacter>(OwnerCharacter)->get_skill_id();
+            TempFireBall->SetID(skill_id);
 
             g_c_skills.emplace(skill_id, TempFireBall);
             if (g_c_collisions.count(skill_id)) {
@@ -68,7 +67,7 @@ void AMyFireWeapon::SpawnFireBall(FVector ImpactPoint)
                     }
                 }
             }
-            UE_LOG(LogTemp, Warning, TEXT("FireBall %d spawned"), skill_id);
+            //UE_LOG(LogTemp, Warning, TEXT("FireBall %d spawned"), skill_id);
         }
         else
         {
@@ -142,11 +141,11 @@ void AMyFireWeapon::SpawnFireSkill(FVector TargetLocation, FRotator TargetRotati
 
         if (FireSkill)
         {
-            unsigned short skill_id = Cast<APlayerCharacter>(OwnerCharacter)->get_skill_id();
-
-            FireSkill->SetID(i + skill_id);
             FireSkill->SetOwner(OwnerCharacter);
             FireSkill->SpawnFireWall(SpawnLocation, TargetRotation);
+
+            unsigned short skill_id = Cast<APlayerCharacter>(OwnerCharacter)->get_skill_id();
+            FireSkill->SetID(i + skill_id);
 
             g_c_skills.emplace(i + skill_id, FireSkill);
             UGameplayStatics::FinishSpawningActor(FireSkill, SpawnTransform);

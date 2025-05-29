@@ -349,15 +349,14 @@ void APlayerCharacter::BasicMove(const FInputActionValue& Value)
 
 			FVector Position = GetActorLocation();
 
-			player_vector_packet p;
-			p.packet_size = sizeof(player_vector_packet);
-			p.packet_type = C2H_PLAYER_VECTOR_PACKET;
-			p.player_id = m_id;
-			p.player_x = Position.X; p.player_y = Position.Y; p.player_z = Position.Z;
-			p.player_vx = Velocity.X; p.player_vy = Velocity.Y; p.player_vz = Velocity.Z;
+			player_move_packet p;
+			p.packet_size = sizeof(player_move_packet);
+			p.packet_type = C2H_PLAYER_MOVE_PACKET;
+			p.id = m_id;
+			p.x = Position.X; p.y = Position.Y; p.z = Position.Z;
+			p.vx = Velocity.X; p.vy = Velocity.Y; p.vz = Velocity.Z;
 
 			do_send(&p);
-			//UE_LOG(LogTemp, Warning, TEXT("[Client %d] Send Vector Packet to Host"), m_id);
 		}
 	}
 }
@@ -385,11 +384,10 @@ void APlayerCharacter::BasicLook(const FInputActionValue& Value)
 		player_rotate_packet p;
 		p.packet_size = sizeof(player_rotate_packet);
 		p.packet_type = C2H_PLAYER_ROTATE_PACKET;
-		p.player_id = m_id;
-		p.player_yaw = CurrentYaw;
+		p.id = m_id;
+		p.yaw = CurrentYaw;
 
 		do_send(&p);
-		//UE_LOG(LogTemp, Warning, TEXT("[Client %d] Send Rotation Packet to Host"), m_id);
 	}
 }
 
@@ -401,10 +399,9 @@ void APlayerCharacter::StartJump()
 		player_jump_packet p;
 		p.packet_size = sizeof(player_jump_packet);
 		p.packet_type = C2H_PLAYER_JUMP_PACKET;
-		p.player_id = m_id;
+		p.id = m_id;
 
 		do_send(&p);
-		//UE_LOG(LogTemp, Warning, TEXT("[Client %d] Send Jump Start Packet to Host"), m_id);
 	}
 }
 
@@ -433,19 +430,16 @@ void APlayerCharacter::LeftClick()
     // 왼쪽 무기가 얼음 타입인지 확인
     if (LeftClassType == EClassType::CT_Ice)
     {
-		if(bIsQDrawing)
+		if (!bIsQDrawing)
 		{
-			SkillAttack();
+			player_ready_skill_packet p;
+			p.packet_size = sizeof(player_ready_skill_packet);
+			p.packet_type = C2H_PLAYER_READY_SKILL_PACKET;
+			p.id = m_id;
+			p.is_left = true;
+			do_send(&p);
 			return;
 		}
-
-		player_skill_ready_packet p;
-		p.packet_size = sizeof(player_skill_ready_packet);
-		p.packet_type = C2H_PLAYER_ICE_AIM_PACKET;
-		p.player_id = m_id;
-		p.is_left = true;
-		do_send(&p);
-		return;
     }
 
     BasicAttack();
@@ -457,13 +451,16 @@ void APlayerCharacter::RightClick()
 
 	if (RightClassType == EClassType::CT_Ice)
     {
-		player_skill_ready_packet p;
-		p.packet_size = sizeof(player_skill_ready_packet);
-		p.packet_type = C2H_PLAYER_ICE_AIM_PACKET;
-		p.player_id = m_id;
-		p.is_left = false;
-		do_send(&p);
-		return;
+		if (!bisEDrawing)
+		{
+			player_ready_skill_packet p;
+			p.packet_size = sizeof(player_ready_skill_packet);
+			p.packet_type = C2H_PLAYER_READY_SKILL_PACKET;
+			p.id = m_id;
+			p.is_left = false;
+			do_send(&p);
+			return;
+		}
     }
 
 	BasicAttack();
@@ -492,13 +489,15 @@ void APlayerCharacter::StartIceAim()
 
 void APlayerCharacter::ClickRelease()
 {
+	if (!bIsHold || !bIsIceAiming) { return; }
+
 	if (bIsLeft){
 		if (LeftClassType == EClassType::CT_Ice) {
 			GetFireTargetLocation();
 
-			player_skill_vector_packet p;
-			p.packet_size = sizeof(player_skill_vector_packet);
-			p.packet_type = C2H_PLAYER_SKILL_VECTOR_PACKET;
+			skill_vector_packet p;
+			p.packet_size = sizeof(skill_vector_packet);
+			p.packet_type = C2H_SKILL_VECTOR_PACKET;
 			p.player_id = m_id;
 			p.skill_vx = FireLocation.X; p.skill_vy = FireLocation.Y; p.skill_vz = FireLocation.Z;
 			p.skill_type = SKILL_ICE_ARROW;
@@ -509,9 +508,9 @@ void APlayerCharacter::ClickRelease()
 		if (RightClassType == EClassType::CT_Ice) {
 			GetFireTargetLocation();
 
-			player_skill_vector_packet p;
-			p.packet_size = sizeof(player_skill_vector_packet);
-			p.packet_type = C2H_PLAYER_SKILL_VECTOR_PACKET;
+			skill_vector_packet p;
+			p.packet_size = sizeof(skill_vector_packet);
+			p.packet_type = C2H_SKILL_VECTOR_PACKET;
 			p.player_id = m_id;
 			p.skill_vx = FireLocation.X; p.skill_vy = FireLocation.Y; p.skill_vz = FireLocation.Z;
 			p.skill_type = SKILL_ICE_ARROW;
@@ -571,9 +570,9 @@ void APlayerCharacter::BasicAttack()
 		if (get_is_player()) {
 			switch (ClassType) {
 			case EClassType::CT_Wind: {
-				player_skill_vector_packet p;
-				p.packet_size = sizeof(player_skill_vector_packet);
-				p.packet_type = C2H_PLAYER_SKILL_VECTOR_PACKET;
+				skill_vector_packet p;
+				p.packet_size = sizeof(skill_vector_packet);
+				p.packet_type = C2H_SKILL_VECTOR_PACKET;
 				p.player_id = m_id;
 				p.skill_vx = CurrentImpactPoint.X; p.skill_vy = CurrentImpactPoint.Y; p.skill_vz = CurrentImpactPoint.Z;
 				p.skill_type = SKILL_WIND_TORNADO;
@@ -584,9 +583,9 @@ void APlayerCharacter::BasicAttack()
 			}
 
 			case EClassType::CT_Fire: {
-				player_skill_rotator_packet p;
-				p.packet_size = sizeof(player_skill_rotator_packet);
-				p.packet_type = C2H_PLAYER_SKILL_ROTATOR_PACKET;
+				skill_rotator_packet p;
+				p.packet_size = sizeof(skill_rotator_packet);
+				p.packet_type = C2H_SKILL_ROTATOR_PACKET;
 				p.player_id = m_id;
 				p.skill_x = CurrentImpactPoint.X; p.skill_y = CurrentImpactPoint.Y; p.skill_z = CurrentImpactPoint.Z;
 				p.skill_pitch = CurrentImpactRot.Pitch; p.skill_yaw = CurrentImpactRot.Yaw; p.skill_roll = CurrentImpactRot.Roll;
@@ -598,9 +597,9 @@ void APlayerCharacter::BasicAttack()
 			}
 
 			case EClassType::CT_Stone: {
-				player_skill_vector_packet p;
-				p.packet_size = sizeof(player_skill_vector_packet);
-				p.packet_type = C2H_PLAYER_SKILL_VECTOR_PACKET;
+				skill_vector_packet p;
+				p.packet_size = sizeof(skill_vector_packet);
+				p.packet_type = C2H_SKILL_VECTOR_PACKET;
 				p.player_id = m_id;
 				p.skill_vx = CurrentImpactPoint.X; p.skill_vy = CurrentImpactPoint.Y; p.skill_vz = CurrentImpactPoint.Z;
 				p.skill_type = SKILL_STONE_SKILL;
@@ -621,9 +620,9 @@ void APlayerCharacter::BasicAttack()
 			GetFireTargetLocation();
 			UE_LOG(LogTemp, Error, TEXT("FireLocation: %s"), *FireLocation.ToString());
 
-			player_skill_vector_packet p;
-			p.packet_size = sizeof(player_skill_vector_packet);
-			p.packet_type = C2H_PLAYER_SKILL_VECTOR_PACKET;
+			skill_vector_packet p;
+			p.packet_size = sizeof(skill_vector_packet);
+			p.packet_type = C2H_SKILL_VECTOR_PACKET;
 			p.player_id = m_id;
 			p.skill_vx = FireLocation.X; p.skill_vy = FireLocation.Y; p.skill_vz = FireLocation.Z;
 			p.is_left = bIsLeft;
@@ -961,6 +960,7 @@ void APlayerCharacter::Tick(float DeltaTime) {
 			CurrnetSkillQTime = 0.0f;
 		}
 	}
+
 	if(!bCanUseSkillE)
 	{
 		CurrnetSkillETime += DeltaTime;
@@ -970,7 +970,9 @@ void APlayerCharacter::Tick(float DeltaTime) {
 			CurrnetSkillETime = 0.0f;
 		}
 	}
+
 	UpdateUI();
+
 	if (m_is_player) {
 		// Stop
 		if (m_was_moving) {
@@ -986,26 +988,23 @@ void APlayerCharacter::Tick(float DeltaTime) {
 				player_stop_packet p;
 				p.packet_size = sizeof(player_stop_packet);
 				p.packet_type = C2H_PLAYER_STOP_PACKET;
-				p.player_id = m_id;
-				p.player_x = Position.X; p.player_y = Position.Y; p.player_z = Position.Z;
+				p.id = m_id;
+				p.x = Position.X; p.y = Position.Y; p.z = Position.Z;
 
 				do_send(&p);
-				//UE_LOG(LogTemp, Warning, TEXT("[Client %d] Send Stop Packet to Host"), m_id);
 			}
 		}
-	}
-	else {
+	} else {
 		if (!GetCharacterMovement()->IsFalling()) {
 			GetCharacterMovement()->Velocity = m_velocity;
 
 			float Speed = m_velocity.Size();
 
-			// Dash
 			if (Speed > 500.0f) {
+				// Dash
 				GetCharacterMovement()->MaxWalkSpeed = 600.0f;
-			}
-			// Walk
-			else {
+			} else {
+				// Walk
 				GetCharacterMovement()->MaxWalkSpeed = 280.0f;
 			}
 
@@ -1321,32 +1320,32 @@ void APlayerCharacter::change_element() {
 	player_change_element_packet p;
 	p.packet_size = sizeof(player_change_element_packet);
 	p.packet_type = C2H_PLAYER_CHANGE_ELEMENT_PACKET;
-	p.player_id = m_id;
+	p.id = m_id;
 	p.is_left = true;
 
 	switch (LeftClassType) {
 	case EClassType::CT_Wind:
 		UE_LOG(LogTemp, Warning, TEXT("Class changed to Fire"));
 		ChangeClass(EClassType::CT_Fire, true);
-		p.element_type = static_cast<char>(EClassType::CT_Fire);
+		p.element = static_cast<char>(EClassType::CT_Fire);
 		break;
 
 	case EClassType::CT_Fire:
 		UE_LOG(LogTemp, Warning, TEXT("Class changed to Stone"));
 		ChangeClass(EClassType::CT_Stone, true);
-		p.element_type = static_cast<char>(EClassType::CT_Stone);
+		p.element = static_cast<char>(EClassType::CT_Stone);
 		break;
 
 	case EClassType::CT_Stone:
 		UE_LOG(LogTemp, Warning, TEXT("Class changed to Ice"));
 		ChangeClass(EClassType::CT_Ice, true);
-		p.element_type = static_cast<char>(EClassType::CT_Ice);
+		p.element = static_cast<char>(EClassType::CT_Ice);
 		break;
 
 	case EClassType::CT_Ice:
 		UE_LOG(LogTemp, Warning, TEXT("Class changed to Wind"));
 		ChangeClass(EClassType::CT_Wind, true);
-		p.element_type = static_cast<char>(EClassType::CT_Wind);
+		p.element = static_cast<char>(EClassType::CT_Wind);
 		break;
 
 	default:

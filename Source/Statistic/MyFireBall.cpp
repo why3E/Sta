@@ -17,9 +17,6 @@ AMyFireBall::AMyFireBall()
 {
     SetElement(EClassType::CT_Fire);
 
-    // Tick 활성화 여부
-    //PrimaryActorTick.bCanEverTick = true;
-
     // 콜리전 컴포넌트 초기화
     CollisionComponent = CreateDefaultSubobject<USphereComponent>(TEXT("CollisionComponent"));
     CollisionComponent->SetSphereRadius(30.0f);

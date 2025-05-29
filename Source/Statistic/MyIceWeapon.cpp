@@ -18,11 +18,14 @@ AMyIceWeapon::AMyIceWeapon()
     WeaponMesh->SetVisibility(false);
 
     static ConstructorHelpers::FClassFinder<AActor> IceArrowRef(TEXT("/Game/Weapon/MyIceArrow.MyIceArrow_C"));
+
     if (IceArrowRef.Succeeded())
     {
         IceArrowClass =  IceArrowRef.Class;
     }
+
     static ConstructorHelpers::FClassFinder<AActor> IceWallRef(TEXT("/Game/Weapon/MyIceSkill.MyIceSkill_C"));
+
     if (IceWallRef.Succeeded())
     {
         IceSkillClass =  IceWallRef.Class;
@@ -35,18 +38,17 @@ AMyIceWeapon::AMyIceWeapon()
 void AMyIceWeapon::BeginPlay()
 {
     Super::BeginPlay();
-
 }
+
 void AMyIceWeapon::Tick(float DeltaSeconds)
 {
     Super::Tick(DeltaSeconds);
-
 }
 
 void AMyIceWeapon::SetAiming()
 {
-    if (bIsAiming)
-        return;
+    if (bIsAiming) { return; }
+
     bIsAiming = true;
     WeaponMesh->SetVisibility(true);
     TempIceArrow = Cast<AMyIceArrow>(GetWorld()->SpawnActor(IceArrowClass));
@@ -73,7 +75,6 @@ void AMyIceWeapon::ShootIceArrow(FVector FirePoint)
     if (TempIceArrow)
 	{
         unsigned short skill_id = Cast<APlayerCharacter>(OwnerCharacter)->get_skill_id();
-
         TempIceArrow->SetID(skill_id);
 
         g_c_skills.emplace(skill_id, TempIceArrow);
@@ -137,10 +138,10 @@ void AMyIceWeapon::SpawnIceSkill(FVector Location, FRotator Rotation)
 
     if (IceWall)
     {
-        unsigned short skill_id = Cast<APlayerCharacter>(OwnerCharacter)->get_skill_id();
-
-        IceWall->SetID(skill_id);
         IceWall->SetOwner(OwnerCharacter);
+
+        unsigned short skill_id = Cast<APlayerCharacter>(OwnerCharacter)->get_skill_id();
+        IceWall->SetID(skill_id);
 
         g_c_skills.emplace(skill_id, IceWall);
         UGameplayStatics::FinishSpawningActor(IceWall, SpawnTransform);

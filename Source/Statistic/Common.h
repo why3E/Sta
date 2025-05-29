@@ -25,27 +25,27 @@ constexpr char H2C_MONSTER_MOVE_PACKET = 12;
 constexpr char H2C_MONSTER_ATTACK_PACKET = 13;
 constexpr char H2C_MONSTER_RESPAWN_PACKET = 14;
 
-constexpr char H2C_PLAYER_VECTOR_PACKET = 21;
+constexpr char H2C_PLAYER_MOVE_PACKET = 21;
 constexpr char H2C_PLAYER_STOP_PACKET = 22;
 constexpr char H2C_PLAYER_ROTATE_PACKET = 23;
 constexpr char H2C_PLAYER_JUMP_PACKET = 24;
-constexpr char H2C_PLAYER_SKILL_VECTOR_PACKET = 25;
-constexpr char H2C_PLAYER_SKILL_ROTATOR_PACKET = 26;
-constexpr char H2C_PLAYER_CHANGE_ELEMENT_PACKET = 27;
-constexpr char H2C_COLLISION_PACKET = 28;
-constexpr char H2C_SKILL_CREATE_PACKET = 29;
-constexpr char H2C_PLAYER_ICE_AIM_PACKET = 30;
+constexpr char H2C_PLAYER_READY_SKILL_PACKET = 25;
+constexpr char H2C_PLAYER_CHANGE_ELEMENT_PACKET = 26;
+constexpr char H2C_SKILL_VECTOR_PACKET = 27;
+constexpr char H2C_SKILL_ROTATOR_PACKET = 28;
+constexpr char H2C_COLLISION_PACKET = 29;
+constexpr char H2C_SKILL_CREATE_PACKET = 30;
 
-constexpr char C2H_PLAYER_VECTOR_PACKET = 41;
+constexpr char C2H_PLAYER_MOVE_PACKET = 41;
 constexpr char C2H_PLAYER_STOP_PACKET = 42;
 constexpr char C2H_PLAYER_ROTATE_PACKET = 43;
 constexpr char C2H_PLAYER_JUMP_PACKET = 44;
-constexpr char C2H_PLAYER_SKILL_VECTOR_PACKET = 45;
-constexpr char C2H_PLAYER_SKILL_ROTATOR_PACKET = 46;
-constexpr char C2H_PLAYER_CHANGE_ELEMENT_PACKET = 47;
-constexpr char C2H_COLLISION_PACKET = 48;
-constexpr char C2H_SKILL_CREATE_PACKET = 49;
-constexpr char C2H_PLAYER_ICE_AIM_PACKET = 50;
+constexpr char C2H_PLAYER_READY_SKILL_PACKET = 45;
+constexpr char C2H_PLAYER_CHANGE_ELEMENT_PACKET = 46;
+constexpr char C2H_SKILL_VECTOR_PACKET = 47;
+constexpr char C2H_SKILL_ROTATOR_PACKET = 48;
+constexpr char C2H_COLLISION_PACKET = 49;
+constexpr char C2H_SKILL_CREATE_PACKET = 50;
 
 
 
@@ -59,14 +59,12 @@ constexpr char ELEMENT_ICE = 4;
 constexpr char SKILL_WIND_CUTTER = 1;
 constexpr char SKILL_WIND_TORNADO = 2;
 constexpr char SKILL_WIND_WIND_TORNADO = 3;
-constexpr char SKILL_WIND_FIRE_TORNADO = 4;
-constexpr char SKILL_WIND_FIRE_BOMB = 5;
-constexpr char SKILL_FIRE_BALL = 6;
-constexpr char SKILL_FIRE_WALL = 7;
-constexpr char SKILL_STONE_WAVE = 8;
-constexpr char SKILL_STONE_SKILL = 9;
-constexpr char SKILL_ICE_AIM = 10;
-constexpr char SKILL_ICE_ARROW = 11;
+constexpr char SKILL_WIND_FIRE_BOMB = 4;
+constexpr char SKILL_FIRE_BALL = 5;
+constexpr char SKILL_FIRE_WALL = 6;
+constexpr char SKILL_STONE_WAVE = 7;
+constexpr char SKILL_STONE_SKILL = 8;
+constexpr char SKILL_ICE_ARROW = 9;
 
 constexpr char SKILL_SKILL_COLLISION = 1;
 constexpr char SKILL_MONSTER_COLLISION = 2;
@@ -75,6 +73,13 @@ constexpr char SKILL_PLAYER_COLLISION = 3;
 constexpr char MAX_CLIENTS = 4;
 constexpr unsigned short MAX_MONSTERS_PER_PACKET = 5;
 
+struct monster_init_info {
+	unsigned short id;
+	float hp;
+	float x; float y; float z;
+	float target_x; float target_y; float target_z;
+};
+
 #pragma pack(push, 1)
 
 //////////////////////////////////////////////////
@@ -82,16 +87,16 @@ constexpr unsigned short MAX_MONSTERS_PER_PACKET = 5;
 
 
 //////////////////////////////////////////////////
-// In-Game
+// In-Game 
 struct hc_player_info_packet {
 	unsigned char packet_size;
 	char packet_type;
-	char player_id;
-	float player_yaw;
-	float player_x, player_y, player_z;
-	float player_vx, player_vy, player_vz;
-	float player_hp;
-	char current_element[2];
+	char id;
+	float yaw;
+	float x, y, z;
+	float vx, vy, vz;
+	float hp;
+	char element[2];
 };
 
 struct hc_player_leave_packet {
@@ -100,42 +105,77 @@ struct hc_player_leave_packet {
 	char player_id;
 };
 
-struct player_vector_packet {
+struct hc_init_monster_packet {
 	unsigned char packet_size;
 	char packet_type;
-	char player_id;
-	float player_x, player_y, player_z;
-	float player_vx, player_vy, player_vz;
+	unsigned short count;
+	monster_init_info monsters[0];
+};
+
+struct hc_monster_move_packet {
+	unsigned char packet_size;
+	char packet_type;
+	unsigned char id;
+	float target_x; float target_y; float target_z;
+};
+
+struct hc_monster_attack_packet {
+	unsigned char packet_size;
+	char packet_type;
+	unsigned char id;
+};
+
+struct hc_monster_respawn_packet {
+	unsigned char packet_size;
+	char packet_type;
+	unsigned char id;
+	float respawn_x; float respawn_y; float respawn_z;
+};
+
+struct player_move_packet {
+	unsigned char packet_size;
+	char packet_type;
+	char id;
+	float x, y, z;
+	float vx, vy, vz;
 };
 
 struct player_stop_packet {
 	unsigned char packet_size;
 	char packet_type;
-	char player_id;
-	float player_x, player_y, player_z;
+	char id;
+	float x, y, z;
 };
 
 struct player_rotate_packet {
 	unsigned char packet_size;
 	char packet_type;
-	char player_id;
-	float player_yaw;
+	char id;
+	float yaw;
 };
 
 struct player_jump_packet {
 	unsigned char packet_size;
 	char packet_type;
-	char player_id;
+	char id;
 };
 
-struct player_skill_ready_packet {
+struct player_ready_skill_packet {
 	unsigned char packet_size;
 	char packet_type;
-	char player_id;
+	char id;
 	bool is_left;
 };
 
-struct player_skill_vector_packet {
+struct player_change_element_packet {
+	unsigned char packet_size;
+	char packet_type;
+	char id;
+	char element;
+	bool is_left;
+};
+
+struct skill_vector_packet {
 	unsigned char packet_size;
 	char packet_type;
 	char player_id;
@@ -145,7 +185,7 @@ struct player_skill_vector_packet {
 	bool is_left;
 };
 
-struct player_skill_rotator_packet {
+struct skill_rotator_packet {
 	unsigned char packet_size;
 	char packet_type;
 	char player_id;
@@ -153,14 +193,6 @@ struct player_skill_rotator_packet {
 	char skill_type;
 	float skill_x, skill_y, skill_z;
 	float skill_pitch, skill_yaw, skill_roll;
-	bool is_left;
-};
-
-struct player_change_element_packet {
-	unsigned char packet_size;
-	char packet_type;
-	char player_id;
-	char element_type;
 	bool is_left;
 };
 
@@ -178,41 +210,7 @@ struct skill_create_packet {
 	char skill_type;
 	unsigned char old_skill_id;
 	unsigned char new_skill_id;
-	float skill_x, skill_y, skill_z;
-};
-
-struct monster_init_info {
-	unsigned short monster_id;
-	float monster_hp;
-	float monster_x; float monster_y; float monster_z;
-	float monster_target_x; float monster_target_y; float monster_target_z;
-};
-
-struct hc_init_monster_packet {
-	unsigned char packet_size;
-	char packet_type;
-	unsigned short monster_count;
-	monster_init_info monsters[0];
-};
-
-struct hc_monster_move_packet {
-	unsigned char packet_size;
-	char packet_type;
-	unsigned char monster_id;
-	float monster_target_x; float monster_target_y; float monster_target_z;
-};
-
-struct hc_monster_attack_packet {
-	unsigned char packet_size;
-	char packet_type;
-	unsigned char monster_id;
-};
-
-struct hc_monster_respawn_packet {
-	unsigned char packet_size;
-	char packet_type;
-	unsigned char monster_id;
-	float monster_respawn_x; float monster_respawn_y; float monster_respawn_z;
+	float new_skill_x, new_skill_y, new_skill_z;
 };
 
 #pragma pack(pop)
@@ -226,16 +224,16 @@ enum class EventType {
 };
 
 struct TargetEvent {
-	int monster_id;
+	int id;
 	FVector target_location;
 };
 
 struct AttackEvent {
-	int monster_id;
+	int id;
 };
 
 struct RespawnEvent {
-	int monster_id;
+	int id;
 	FVector respawn_location;
 };
 

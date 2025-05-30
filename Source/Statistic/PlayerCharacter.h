@@ -66,6 +66,7 @@ protected:
 	void SkillAttack();
 	void QSkill();
 	void ESkill();
+	void Interaction();
 
 	UPROPERTY(VisibleAnywhere, Category = Input, Meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<class UInputMappingContext> IMC_Basic;
@@ -95,6 +96,9 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, Category = Input, Meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<class UInputAction> IA_ChangeClass;
+
+	UPROPERTY(VisibleAnywhere, Category = Input, Meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<class UInputAction> IA_Interaction;
 
 
 protected:
@@ -311,7 +315,6 @@ private:
 	float DefaultArmLength = 300.0f;
 	FVector DefaultCameraRelativeLocation = FVector(0.0f, 0.0f, 60.0f);
 
-	// 발자국 효과음을 저장할 배열과 인덱스 변수 추가
 protected:
     // 발자국 효과음 배열
     UPROPERTY(EditAnywhere, Category = "Sound")
@@ -339,4 +342,8 @@ public:
 
 public:
     bool bRecentlyTeleported = false;
+
+	UPROPERTY()
+	AActor* CurrentInteractTarget = nullptr;
+	bool bIsInteraction = false; // 상호작용 여부
 };

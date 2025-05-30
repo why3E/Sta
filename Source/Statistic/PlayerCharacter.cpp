@@ -5,6 +5,7 @@
 #include "Camera/CameraComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "InteractableInterface.h"
 
 #include "PlayerWidget.h"
 #include "InputAction.h"
@@ -118,6 +119,12 @@ APlayerCharacter::APlayerCharacter()
 		if (IA_ChangeClassRef.Object)
 		{
 			IA_ChangeClass = IA_ChangeClassRef.Object;
+		}
+
+		static ConstructorHelpers::FObjectFinder<UInputAction>IA_InteractionRef(TEXT("/Script/EnhancedInput.InputAction'/Game/input/IA_Interaction.IA_Interaction'"));
+		if (IA_InteractionRef.Object)
+		{
+			IA_Interaction = IA_InteractionRef.Object;
 		}
 	}
 
@@ -297,6 +304,8 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 	EnhancedInputComponent->BindAction(IA_ESkill, ETriggerEvent::Triggered, this, &APlayerCharacter::ESkill);
 
 	EnhancedInputComponent->BindAction(IA_ChangeClass, ETriggerEvent::Triggered, this, &APlayerCharacter::change_element);
+
+	EnhancedInputComponent->BindAction(IA_Interaction, ETriggerEvent::Triggered, this, &APlayerCharacter::Interaction);
 }
 
 void APlayerCharacter::BasicMove(const FInputActionValue& Value)
@@ -1495,5 +1504,16 @@ void APlayerCharacter::PlayFootstepSound()
 
         // 인덱스를 증가시키고, 배열 크기를 초과하면 0으로 초기화
         CurrentFootstepIndex = (CurrentFootstepIndex + 1) % FootstepSounds.Num();
+    }
+}
+
+void APlayerCharacter::Interaction()
+{
+    if (!bIsInteraction || !CurrentInteractTarget) return;
+
+    IInteractableInterface* Interface = Cast<IInteractableInterface>(CurrentInteractTarget);
+    if (Interface)
+    {
+        Interface->Interact(this);
     }
 }

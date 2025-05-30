@@ -15,6 +15,10 @@ AMySkillBase::~AMySkillBase() {
     }
 }
 
-void AMySkillBase::Overlap(AActor* OtherActor) {}
+void AMySkillBase::Overlap(char skill_type) {
 
-void AMySkillBase::Overlap(ACharacter* OtherActor) {}
+}
+
+void AMySkillBase::Overlap(unsigned short object_id, bool collision_start) {
+
+}

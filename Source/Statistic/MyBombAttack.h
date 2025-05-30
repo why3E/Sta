@@ -22,7 +22,8 @@ public:
     virtual void Tick(float DeltaTime) override;
     void SpawnBombAttack(FVector ImpactPoint, EClassType MixType);
 
-    virtual void Overlap(AActor* OtherActor);
+    virtual void Overlap(char skill_type) override;
+    virtual void Overlap(unsigned short object_id, bool collision_start) override;
 
 protected:
     UPROPERTY(VisibleAnywhere, Category = "Collision")

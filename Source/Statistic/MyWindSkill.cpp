@@ -20,6 +20,8 @@
 AMyWindSkill::AMyWindSkill()
 {
     SetElement(EClassType::CT_Wind);
+    SetType(SKILL_WIND_TORNADO);
+
     PrimaryActorTick.bCanEverTick = true;
 
     static ConstructorHelpers::FClassFinder<AMyMixWindTonado> MixBP(TEXT("/Game/Weapon/MyMixWindTonado.MyMixWindTonado_C"));
@@ -56,7 +58,6 @@ void AMyWindSkill::BeginPlay()
 void AMyWindSkill::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);
-    if (!g_is_host) return;
 
     FVector TornadoCenter = GetActorLocation();
     float PullSpeed = 500.f;        // 중심으로 당기는 속도
@@ -64,8 +65,7 @@ void AMyWindSkill::Tick(float DeltaTime)
     float SpinSpeed = 800.f;         // 회전 속도
     float AcceptanceRadius = 50.f;   // 너무 가까우면 안 당김
 
-    for (APlayerCharacter* Player : OverlappingCharacters)
-    {
+    for (APlayerCharacter* Player : OverlappingCharacters) {
         if (!IsValid(Player)) continue;
 
         FVector PlayerLocation = Player->GetActorLocation();
@@ -119,14 +119,19 @@ void AMyWindSkill::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* O
  
             if (g_c_skills.count(ptr->m_id)) {
                 if (m_id < ptr->m_id) {
-                    collision_packet p;
-                    p.packet_size = sizeof(collision_packet);
-                    p.packet_type = C2H_COLLISION_PACKET;
-                    p.collision_type = SKILL_SKILL_COLLISION;
-                    p.attacker_id = m_id;
-                    p.victim_id = ptr->m_id;
+                    {
+                        CollisionEvent collision_event = SkillSkillEvent(m_id, ptr->GetType());
+                        std::lock_guard<std::mutex> lock(g_s_collision_events_l);
+                        g_s_collision_events.push(collision_event);
 
-                    Cast<APlayerCharacter>(Owner)->do_send(&p);
+                        if (SKILL_WIND_TORNADO == ptr->GetType()) {
+                            collision_event = SkillSkillEvent(ptr->GetId(), INVALID_SKILL_ID);
+                            g_s_collision_events.push(collision_event);
+                        } else {
+                            collision_event = SkillSkillEvent(ptr->GetId(), GetType());
+                            g_s_collision_events.push(collision_event);
+                        }
+                    }
                 }
             }
         }
@@ -137,14 +142,11 @@ void AMyWindSkill::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* O
 
             if (g_c_monsters.count(ptr->get_id())) {
                 if (ptr->get_hp() > 0.0f) {
-                    collision_packet p;
-                    p.packet_size = sizeof(collision_packet);
-                    p.packet_type = C2H_COLLISION_PACKET;
-                    p.collision_type = SKILL_MONSTER_COLLISION;
-                    p.attacker_id = m_id;
-                    p.victim_id = ptr->get_id();
-
-                    Cast<APlayerCharacter>(Owner)->do_send(&p);
+                    {
+                        CollisionEvent collision_event = MonsterSkillEvent(ptr->get_id(), GetType(), GetActorLocation());
+                        std::lock_guard<std::mutex> lock(g_s_collision_events_l);
+                        g_s_collision_events.push(collision_event);
+                    }
                 }
             }
         }
@@ -153,54 +155,50 @@ void AMyWindSkill::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* O
             // Skill - Player Collision
             APlayerCharacter* ptr = Cast<APlayerCharacter>(OtherActor);
 
-            if (g_c_players[ptr->get_id()]) {
-                collision_packet p;
-                p.packet_size = sizeof(collision_packet);
-                p.packet_type = C2H_COLLISION_PACKET;
-                p.collision_type = SKILL_PLAYER_COLLISION;
-                p.attacker_id = m_id;
-                p.victim_id = ptr->get_id();
+            {
+                CollisionEvent collision_event = SkillPlayerEvent(m_id, ptr->get_id());
+                std::lock_guard<std::mutex> lock(g_s_collision_events_l);
+                g_s_collision_events.push(collision_event);
 
-                Cast<APlayerCharacter>(Owner)->do_send(&p);
+                collision_event = PlayerSkillEvent(ptr->get_id(), GetType());
+                g_s_collision_events.push(collision_event);
             }
         }
     }
 }
 
 void AMyWindSkill::OnEndOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex) {
-    //if (OtherActor && OtherActor->IsA(APlayerCharacter::StaticClass()))
-    //{
-    //    APlayerCharacter* Player = Cast<APlayerCharacter>(OtherActor);
-    //    if (OverlappingCharacters.Contains(Player))
-    //    {
-    //        OverlappingCharacters.Remove(Player);
+    if (!g_is_host || !bIsValid) return;
 
-    //        UCharacterMovementComponent* MoveComp = Player->GetCharacterMovement();
-    //        if (MoveComp)
-    //        {
-    //            MoveComp->GravityScale = 1.0f;
-    //            MoveComp->SetMovementMode(MOVE_Walking);
-    //        }
+    if (OtherActor && OtherActor->IsA(APlayerCharacter::StaticClass())) {
+        APlayerCharacter* ptr = Cast<APlayerCharacter>(OtherActor);
 
-    //        UE_LOG(LogTemp, Warning, TEXT("Player %s removed from tornado"), *Player->GetName());
-    //    }
-    //}
+        {
+            CollisionEvent collision_event = SkillPlayerEvent(m_id, ptr->get_id());
+            collision_event.collision_start = false;
+            std::lock_guard<std::mutex> lock(g_s_collision_events_l);
+            g_s_collision_events.push(collision_event);
+        }
+    }
 }
 
-void AMyWindSkill::Overlap(AActor* OtherActor)
-{
-    if ((OtherActor && OtherActor->IsA(AMyFireBall::StaticClass())) ||
-        (OtherActor && OtherActor->IsA(AMyFireSkill::StaticClass()))) {
-        SkillMixWindTonado(EClassType::CT_Fire, m_id);
-    } else if ((OtherActor && OtherActor->IsA(AMyIceArrow::StaticClass())) ||
-        (OtherActor && OtherActor->IsA(AMyIceSkill::StaticClass()))) {
-        SkillMixWindTonado(EClassType::CT_Ice, m_id);
-    } else if (OtherActor && OtherActor->IsA(AMyWindSkill::StaticClass())) {
-        if (Cast<AMySkillBase>(OtherActor)->GetId() > m_id) {
-            Destroy();
-            return;
-        }
+void AMyWindSkill::Overlap(char skill_type) {
+    switch (skill_type) {
+    case INVALID_SKILL_ID:
+        Destroy();
+        return;
 
+    case SKILL_FIRE_BALL:
+    case SKILL_FIRE_WALL:
+        SkillMixWindTonado(EClassType::CT_Fire, m_id);
+        break;
+
+    case SKILL_ICE_ARROW:
+    case SKILL_ICE_WALL:
+        SkillMixWindTonado(EClassType::CT_Ice, m_id);
+        break;
+
+    case SKILL_WIND_TORNADO:
         bIsValid = false;
 
         if (g_is_host) {
@@ -216,34 +214,38 @@ void AMyWindSkill::Overlap(AActor* OtherActor)
 
             Cast<APlayerCharacter>(Owner)->do_send(&p);
         }
+        break;
     }
 }
 
-void AMyWindSkill::Overlap(ACharacter* OtherActor) {
+void AMyWindSkill::Overlap(unsigned short object_id, bool collision_start) {
+    if ((0 <= object_id) && (object_id < MAX_CLIENTS)) {
+        APlayerCharacter* ptr = Cast<APlayerCharacter>(g_c_players[object_id]);
 
+        if (ptr != nullptr) {
+            if (collision_start) {
+                if (!OverlappingCharacters.Contains(ptr)) {
+                    OverlappingCharacters.Add(ptr);
+                }
+            } else {
+                if (OverlappingCharacters.Contains(ptr)) {
+                    OverlappingCharacters.Remove(ptr);
+                }
+            }
+        }
+    }
 }
 
-void AMyWindSkill::CheckOverlappingActors()
-{
+void AMyWindSkill::CheckOverlappingActors() {
+
 }
 
 void AMyWindSkill::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
     Super::EndPlay(EndPlayReason);
+
     GetWorld()->GetTimerManager().ClearTimer(CheckOverlapTimerHandle);
 
-    for (APlayerCharacter* Player : OverlappingCharacters)
-    {
-        if (IsValid(Player))
-        {
-            UCharacterMovementComponent* MoveComp = Player->GetCharacterMovement();
-            if (MoveComp)
-            {
-                MoveComp->GravityScale = 1.0f;
-                MoveComp->SetMovementMode(MOVE_Walking);
-            }
-        }
-    }
     OverlappingCharacters.Empty();
 }
 
@@ -298,22 +300,23 @@ void AMyWindSkill::SpawnMixTonado(unsigned short skill_id)
             g_c_skills.emplace(skill_id, MixWindTonado);
             UGameplayStatics::FinishSpawningActor(MixWindTonado, SpawnTransform);
 
-            if (g_c_collisions.count(skill_id))
-            {
-                while (!g_c_collisions[skill_id].empty())
-                {
-                    unsigned short other_id = g_c_collisions[skill_id].front();
-                    g_c_collisions[skill_id].pop();
+            if (g_c_skill_collisions.count(skill_id)) {
+                while (!g_c_skill_collisions[skill_id].empty()) {
+                    char skill_type = g_c_skill_collisions[skill_id].front();
+                    g_c_skill_collisions[skill_id].pop();
 
-                    if (g_c_skills.count(other_id))
-                    {
-                        MixWindTonado->Overlap(g_c_skills[other_id]);
-                        g_c_skills[other_id]->Overlap(g_c_skills[skill_id]);
-                        UE_LOG(LogTemp, Error, TEXT("Skill %d and %d Collision Succeed!"), skill_id, other_id);
-                    }
+                    g_c_skills[skill_id]->Overlap(skill_type);
                 }
             }
-            UE_LOG(LogTemp, Warning, TEXT("MixWindTonado spawned at location: %s with ID : %d"), *SpawnLocation.ToString(), skill_id);
+
+            if (g_c_object_collisions.count(skill_id)) {
+                while (!g_c_object_collisions[skill_id].empty()) {
+                    unsigned short object_id = g_c_object_collisions[skill_id].front();
+                    g_c_object_collisions[skill_id].pop();
+
+                    g_c_skills[skill_id]->Overlap(object_id);
+                }
+            }
         }
     }
 

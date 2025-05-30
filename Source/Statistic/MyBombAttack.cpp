@@ -107,14 +107,11 @@ void AMyBombAttack::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* 
 
             if (g_c_monsters.count(ptr->get_id())) {
                 if (ptr->get_hp() > 0.0f) {
-                    collision_packet p;
-                    p.packet_size = sizeof(collision_packet);
-                    p.packet_type = C2H_COLLISION_PACKET;
-                    p.collision_type = SKILL_MONSTER_COLLISION;
-                    p.attacker_id = m_id;
-                    p.victim_id = ptr->get_id();
-
-                    Cast<APlayerCharacter>(Owner)->do_send(&p);
+                    {
+                        CollisionEvent collision_event = MonsterSkillEvent(ptr->get_id(), GetType(), GetActorLocation());
+                        std::lock_guard<std::mutex> lock(g_s_monster_events_l);
+                        g_s_collision_events.push(collision_event);
+                    }
                 }
             }
         }
@@ -123,19 +120,12 @@ void AMyBombAttack::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* 
     }
 }
 
-void AMyBombAttack::Overlap(AActor* OtherActor) {
-    if (OtherActor && OtherActor->Implements<UReceiveDamageInterface>()) {
-        FSkillInfo Info;
-        Info.Damage = SkillDamage;
-        Info.Element = SkillElement;
-        Info.StunTime = 1.5f;
-        Info.KnockbackDir = (OtherActor->GetActorLocation() - GetActorLocation()).GetSafeNormal();
+void AMyBombAttack::Overlap(char skill_type) {
 
-        IReceiveDamageInterface* DamageReceiver = Cast<IReceiveDamageInterface>(OtherActor);
-        if (DamageReceiver) {
-            DamageReceiver->ReceiveSkillHit(Info, this);
-        }
-    }
+}
+
+void AMyBombAttack::Overlap(unsigned short object_id, bool collision_start) {
+
 }
 
 void AMyBombAttack::CheckOverlappingActors() {

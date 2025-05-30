@@ -26,8 +26,9 @@ public:
 
     // 돌을 던지는 함수
     void Fire(FVector FireLocation);
-	virtual void Overlap(AActor* OtherActor);
-	virtual void Overlap(ACharacter* OtherActor);
+
+    virtual void Overlap(char skill_type) override;
+    virtual void Overlap(unsigned short object_id, bool collision_start) override;
 
 protected:
     // 콜리전 처리 함수

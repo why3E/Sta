@@ -16,6 +16,7 @@
 AMyFireBall::AMyFireBall()
 {
     SetElement(EClassType::CT_Fire);
+    SetType(SKILL_FIRE_BALL);
 
     // 콜리전 컴포넌트 초기화
     CollisionComponent = CreateDefaultSubobject<USphereComponent>(TEXT("CollisionComponent"));
@@ -27,7 +28,6 @@ AMyFireBall::AMyFireBall()
     FireBallNiagaraComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("FireBallNiagaraComponent"));
     FireBallNiagaraComponent->SetupAttachment(CollisionComponent);
 	FireBallNiagaraComponent->SetVisibility(true);
-
 
     // Projectile Movement 컴포넌트 초기화
     MovementComponent = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("MovementComponent"));
@@ -93,7 +93,7 @@ void AMyFireBall::Fire(FVector TargetLocation)
 
 void AMyFireBall::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-    if (!g_is_host || bIsHit) { return; }
+    if (!g_is_host || bIsHit || (Owner == OtherActor)) { return; }
 
     // TODO: 데미지 전달 로직 추가
     UE_LOG(LogTemp, Warning, TEXT("Hit Actor: %s"), *OtherActor->GetName());
@@ -107,14 +107,14 @@ void AMyFireBall::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* Ot
             if (m_id < ptr->m_id) {
                 bIsHit = true;
 
-                collision_packet p;
-                p.packet_size = sizeof(collision_packet);
-                p.packet_type = C2H_COLLISION_PACKET;
-                p.collision_type = SKILL_SKILL_COLLISION;
-                p.attacker_id = m_id;
-                p.victim_id = ptr->m_id;
+                {
+                    CollisionEvent collision_event = SkillSkillEvent(m_id, ptr->GetType());
+                    std::lock_guard<std::mutex> lock(g_s_collision_events_l);
+                    g_s_collision_events.push(collision_event);
 
-                Cast<APlayerCharacter>(Owner)->do_send(&p);
+                    collision_event = SkillSkillEvent(ptr->GetId(), GetType());
+                    g_s_collision_events.push(collision_event);
+                }
             }
         }
     } else if (OtherActor->IsA(AEnemyCharacter::StaticClass())) {
@@ -125,25 +125,37 @@ void AMyFireBall::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* Ot
             if (ptr->get_hp() > 0.0f) {
                 bIsHit = true;
 
-                collision_packet p;
-                p.packet_size = sizeof(collision_packet);
-                p.packet_type = C2H_COLLISION_PACKET;
-                p.collision_type = SKILL_MONSTER_COLLISION;
-                p.attacker_id = m_id;
-                p.victim_id = ptr->get_id();
+                {
+                    CollisionEvent collision_event = SkillMonsterEvent(m_id);
+                    std::lock_guard<std::mutex> lock(g_s_collision_events_l);
+                    g_s_collision_events.push(collision_event);
 
-                Cast<APlayerCharacter>(Owner)->do_send(&p);
+                    collision_event = MonsterSkillEvent(ptr->get_id(), GetType(), GetActorLocation());
+                    g_s_collision_events.push(collision_event);
+                }
+            }
+        }
+    } else if (OtherActor->IsA(APlayerCharacter::StaticClass())) {
+        // Skill - Player Collision
+        APlayerCharacter* ptr = Cast<APlayerCharacter>(OtherActor);
+
+        if (g_c_players[ptr->get_id()]) {
+            bIsHit = true;
+
+            {
+                CollisionEvent collision_event = SkillPlayerEvent(m_id, ptr->get_id());
+                std::lock_guard<std::mutex> lock(g_s_collision_events_l);
+                g_s_collision_events.push(collision_event);
             }
         }
     }
 }
 
-void AMyFireBall::Overlap(AActor* OtherActor) {
-    
-    if (FireBallHitShootSound)
-    {
+void AMyFireBall::Overlap(char skill_type) {
+    if (FireBallHitShootSound) {
         UGameplayStatics::PlaySoundAtLocation(this, FireBallHitShootSound, GetActorLocation(),5.0f);
     }   
+
     // 나이아가라 파티클 시스템 비활성화
     if (FireBallNiagaraComponent) {
         FireBallNiagaraComponent->Deactivate();
@@ -158,11 +170,11 @@ void AMyFireBall::Overlap(AActor* OtherActor) {
     Destroy();
 }
 
-void AMyFireBall::Overlap(ACharacter* OtherActor) {
-    if (FireBallHitShootSound)
-    {
-        UGameplayStatics::PlaySoundAtLocation(this, FireBallHitShootSound, GetActorLocation(),5.0f);
-    } 
+void AMyFireBall::Overlap(unsigned short object_id, bool collision_start) {
+    if (FireBallHitShootSound) {
+        UGameplayStatics::PlaySoundAtLocation(this, FireBallHitShootSound, GetActorLocation(), 5.0f);
+    }
+
     // 나이아가라 파티클 시스템 비활성화
     if (FireBallNiagaraComponent) {
         FireBallNiagaraComponent->Deactivate();

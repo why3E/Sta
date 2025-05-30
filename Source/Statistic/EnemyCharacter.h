@@ -70,7 +70,7 @@ public:
     FVector m_target_location;
 
 public:
-    virtual void Overlap(AActor* OtherActor);
+    virtual void Overlap(char skill_type, FVector skill_location);
 
     unsigned short get_id() { return m_id; }
     FVector get_target_location() { return m_target_location; }

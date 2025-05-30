@@ -6,6 +6,7 @@ class APlayerCharacter;
 class AMySkillBase;
 class ACharacter;
 
+extern volatile float g_time_offset;
 extern std::atomic<bool> g_is_host;
 extern std::atomic<bool> g_is_running;
 

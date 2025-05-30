@@ -138,10 +138,10 @@ void AMyIceWeapon::SpawnIceSkill(FVector Location, FRotator Rotation)
 
     if (IceWall)
     {
-        IceWall->SetOwner(OwnerCharacter);
-
         unsigned short skill_id = Cast<APlayerCharacter>(OwnerCharacter)->get_skill_id();
+       
         IceWall->SetID(skill_id);
+        IceWall->SetOwner(OwnerCharacter);
 
         g_c_skills.emplace(skill_id, IceWall);
         UGameplayStatics::FinishSpawningActor(IceWall, SpawnTransform);

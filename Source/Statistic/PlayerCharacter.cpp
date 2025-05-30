@@ -525,8 +525,6 @@ void APlayerCharacter::ShootIceArrow()
 	bIsHold = false;
 	bIsIceAiming = false;
 
-	UE_LOG(LogTemp, Error, TEXT("Fire"));
-
 	// 발사 처리
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 	if (AnimInstance && CurrentMontage)
@@ -580,7 +578,7 @@ void APlayerCharacter::BasicAttack()
 				p.skill_vx = CurrentImpactPoint.X; p.skill_vy = CurrentImpactPoint.Y; p.skill_vz = CurrentImpactPoint.Z;
 				p.skill_type = SKILL_WIND_TORNADO;
 				p.is_left = bIsLeft;
-				
+
 				do_send(&p);
 				break;
 			}
@@ -645,17 +643,20 @@ void APlayerCharacter::BasicAttack()
 			p.is_left = bIsLeft;
 
 			switch (ClassType) {
-			case EClassType::CT_Wind:
+			case EClassType::CT_Wind: {
 				p.skill_type = SKILL_WIND_CUTTER;
 				break;
+			}
 
-			case EClassType::CT_Fire:
+			case EClassType::CT_Fire: {
 				p.skill_type = SKILL_FIRE_BALL;
 				break;
+			}
 
-			case EClassType::CT_Stone:
+			case EClassType::CT_Stone: {
 				p.skill_type = SKILL_STONE_WAVE;
 				break;
+			}
 			}
 
 			do_send(&p);
@@ -993,31 +994,28 @@ void APlayerCharacter::Tick(float DeltaTime) {
 	UpdateUI();
 
 	if (m_is_player) {
-		//if (GetCharacterMovement()->IsFalling()) {
-		//	// Send Player Vector Packet 
-		//	FVector Velocity = GetCharacterMovement()->Velocity;
+		if (GetCharacterMovement()->IsFalling()) {
+			// Send Player Vector Packet 
+			FVector Velocity = GetCharacterMovement()->Velocity;
 
-		//	float DistanceDiff = FVector::Dist(Velocity, m_velocity);
+			float DistanceDiff = FVector::Dist(Velocity, m_velocity);
 
-		//	UE_LOG(LogTemp, Warning, TEXT("[Client %d] V.x : %.2f, V.y : %.2f, V.z : %.2f"), m_id, Velocity.X, Velocity.Y, Velocity.Z);
-		//	UE_LOG(LogTemp, Warning, TEXT("[Client %d] m.x : %.2f, m.y : %.2f, m.z : %.2f"), m_id, m_velocity.X, m_velocity.Y, m_velocity.Z);
+			if (DistanceDiff > 1.0f) {
+				m_velocity = Velocity;
+				m_was_moving = true;
 
-		//	if (DistanceDiff > 10.0f) {
-		//		m_velocity = Velocity;
-		//		m_was_moving = true;
+				FVector Position = GetActorLocation();
 
-		//		FVector Position = GetActorLocation();
+				player_move_packet p;
+				p.packet_size = sizeof(player_move_packet);
+				p.packet_type = C2H_PLAYER_MOVE_PACKET;
+				p.id = m_id;
+				p.x = Position.X; p.y = Position.Y; p.z = Position.Z;
+				p.vx = Velocity.X; p.vy = Velocity.Y; p.vz = Velocity.Z;
 
-		//		player_move_packet p;
-		//		p.packet_size = sizeof(player_move_packet);
-		//		p.packet_type = C2H_PLAYER_MOVE_PACKET;
-		//		p.id = m_id;
-		//		p.x = Position.X; p.y = Position.Y; p.z = Position.Z;
-		//		p.vx = Velocity.X; p.vy = Velocity.Y; p.vz = Velocity.Z;
-
-		//		do_send(&p);
-		//	}
-		//}
+				do_send(&p);
+			}
+		}
 
 		// Stop
 		if (m_was_moving) {
@@ -1313,7 +1311,52 @@ void APlayerCharacter::ready_skill(bool is_left) {
 	StartIceAim();
 }
 
-void APlayerCharacter::use_skill(unsigned short skill_id, char skill_type, FVector v, bool is_left) {
+void APlayerCharacter::use_skill(unsigned short skill_id, char skill_type, FVector v, bool is_left, float time) {
+	float delay = time - GetWorld()->GetTimeSeconds();
+
+	UE_LOG(LogTemp, Warning, TEXT("CurrentTime: %.2f / TargetTime: %.2f / Delay: %.2f"), GetWorld()->GetTimeSeconds(), time, delay);
+
+	if (delay <= 0.0f) {
+		InternalUseSkill_Vector(skill_id, skill_type, v, is_left);
+	} else {
+		FTimerDelegate TimerDel;
+		TimerDel.BindUFunction(this, FName("InternalUseSkill_Vector"), skill_id, skill_type, v, is_left);
+
+		GetWorld()->GetTimerManager().SetTimerForNextTick([=, this]() {
+			GetWorld()->GetTimerManager().SetTimer(
+				SkillCastDelayTimerHandle,
+				TimerDel,
+				delay,
+				false
+			);
+		});
+	}
+}
+
+void APlayerCharacter::use_skill(unsigned short skill_id, char skill_type, FVector v, FRotator r, bool is_left, float time) {
+	float delay = GetWorld()->GetTimeSeconds() - g_time_offset;
+
+	UE_LOG(LogTemp, Error, TEXT("delay : %.2f"), delay);
+
+	if (delay <= 0.0f) {
+		InternalUseSkill_Rotator(skill_id, skill_type, v, r, is_left);
+	}
+	else {
+		FTimerDelegate TimerDel;
+		TimerDel.BindUFunction(this, FName("InternalUseSkill_Rotator"), skill_id, skill_type, v, r, is_left);
+
+		GetWorld()->GetTimerManager().SetTimerForNextTick([=, this]() {
+			GetWorld()->GetTimerManager().SetTimer(
+				SkillCastDelayTimerHandle,
+				TimerDel,
+				delay,
+				false
+			);
+		});
+	}
+}
+
+void APlayerCharacter::InternalUseSkill_Vector(uint16 skill_id, uint8 skill_type, FVector v, bool is_left) {
 	switch (skill_type) {
 	case SKILL_WIND_CUTTER:
 	case SKILL_FIRE_BALL:
@@ -1343,7 +1386,7 @@ void APlayerCharacter::use_skill(unsigned short skill_id, char skill_type, FVect
 	}
 }
 
-void APlayerCharacter::use_skill(unsigned short skill_id, char skill_type, FVector v, FRotator r, bool is_left) {
+void APlayerCharacter::InternalUseSkill_Rotator(uint16 skill_id, uint8 skill_type, FVector v, FRotator r, bool is_left) {
 	switch (skill_type) {
 	case SKILL_FIRE_WALL:
 	case SKILL_ICE_WALL:
@@ -1400,6 +1443,12 @@ void APlayerCharacter::change_element() {
 }
 
 void APlayerCharacter::change_element(char element_type, bool is_left) {
+	if (is_left) {
+		m_current_element[0] = element_type;
+	} else {
+		m_current_element[1] = element_type;
+	}
+
 	ChangeClass(static_cast<EClassType>(element_type), is_left);
 }
 		

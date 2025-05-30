@@ -110,82 +110,81 @@ void AMyWindSkill::PostInitializeComponents()
 }
 
 void AMyWindSkill::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult) {
-    if (!g_is_host) return;
+    if (!g_is_host || !bIsValid) return;
 
     if (OtherActor && OtherActor != this) {
-        if (OtherActor->IsA(APlayerCharacter::StaticClass())) {
-            APlayerCharacter* Player = Cast<APlayerCharacter>(OtherActor);
+        if (OtherActor->IsA(AMySkillBase::StaticClass())) {
+            // Skill - Skill Collision
+            AMySkillBase* ptr = Cast<AMySkillBase>(OtherActor);
+ 
+            if (g_c_skills.count(ptr->m_id)) {
+                if (m_id < ptr->m_id) {
+                    collision_packet p;
+                    p.packet_size = sizeof(collision_packet);
+                    p.packet_type = C2H_COLLISION_PACKET;
+                    p.collision_type = SKILL_SKILL_COLLISION;
+                    p.attacker_id = m_id;
+                    p.victim_id = ptr->m_id;
 
-            if (Player && !OverlappingCharacters.Contains(Player)) {
-                OverlappingCharacters.Add(Player);
-
-                UCharacterMovementComponent* MoveComp = Player->GetCharacterMovement();
-
-                if (MoveComp) {
-                    MoveComp->GravityScale = 0.0f;
-                    MoveComp->SetMovementMode(MOVE_Flying);
+                    Cast<APlayerCharacter>(Owner)->do_send(&p);
                 }
-
-                UE_LOG(LogTemp, Warning, TEXT("Player %s added to tornado"), *Player->GetName());
             }
         }
 
-        if (OtherActor->IsA(AMySkillBase::StaticClass())) {
-            AMySkillBase* ptr = Cast<AMySkillBase>(OtherActor);
- 
-            if (g_c_skills.count(ptr->m_id) && m_id < ptr->m_id) {
+        if (OtherActor->IsA(AEnemyCharacter::StaticClass())) {
+            // Skill - Monster Collision
+            AEnemyCharacter* ptr = Cast<AEnemyCharacter>(OtherActor);
+
+            if (g_c_monsters.count(ptr->get_id())) {
+                if (ptr->get_hp() > 0.0f) {
+                    collision_packet p;
+                    p.packet_size = sizeof(collision_packet);
+                    p.packet_type = C2H_COLLISION_PACKET;
+                    p.collision_type = SKILL_MONSTER_COLLISION;
+                    p.attacker_id = m_id;
+                    p.victim_id = ptr->get_id();
+
+                    Cast<APlayerCharacter>(Owner)->do_send(&p);
+                }
+            }
+        }
+
+        if (OtherActor->IsA(APlayerCharacter::StaticClass())) {
+            // Skill - Player Collision
+            APlayerCharacter* ptr = Cast<APlayerCharacter>(OtherActor);
+
+            if (g_c_players[ptr->get_id()]) {
                 collision_packet p;
                 p.packet_size = sizeof(collision_packet);
                 p.packet_type = C2H_COLLISION_PACKET;
-                p.collision_type = SKILL_SKILL_COLLISION;
+                p.collision_type = SKILL_PLAYER_COLLISION;
                 p.attacker_id = m_id;
-                p.victim_id = ptr->m_id;
+                p.victim_id = ptr->get_id();
 
                 Cast<APlayerCharacter>(Owner)->do_send(&p);
-                UE_LOG(LogTemp, Warning, TEXT("Tonado ID : %d"), m_id);
-            }
-        }
-
-        if (OtherActor->IsA(APlayerCharacter::StaticClass())) {
-            APlayerCharacter* Player = Cast<APlayerCharacter>(OtherActor);
-
-            if (Player && !OverlappingCharacters.Contains(Player)) {
-                OverlappingCharacters.Add(Player);
-
-                UCharacterMovementComponent* MoveComp = Player->GetCharacterMovement();
-                if (MoveComp)
-                {
-                    // 중력 그대로 두고, 공중에 살짝 띄워서 Falling 상태로 전환
-                    MoveComp->GravityScale = 1.0f;
-                    Player->LaunchCharacter(FVector(0, 0, 300), false, false); // 한 번만 띄움
-                }
-
-                UE_LOG(LogTemp, Warning, TEXT("Player %s added to tornado"), *Player->GetName());
             }
         }
     }
 }
 
-void AMyWindSkill::OnEndOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
-    UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
-{
-    if (OtherActor && OtherActor->IsA(APlayerCharacter::StaticClass()))
-    {
-        APlayerCharacter* Player = Cast<APlayerCharacter>(OtherActor);
-        if (OverlappingCharacters.Contains(Player))
-        {
-            OverlappingCharacters.Remove(Player);
+void AMyWindSkill::OnEndOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex) {
+    //if (OtherActor && OtherActor->IsA(APlayerCharacter::StaticClass()))
+    //{
+    //    APlayerCharacter* Player = Cast<APlayerCharacter>(OtherActor);
+    //    if (OverlappingCharacters.Contains(Player))
+    //    {
+    //        OverlappingCharacters.Remove(Player);
 
-            UCharacterMovementComponent* MoveComp = Player->GetCharacterMovement();
-            if (MoveComp)
-            {
-                MoveComp->GravityScale = 1.0f;
-                MoveComp->SetMovementMode(MOVE_Walking);
-            }
+    //        UCharacterMovementComponent* MoveComp = Player->GetCharacterMovement();
+    //        if (MoveComp)
+    //        {
+    //            MoveComp->GravityScale = 1.0f;
+    //            MoveComp->SetMovementMode(MOVE_Walking);
+    //        }
 
-            UE_LOG(LogTemp, Warning, TEXT("Player %s removed from tornado"), *Player->GetName());
-        }
-    }
+    //        UE_LOG(LogTemp, Warning, TEXT("Player %s removed from tornado"), *Player->GetName());
+    //    }
+    //}
 }
 
 void AMyWindSkill::Overlap(AActor* OtherActor)
@@ -197,28 +196,31 @@ void AMyWindSkill::Overlap(AActor* OtherActor)
         (OtherActor && OtherActor->IsA(AMyIceSkill::StaticClass()))) {
         SkillMixWindTonado(EClassType::CT_Ice, m_id);
     } else if (OtherActor && OtherActor->IsA(AMyWindSkill::StaticClass())) {
-        if (Cast<AMySkillBase>(OtherActor)->GetId() > m_id)
-        {
+        if (Cast<AMySkillBase>(OtherActor)->GetId() > m_id) {
             Destroy();
             return;
         }
 
-        FVector SpawnLocation = GetActorLocation();
-        skill_create_packet p;
-        p.packet_size = sizeof(skill_create_packet);
-        p.packet_type = C2H_SKILL_CREATE_PACKET;
-        p.skill_type = SKILL_WIND_WIND_TORNADO;
-        p.old_skill_id = m_id;
-        p.new_skill_x = SpawnLocation.X;
-        p.new_skill_y = SpawnLocation.Y;
-        p.new_skill_z = SpawnLocation.Z;
+        bIsValid = false;
 
-        Cast<APlayerCharacter>(Owner)->do_send(&p);
+        if (g_is_host) {
+            FVector SpawnLocation = GetActorLocation();
+            skill_create_packet p;
+            p.packet_size = sizeof(skill_create_packet);
+            p.packet_type = C2H_SKILL_CREATE_PACKET;
+            p.skill_type = SKILL_WIND_WIND_TORNADO;
+            p.old_skill_id = m_id;
+            p.new_skill_x = SpawnLocation.X;
+            p.new_skill_y = SpawnLocation.Y;
+            p.new_skill_z = SpawnLocation.Z;
+
+            Cast<APlayerCharacter>(Owner)->do_send(&p);
+        }
     }
 }
 
-void AMyWindSkill::Overlap(ACharacter* OtherActor)
-{
+void AMyWindSkill::Overlap(ACharacter* OtherActor) {
+
 }
 
 void AMyWindSkill::CheckOverlappingActors()

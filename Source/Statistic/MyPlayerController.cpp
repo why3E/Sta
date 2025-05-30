@@ -61,6 +61,7 @@ void AMyPlayerController::EndPlay(const EEndPlayReason::Type EndPlayReason)
 // Socket
 void AMyPlayerController::InitSocket()
 {
+	g_time_offset = 0.0f;
 	g_is_host = true;
 	g_is_running = true;
 
@@ -227,8 +228,7 @@ void spawn_monster(FVector Location) {
 			NewAI->GetBlackboardComponent()->SetValueAsVector(TEXT("StartLocation"), NewMonster->GetActorLocation());
 
 			UE_LOG(LogTemp, Warning, TEXT("BehaviorTree Loaded and Running"));
-		}
-		else {
+		} else {
 			UE_LOG(LogTemp, Error, TEXT("Failed to Load BehaviorTree"));
 		}
 
@@ -428,6 +428,17 @@ void accept_thread() {
 				UE_LOG(LogTemp, Warning, TEXT("[Host] Player %d Connected to Server"), g_s_clients[client_id]->m_id);
 
 				{
+					// Send Server Time
+					UWorld* World = GEngine->GetWorldFromContextObjectChecked(GEngine->GameViewport);
+
+					hc_time_packet p;
+					p.packet_size = sizeof(hc_time_packet);
+					p.packet_type = H2C_TIME_PACKET;
+					p.time = World->GetTimeSeconds();
+					g_s_clients[client_id]->do_send(&p);
+				}
+
+				{
 					// Send Player Info to Player
 					hc_player_info_packet p;
 					p.packet_size = sizeof(hc_player_info_packet);
@@ -536,7 +547,7 @@ void accept_thread() {
 // Host CALLBACK
 void h_process_packet(char* packet) {
 	char packet_type = packet[1];
-	UE_LOG(LogTemp, Warning, TEXT("[Host] Received Packet Type : %d"), packet_type);
+	//UE_LOG(LogTemp, Warning, TEXT("[Host] Received Packet Type : %d"), packet_type);
 
 	switch (packet_type) {
 	case C2H_PLAYER_MOVE_PACKET: {
@@ -596,9 +607,12 @@ void h_process_packet(char* packet) {
 	}
 
 	case C2H_SKILL_VECTOR_PACKET: {
+		UWorld* World = GEngine->GetWorldFromContextObjectChecked(GEngine->GameViewport);
+
 		skill_vector_packet* p = reinterpret_cast<skill_vector_packet*>(packet);
 		p->packet_type = H2C_SKILL_VECTOR_PACKET;
 		p->skill_id = g_s_skill_id++;
+		p->time = World->GetTimeSeconds() + 0.2f;
 
 		for (char client_id = 0; client_id < MAX_CLIENTS; ++client_id) {
 			if (g_s_clients[client_id]) {
@@ -609,8 +623,11 @@ void h_process_packet(char* packet) {
 	}
 
 	case C2H_SKILL_ROTATOR_PACKET: {
+		UWorld* World = GEngine->GetWorldFromContextObjectChecked(GEngine->GameViewport);
+
 		skill_rotator_packet* p = reinterpret_cast<skill_rotator_packet*>(packet);
 		p->packet_type = H2C_SKILL_ROTATOR_PACKET;
+		p->time = World->GetTimeSeconds() + 0.2f;
 
 		switch (p->skill_type) {
 		case SKILL_FIRE_WALL:
@@ -745,9 +762,17 @@ extern void CALLBACK h_send_callback(DWORD err, DWORD num_bytes, LPWSAOVERLAPPED
 // Client CALLBACK
 void c_process_packet(char* packet) {
 	char packet_type = packet[1];
-	UE_LOG(LogTemp, Warning, TEXT("[Client] Received Packet Type : %d"), packet_type);
+	//UE_LOG(LogTemp, Warning, TEXT("[Client] Received Packet Type : %d"), packet_type);
 
 	switch (packet_type) {
+	case H2C_TIME_PACKET: {
+		hc_time_packet* p = reinterpret_cast<hc_time_packet*>(packet);
+
+		UWorld* World = GEngine->GetWorldFromContextObjectChecked(GEngine->GameViewport);
+		g_time_offset = p->time - World->GetTimeSeconds();
+		break;
+	}
+
 	case H2C_PLAYER_INFO_PACKET: {
 		hc_player_info_packet* p = reinterpret_cast<hc_player_info_packet*>(packet);
 
@@ -919,7 +944,8 @@ void c_process_packet(char* packet) {
 
 		if (nullptr == g_c_players[p->player_id]) { break; }
 
-		g_c_players[p->player_id]->use_skill(p->skill_id, p->skill_type, FVector(p->skill_vx, p->skill_vy, p->skill_vz), p->is_left);
+		float time = g_is_host ? p->time : (p->time - g_time_offset);
+		g_c_players[p->player_id]->use_skill(p->skill_id, p->skill_type, FVector(p->skill_vx, p->skill_vy, p->skill_vz), p->is_left, time);
 		break;
 	}
 
@@ -928,7 +954,8 @@ void c_process_packet(char* packet) {
 
 		if (nullptr == g_c_players[p->player_id]) { break; }
 
-		g_c_players[p->player_id]->use_skill(p->skill_id, p->skill_type, FVector(p->skill_x, p->skill_y, p->skill_z), FRotator(p->skill_pitch, p->skill_yaw, p->skill_roll), p->is_left);
+		float time = g_is_host ? p->time : (p->time - g_time_offset);
+		g_c_players[p->player_id]->use_skill(p->skill_id, p->skill_type, FVector(p->skill_x, p->skill_y, p->skill_z), FRotator(p->skill_pitch, p->skill_yaw, p->skill_roll), p->is_left, time);
 		break;
 	}
 
@@ -945,6 +972,7 @@ void c_process_packet(char* packet) {
 		collision_packet* p = reinterpret_cast<collision_packet*>(packet);
 		switch (p->collision_type) {
 		case SKILL_SKILL_COLLISION:
+			UE_LOG(LogTemp, Error, TEXT("H2C Skill Collision : %d and %d"), p->attacker_id, p->victim_id);
 			if (g_c_skills.count(p->attacker_id) && g_c_skills.count(p->victim_id)) {
 				if ((nullptr != g_c_skills[p->attacker_id]) && (nullptr != g_c_skills[p->victim_id])) {
 					g_c_skills[p->attacker_id]->Overlap(g_c_skills[p->victim_id]);
@@ -967,10 +995,17 @@ void c_process_packet(char* packet) {
 
 		case SKILL_PLAYER_COLLISION:
 			if (g_c_skills.count(p->attacker_id) && g_c_players[p->victim_id]) {
-				if (nullptr != g_c_skills[p->attacker_id]) g_c_skills[p->attacker_id]->Overlap(g_c_monsters[p->victim_id]);
+				if ((nullptr != g_c_skills[p->attacker_id]) && (nullptr != g_c_players[p->victim_id])) {
+					g_c_skills[p->attacker_id]->Overlap(g_c_players[p->victim_id]);
+
+					if (g_c_skills[p->attacker_id]->IsA(AMyWindSkill::StaticClass())) {
+						g_c_players[p->victim_id]->LaunchCharacter(FVector(0, 0, 300), false, false);
+					}
+				}
 			}
 			break;
 		}
+		break;
 	}
 
 	case H2C_SKILL_CREATE_PACKET: {
@@ -978,7 +1013,7 @@ void c_process_packet(char* packet) {
 		switch (p->skill_type) {
 		case SKILL_WIND_FIRE_BOMB:
 			if (g_c_skills.count(p->old_skill_id)) {
-				if (nullptr != g_c_skills[p->old_skill_id]) { break; }
+				if (nullptr == g_c_skills[p->old_skill_id]) { break; }
 
 				if (g_c_skills[p->old_skill_id]->IsA(AMyWindCutter::StaticClass())) {
 					Cast<AMyWindCutter>(g_c_skills[p->old_skill_id])->MixBombAttack(EClassType::CT_Fire, p->new_skill_id);
@@ -988,8 +1023,8 @@ void c_process_packet(char* packet) {
 
 		case SKILL_WIND_ICE_BOMB:
 			if (g_c_skills.count(p->old_skill_id)) {
-				if (nullptr != g_c_skills[p->old_skill_id]) { break; }
-
+				if (nullptr == g_c_skills[p->old_skill_id]) { break; }
+				
 				if (g_c_skills[p->old_skill_id]->IsA(AMyWindCutter::StaticClass())) {
 					Cast<AMyWindCutter>(g_c_skills[p->old_skill_id])->MixBombAttack(EClassType::CT_Ice, p->new_skill_id);
 				}
@@ -998,7 +1033,7 @@ void c_process_packet(char* packet) {
 
 		case SKILL_WIND_WIND_TORNADO:
 			if (g_c_skills.count(p->old_skill_id)) {
-				if (nullptr != g_c_skills[p->old_skill_id]) { break; }
+				if (nullptr == g_c_skills[p->old_skill_id]) { break; }
 
 				if (g_c_skills[p->old_skill_id]->IsA(AMyWindSkill::StaticClass())) {
 					Cast<AMyWindSkill>(g_c_skills[p->old_skill_id])->SpawnMixTonado(p->new_skill_id);

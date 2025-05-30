@@ -1,5 +1,6 @@
 #include "SESSION.h"
 
+volatile float g_time_offset;
 std::atomic<bool> g_is_host;
 std::atomic<bool> g_is_running;
 

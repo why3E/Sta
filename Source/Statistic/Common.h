@@ -16,6 +16,8 @@
 
 //////////////////////////////////////////////////
 // In-Game
+constexpr char H2C_TIME_PACKET = 0;
+
 constexpr char H2C_PLAYER_INFO_PACKET = 1;
 constexpr char H2C_PLAYER_ENTER_PACKET = 2;
 constexpr char H2C_PLAYER_LEAVE_PACKET = 3;
@@ -90,6 +92,12 @@ struct monster_init_info {
 
 //////////////////////////////////////////////////
 // In-Game 
+struct hc_time_packet {
+	unsigned char packet_size;
+	char packet_type;
+	float time;
+};
+
 struct hc_player_info_packet {
 	unsigned char packet_size;
 	char packet_type;
@@ -185,6 +193,7 @@ struct skill_vector_packet {
 	char skill_type;
 	float skill_vx, skill_vy, skill_vz;
 	bool is_left;
+	float time;
 };
 
 struct skill_rotator_packet {
@@ -196,6 +205,7 @@ struct skill_rotator_packet {
 	float skill_x, skill_y, skill_z;
 	float skill_pitch, skill_yaw, skill_roll;
 	bool is_left;
+	float time;
 };
 
 struct collision_packet {

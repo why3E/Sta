@@ -102,7 +102,7 @@ void AMyWindCutter::Fire(FVector TargetLocation)
 
 void AMyWindCutter::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-    if (!g_is_host || bIsHit || (Owner == OtherActor)) { return; } // 이미 충돌했거나 발사체의 소유자와 충돌한 경우 무시
+    if (!g_is_host || bIsHit) { return; } 
     
     if (OtherActor->IsA(AMySkillBase::StaticClass())) {
         // Skill - Skill Collision
@@ -110,6 +110,8 @@ void AMyWindCutter::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* 
 
         if (g_c_skills.count(ptr->m_id)) {
             if (m_id < ptr->m_id) {
+                bIsHit = true;
+
                 collision_packet p;
                 p.packet_size = sizeof(collision_packet);
                 p.packet_type = C2H_COLLISION_PACKET;
@@ -126,6 +128,8 @@ void AMyWindCutter::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* 
 
         if (g_c_monsters.count(ptr->get_id())) {
             if (ptr->get_hp() > 0.0f) {
+                bIsHit = true;
+
                 collision_packet p;
                 p.packet_size = sizeof(collision_packet);
                 p.packet_type = C2H_COLLISION_PACKET;
@@ -134,23 +138,7 @@ void AMyWindCutter::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* 
                 p.victim_id = ptr->get_id();
 
                 Cast<APlayerCharacter>(Owner)->do_send(&p);
-                //UE_LOG(LogTemp, Error, TEXT("[Client] Skill %d and Monster %d Collision"), p.attacker_id, p.victim_id);
             }
-        }
-    } else if (OtherActor->IsA(APlayerCharacter::StaticClass())) {
-        // Skill - Player Collision
-        APlayerCharacter* ptr = Cast<APlayerCharacter>(OtherActor);
-
-        if (g_c_players[ptr->get_id()]) {
-            collision_packet p;
-            p.packet_size = sizeof(collision_packet);
-            p.packet_type = C2H_COLLISION_PACKET;
-            p.collision_type = SKILL_PLAYER_COLLISION;
-            p.attacker_id = m_id;
-            p.victim_id = ptr->get_id();
-
-            Cast<APlayerCharacter>(Owner)->do_send(&p);
-            //UE_LOG(LogTemp, Error, TEXT("[Client] Skill %d and Player %d Collision"), p.attacker_id, p.victim_id);
         }
     }
 }
@@ -166,47 +154,40 @@ void AMyWindCutter::Overlap(AActor* OtherActor) {
         WindCutterNiagaraComponent->Deactivate();
     }
 
-    if (OtherActor && OtherActor->IsA(AMyFireBall::StaticClass())) {
-        // BombAttack
-        FVector SpawnLocation = GetActorLocation();
+    if (g_is_host) {
+        if (OtherActor && OtherActor->IsA(AMyFireBall::StaticClass())) {
+            // BombAttack
+            FVector SpawnLocation = GetActorLocation();
 
-        skill_create_packet p;
-        p.packet_size = sizeof(skill_create_packet);
-        p.packet_type = C2H_SKILL_CREATE_PACKET;
-        p.skill_type = SKILL_WIND_FIRE_BOMB;
-        p.old_skill_id = m_id;
-        p.new_skill_x = SpawnLocation.X; p.new_skill_y = SpawnLocation.Y; p.new_skill_z = SpawnLocation.Z;
+            skill_create_packet p;
+            p.packet_size = sizeof(skill_create_packet);
+            p.packet_type = C2H_SKILL_CREATE_PACKET;
+            p.skill_type = SKILL_WIND_FIRE_BOMB;
+            p.old_skill_id = m_id;
+            p.new_skill_x = SpawnLocation.X; p.new_skill_y = SpawnLocation.Y; p.new_skill_z = SpawnLocation.Z;
 
-        Cast<APlayerCharacter>(Owner)->do_send(&p);
+            Cast<APlayerCharacter>(Owner)->do_send(&p);
+            return;
+        } else if (OtherActor && OtherActor->IsA(AMyIceArrow::StaticClass())) {
+            // BombAttack
+            FVector SpawnLocation = GetActorLocation();
 
-        bIsHit = true;
+            skill_create_packet p;
+            p.packet_size = sizeof(skill_create_packet);
+            p.packet_type = C2H_SKILL_CREATE_PACKET;
+            p.skill_type = SKILL_WIND_ICE_BOMB;
+            p.old_skill_id = m_id;
+            p.new_skill_x = SpawnLocation.X; p.new_skill_y = SpawnLocation.Y; p.new_skill_z = SpawnLocation.Z;
 
-        return;
-    } else if (OtherActor && OtherActor->IsA(AMyIceArrow::StaticClass())) {
-        // BombAttack
-        FVector SpawnLocation = GetActorLocation();
-
-        skill_create_packet p;
-        p.packet_size = sizeof(skill_create_packet);
-        p.packet_type = C2H_SKILL_CREATE_PACKET;
-        p.skill_type = SKILL_WIND_ICE_BOMB;
-        p.old_skill_id = m_id;
-        p.new_skill_x = SpawnLocation.X; p.new_skill_y = SpawnLocation.Y; p.new_skill_z = SpawnLocation.Z;
-
-        Cast<APlayerCharacter>(Owner)->do_send(&p);
-
-        bIsHit = true;
-
-        return;
+            Cast<APlayerCharacter>(Owner)->do_send(&p);
+            return;
+        }
     }
 
     // 히트 효과 생성
     if (WindCutterNiagaraComponent) {
         UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), HitEffectNiagaraSystem, GetActorLocation());
     }
-    
-    // 충돌 상태 설정
-    bIsHit = true;
 
     // 발사체 제거
     Destroy();
@@ -284,10 +265,10 @@ void AMyWindCutter::MixBombAttack(EClassType MixType, unsigned short skill_id)
     );
 
     if (BombAttack) {
-        BombAttack->SetID(skill_id);
         BombAttack->SetOwner(GetOwner());
         BombAttack->SpawnBombAttack(SpawnLocation, MixType);
 
+        BombAttack->SetID(skill_id);
         g_c_skills[skill_id] = BombAttack;
         UGameplayStatics::FinishSpawningActor(BombAttack, SpawnTransform);
 

@@ -87,7 +87,6 @@ void AMyMixWindTonado::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActo
                     p.victim_id = ptr->m_id;
 
                     Cast<APlayerCharacter>(Owner)->do_send(&p);
-                    //UE_LOG(LogTemp, Warning, TEXT("Mix Tonado ID : %d"), m_id);
                 }
             }
         } else if (OtherActor->IsA(AEnemyCharacter::StaticClass())) {
@@ -104,7 +103,6 @@ void AMyMixWindTonado::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActo
                     p.victim_id = ptr->get_id();
 
                     Cast<APlayerCharacter>(Owner)->do_send(&p);
-                    //UE_LOG(LogTemp, Error, TEXT("[Client] Skill %d and Monster %d Collision"), p.attacker_id, p.victim_id);
                 }
             }
         }

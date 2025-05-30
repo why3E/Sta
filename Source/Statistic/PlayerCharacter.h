@@ -233,6 +233,8 @@ protected:
 	void GetFireTargetLocation();
 
 private:
+	FTimerHandle SkillCastDelayTimerHandle;
+
 	char m_id;
 	float m_yaw;
 	FVector m_velocity;
@@ -265,8 +267,15 @@ public:
 	}
 	void set_is_player(bool is_player) { m_is_player = is_player; }
 
-	void use_skill(unsigned short skill_id, char skill_type, FVector v, bool is_left);
-	void use_skill(unsigned short skill_id, char skill_type, FVector v, FRotator r, bool is_left);
+	void ready_skill(bool is_left);
+	void use_skill(unsigned short skill_id, char skill_type, FVector v, bool is_left, float time);
+	void use_skill(unsigned short skill_id, char skill_type, FVector v, FRotator r, bool is_left, float time);
+
+	UFUNCTION()
+	void InternalUseSkill_Vector(uint16 skill_id, uint8  skill_type, FVector v, bool is_left);
+	UFUNCTION()
+	void InternalUseSkill_Rotator(uint16 skill_id, uint8  skill_type, FVector v, FRotator r, bool is_left);
+
 	void change_element();
 	void change_element(char element_type, bool is_left);
 	void rotate(float yaw);

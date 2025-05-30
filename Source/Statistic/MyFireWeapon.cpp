@@ -53,7 +53,6 @@ void AMyFireWeapon::SpawnFireBall(FVector ImpactPoint)
             TempFireBall->SetOwner(OwnerCharacter);
             TempFireBall->AttachToComponent(OwnerCharacter->GetMesh(), FAttachmentTransformRules::KeepRelativeTransform, FireBallSocket);
             TempFireBall->ActivateNiagara();
-            UE_LOG(LogTemp, Warning, TEXT("FireBall %d spawniiiing"), skill_id);
 
             g_c_skills.emplace(skill_id, TempFireBall);
             if (g_c_collisions.count(skill_id)) {
@@ -68,7 +67,7 @@ void AMyFireWeapon::SpawnFireBall(FVector ImpactPoint)
                     }
                 }
             }
-            UE_LOG(LogTemp, Warning, TEXT("FireBall %d spawned"), skill_id);
+            //UE_LOG(LogTemp, Warning, TEXT("FireBall %d spawned"), skill_id);
         }
         else
         {

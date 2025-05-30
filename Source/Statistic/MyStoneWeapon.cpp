@@ -49,6 +49,7 @@ void AMyStoneWeapon::SpawnStoneWave(FVector FireLocation)
         SpawnParams.Instigator = GetInstigator();
 
         AMyStoneWave* StoneWave = GetWorld()->SpawnActor<AMyStoneWave>(StoneWaveClass, SpawnLocation, FRotator::ZeroRotator, SpawnParams);
+
         if (StoneWave)
         {
             unsigned short skill_id = Cast<APlayerCharacter>(OwnerCharacter)->get_skill_id();

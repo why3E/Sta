@@ -61,9 +61,10 @@ void AMyWindWeapon::SpawnWindCutter(FVector ImpactPoint)
                     g_c_collisions[skill_id].pop();
 
                     if (g_c_skills.count(other_id)) {
+                        FVector l = TempWindCutter->GetActorLocation();
+                        FVector ll = g_c_skills[other_id]->GetActorLocation();
                         TempWindCutter->Overlap(g_c_skills[other_id]);
                         g_c_skills[other_id]->Overlap(g_c_skills[skill_id]);
-                        UE_LOG(LogTemp, Error, TEXT("Skill %d and %d Collision Succeed!"), skill_id, other_id);
                     }
                 }
             }
@@ -99,7 +100,7 @@ void AMyWindWeapon::SpawnWindSkill(FVector TargetLocation)
     {
         unsigned short skill_id = Cast<APlayerCharacter>(OwnerCharacter)->get_skill_id();
 
-        WindSkill->SetID(skill_id);
+        WindSkill->SetID(skill_id); 
         WindSkill->SetOwner(OwnerCharacter);
 		WindSkill->SpawnWindTonado(TargetLocation);
 
@@ -118,7 +119,7 @@ void AMyWindWeapon::SpawnWindSkill(FVector TargetLocation)
                 }
             }
         }
-        UE_LOG(LogTemp, Warning, TEXT("WindSkill spawned at location: %s"), *TargetLocation.ToString());
+        //UE_LOG(LogTemp, Warning, TEXT("WindSkill spawned at location: %s"), *TargetLocation.ToString());
     }
     else
     {

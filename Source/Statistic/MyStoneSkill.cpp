@@ -10,6 +10,8 @@
 // 생성자
 AMyStoneSkill::AMyStoneSkill()
 {
+    SetElement(EClassType::CT_Stone);
+
     PrimaryActorTick.bCanEverTick = true;
 
     // 콜리전
@@ -128,25 +130,16 @@ void AMyStoneSkill::Tick(float DeltaTime)
     {
         CollisionComponent->IgnoreActorWhenMoving(Owner, true);
     }
-    // 예: 날아가는 동안 회전 or 이펙트 제어
 }
 
 void AMyStoneSkill::Overlap(AActor* OtherActor)
 {
-    // 충돌 상태 설정
-    bIsHit = true;
 
-    // 발사체 제거
-    Destroy();
 }
 
 void AMyStoneSkill::Overlap(ACharacter* OtherActor)
 {
-    // 충돌 상태 설정
-    bIsHit = true;
 
-    // 발사체 제거
-    Destroy();
 }
 
 void AMyStoneSkill::OnBeginOverlap(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)

@@ -115,7 +115,6 @@ void AMyBombAttack::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* 
                     p.victim_id = ptr->get_id();
 
                     Cast<APlayerCharacter>(Owner)->do_send(&p);
-                    UE_LOG(LogTemp, Error, TEXT("[Client] Skill %d and Monster %d Collision"), p.attacker_id, p.victim_id);
                 }
             }
         }

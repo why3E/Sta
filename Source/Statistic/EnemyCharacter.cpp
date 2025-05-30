@@ -417,7 +417,7 @@ void AEnemyCharacter::Overlap(AActor* OtherActor)
     Info.KnockbackDir = (OtherActor->GetActorLocation() - GetActorLocation()).GetSafeNormal();
 
     ReceiveSkillHit(Info, Skill);
-    UE_LOG(LogTemp, Warning, TEXT("Skill Hit to Monster %d"), get_id());
+    //UE_LOG(LogTemp, Warning, TEXT("Skill Hit to Monster %d"), get_id());
 }
 
 void AEnemyCharacter::ShowHud(float Damage, EClassType Type)

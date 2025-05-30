@@ -69,6 +69,8 @@ protected:
 	TSet<class APlayerCharacter*> OverlappingCharacters;
 
 private:
+	bool bIsValid = true;
+
 	/** 컴포넌트 오버랩 진입 시 */
 	UFUNCTION()
 	void OnBeginOverlap(

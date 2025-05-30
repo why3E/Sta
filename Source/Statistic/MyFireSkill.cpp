@@ -40,8 +40,6 @@ void AMyFireSkill::BeginPlay()
 {
     Super::BeginPlay();
 
-    
-
     GetWorld()->GetTimerManager().SetTimer(CheckOverlapTimerHandle, this, &AMyFireSkill::CheckOverlappingActors, 1.0f, true);
 }
 

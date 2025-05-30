@@ -36,6 +36,21 @@ void ADamagePopupActor::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	APlayerController* PC = GetWorld()->GetFirstPlayerController();
+	if (!PC) return;
+
+	FVector CamLocation;
+	FRotator CamRotation;
+	PC->GetPlayerViewPoint(CamLocation, CamRotation);
+
+	FVector ToCamera = CamLocation - GetActorLocation();
+	FRotator LookAtRotation = FRotationMatrix::MakeFromX(ToCamera).Rotator();
+
+	// Z 축만 회전하게 (카메라를 바라보되 수직은 고정하고 싶을 경우)
+	LookAtRotation.Pitch = 0.0f;
+	LookAtRotation.Roll = 0.0f;
+
+	widgetComp->SetWorldRotation(LookAtRotation);
 }
 
 void ADamagePopupActor::InitDamage(float damage, EClassType Type)

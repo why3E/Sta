@@ -13,5 +13,21 @@ UCLASS()
 class STATISTIC_API UMyFadeWidget : public UUserWidget
 {
 	GENERATED_BODY()
-	
+
+
+public:
+	UPROPERTY(meta = (BindWidget))
+	class UBorder* Border_Fade;
+
+	UPROPERTY(meta = (BindWidgetAnim), Transient)
+	class UWidgetAnimation* FadeIn;
+
+	UPROPERTY(meta = (BindWidgetAnim), Transient)
+	class UWidgetAnimation* FadeOut;
+
+	UFUNCTION()
+	void PlayFadeIn();
+
+	UFUNCTION()
+	void PlayFadeOut();
 };

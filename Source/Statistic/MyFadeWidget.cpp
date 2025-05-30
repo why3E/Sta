@@ -3,3 +3,12 @@
 
 #include "MyFadeWidget.h"
 
+void UMyFadeWidget::PlayFadeIn()
+{
+	PlayAnimation(FadeIn);
+}
+
+void UMyFadeWidget::PlayFadeOut()
+{
+	PlayAnimation(FadeOut);
+}

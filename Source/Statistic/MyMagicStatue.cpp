@@ -1,113 +1,247 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
-
 #include "MyMagicStatue.h"
 #include "Components/BoxComponent.h"
 #include "PlayerCharacter.h"
-#include "EngineUtils.h" 
+#include "Kismet/GameplayStatics.h"
+#include "MyFadeWidget.h"
+#include "MyUserSelectorUI.h"
+#include "Blueprint/UserWidget.h"
+#include "GameFramework/PlayerController.h"
+#include "GameFramework/CharacterMovementComponent.h"
+#include "EngineUtils.h"
 
-
-// Sets default values
 AMyMagicStatue::AMyMagicStatue()
 {
- 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
-	sceneComp = CreateDefaultSubobject<USceneComponent>(TEXT("sceneComp"));
-	RootComponent = sceneComp;
+    PrimaryActorTick.bCanEverTick = true;
 
-	boxCollision = CreateDefaultSubobject<UBoxComponent>(TEXT("BoxCollision"));
-	boxCollision->SetupAttachment(RootComponent);
+    sceneComp = CreateDefaultSubobject<USceneComponent>(TEXT("SceneComp"));
+    RootComponent = sceneComp;
 
+    boxCollision = CreateDefaultSubobject<UBoxComponent>(TEXT("BoxCollision"));
+    boxCollision->SetupAttachment(RootComponent);
 }
 
-// Called when the game starts or when spawned
 void AMyMagicStatue::BeginPlay()
 {
-	Super::BeginPlay();
-	boxCollision->OnComponentBeginOverlap.AddDynamic(this, &AMyMagicStatue::OnBeginOverlapCollision);
+    Super::BeginPlay();
+
+    boxCollision->OnComponentBeginOverlap.AddDynamic(this, &AMyMagicStatue::OnBeginOverlapCollision);
+
+    UWorld* World = GetWorld();
+    if (!World) return;
+
+    int32 MinStatueNumber = INT32_MAX;
+    NextStatue = nullptr;
+    FirstStatue = nullptr;
+
+    for (TActorIterator<AMyMagicStatue> It(World); It; ++It)
+    {
+        AMyMagicStatue* Statue = *It;
+        if (!Statue) continue;
+
+        // 가장 작은 번호 찾기
+        if (Statue->StatueNumber < MinStatueNumber)
+        {
+            MinStatueNumber = Statue->StatueNumber;
+            FirstStatue = Statue;
+        }
+
+        // 다음 번호 석상 찾기 (자기 번호 + 1)
+        if (Statue != this && Statue->StatueNumber == StatueNumber + 1)
+        {
+            NextStatue = Statue;
+        }
+    }
+
+    // 다음 번호 석상이 없으면 가장 작은 번호 석상으로
+    if (!NextStatue)
+    {
+        NextStatue = FirstStatue;
+    }
 }
 
-// Called every frame
 void AMyMagicStatue::Tick(float DeltaTime)
 {
-	Super::Tick(DeltaTime);
-
+    Super::Tick(DeltaTime);
 }
 
-void AMyMagicStatue::OnBeginOverlapCollision(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+void AMyMagicStatue::OnBeginOverlapCollision(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
+    UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
+    if (!OtherActor || cachedPlayer) return;
+
     APlayerCharacter* Player = Cast<APlayerCharacter>(OtherActor);
-    if (Player && Player->GetController())
+    if (!Player) return;
+
+    cachedPlayer = Player;
+    cachedController = Cast<APlayerController>(Player->GetController());
+
+    if (!cachedController || !interactionWidgetClass) return;
+
+    if (!interactionWidgetInstance)
     {
-        // 중복 텔레포트 방지
-        if (Player->bRecentlyTeleported) return;
-
-        UWorld* World = GetWorld();
-        if (!World) return;
-
-        int32 NextStatueNumber = StatueNumber + 1;
-        AMyMagicStatue* NextStatue = nullptr;
-        AMyMagicStatue* FirstStatue = nullptr;
-        int32 MinStatueNumber = INT32_MAX;
-
-        for (TActorIterator<AMyMagicStatue> It(World); It; ++It)
+        interactionWidgetInstance = CreateWidget<UUserWidget>(cachedController, interactionWidgetClass);
+        if (interactionWidgetInstance)
         {
-            AMyMagicStatue* Statue = *It;
-            if (!Statue) continue;
-            if (Statue->StatueNumber < MinStatueNumber)
-            {
-                MinStatueNumber = Statue->StatueNumber;
-                FirstStatue = Statue;
-            }
-            if (Statue != this && Statue->StatueNumber == NextStatueNumber)
-            {
-                NextStatue = Statue;
-            }
+            interactionWidgetInstance->AddToViewport();
         }
-
-        FVector TargetLocation;
-        if (NextStatue)
-        {
-            FVector Forward = NextStatue->GetActorForwardVector();
-            TargetLocation = NextStatue->GetActorLocation() + Forward * 500.0f;
-        }
-        else if (FirstStatue)
-        {
-            FVector Forward = FirstStatue->GetActorForwardVector();
-            TargetLocation = FirstStatue->GetActorLocation() + Forward * 500.0f;
-        }
-        else
-        {
-            return;
-        }
-
-        // 라인트레이스로 지형 Z값 확인
-        FVector TraceStart = TargetLocation + FVector(0, 0, 500.0f);
-        FVector TraceEnd = TargetLocation - FVector(0, 0, 500.0f);
-        FHitResult HitResult;
-        FCollisionQueryParams Params;
-        Params.AddIgnoredActor(Player);
-
-        float FinalZ = TargetLocation.Z;
-        if (World->LineTraceSingleByChannel(HitResult, TraceStart, TraceEnd, ECC_Visibility, Params))
-        {
-            FinalZ = HitResult.ImpactPoint.Z;
-        }
-        // 캐릭터가 끼지 않게 Z값에 100 추가
-        TargetLocation.Z = FinalZ + 100.0f;
-
-        Player->SetActorLocation(TargetLocation);
-
-        // 최근 텔레포트한 플레이어 저장 및 쿨타임 후 초기화
-        Player->bRecentlyTeleported = true;
-        World->GetTimerManager().SetTimer(
-            TeleportCooldownHandle,
-            [Player]()
-            {
-                if (Player) Player->bRecentlyTeleported = false;
-            },
-            0.5f, // 0.5초 후 해제
-            false
-        );
     }
+
+    Player->bIsInteraction = true;
+    Player->CurrentInteractTarget = this;
+}
+
+void AMyMagicStatue::Interact(APlayerCharacter* InteractingPlayer)
+{
+    cachedPlayer = InteractingPlayer;
+    cachedController = Cast<APlayerController>(InteractingPlayer->GetController());
+
+    if (interactionWidgetInstance)
+    {
+        interactionWidgetInstance->RemoveFromParent();
+        interactionWidgetInstance = nullptr;
+    }
+
+    if (!cachedController || !selectorWidget) return;
+
+    if (cachedPlayer && cachedPlayer->GetCharacterMovement())
+    {
+        cachedPlayer->GetCharacterMovement()->DisableMovement();
+    }
+
+    selectorWidgetInstance = CreateWidget<UMyUserSelectorUI>(cachedController, selectorWidget);
+    if (selectorWidgetInstance)
+    {
+        selectorWidgetInstance->AddToViewport();
+        selectorWidgetInstance->StatueActor = this;
+
+        selectorWidgetInstance->OnSelectorClosed.AddDynamic(this, &AMyMagicStatue::OnSelectorClosed);
+
+        cachedController->bShowMouseCursor = true;
+
+        FInputModeGameAndUI InputMode;
+        InputMode.SetWidgetToFocus(selectorWidgetInstance->TakeWidget());
+        InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+        cachedController->SetInputMode(InputMode);
+    }
+}
+
+void AMyMagicStatue::StartTeleportWithFade()
+{
+    if (!cachedPlayer || !cachedController || !fadeWidget) return;
+
+    fadeWidgetInstance = CreateWidget<UMyFadeWidget>(cachedController, fadeWidget);
+    if (fadeWidgetInstance)
+    {
+        fadeWidgetInstance->AddToViewport();
+
+        FWidgetAnimationDynamicEvent OnFadeOutFinished;
+        OnFadeOutFinished.BindDynamic(this, &AMyMagicStatue::HandleFadeInFinished);
+        fadeWidgetInstance->BindToAnimationFinished(fadeWidgetInstance->FadeOut, OnFadeOutFinished);
+
+        fadeWidgetInstance->PlayFadeOut();
+    }
+}
+
+void AMyMagicStatue::HandleFadeInFinished()
+{
+    if (!cachedPlayer) return;
+
+    PerformTeleport();
+
+    if (fadeWidgetInstance && fadeWidgetInstance->FadeIn)
+    {
+        fadeWidgetInstance->PlayFadeIn();
+
+        FWidgetAnimationDynamicEvent OnFadeInFinished;
+        OnFadeInFinished.BindDynamic(this, &AMyMagicStatue::RemoveFadeWidget);
+        fadeWidgetInstance->BindToAnimationFinished(fadeWidgetInstance->FadeIn, OnFadeInFinished);
+    }
+}
+
+void AMyMagicStatue::RemoveFadeWidget()
+{
+    if (fadeWidgetInstance)
+    {
+        fadeWidgetInstance->RemoveFromParent();
+        fadeWidgetInstance = nullptr;
+    }
+
+    if (cachedController)
+    {
+        cachedController->bShowMouseCursor = false;
+        FInputModeGameOnly InputMode;
+        cachedController->SetInputMode(InputMode);
+    }
+
+    if (cachedPlayer)
+    {
+        if (UCharacterMovementComponent* MoveComp = cachedPlayer->GetCharacterMovement())
+        {
+            MoveComp->SetMovementMode(MOVE_Walking);
+        }
+    }
+
+    cachedPlayer = nullptr;
+    cachedController = nullptr;
+
+    if (selectorWidgetInstance)
+    {
+        selectorWidgetInstance->RemoveFromParent();
+        selectorWidgetInstance = nullptr;
+    }
+}
+
+void AMyMagicStatue::OnSelectorClosed()
+{
+    if (cachedPlayer)
+    {
+        if (UCharacterMovementComponent* MoveComp = cachedPlayer->GetCharacterMovement())
+        {
+            MoveComp->SetMovementMode(MOVE_Walking);
+        }
+    }
+
+    if (cachedController)
+    {
+        cachedController->bShowMouseCursor = false;
+        FInputModeGameOnly InputMode;
+        cachedController->SetInputMode(InputMode);
+    }
+
+    if (selectorWidgetInstance)
+    {
+        selectorWidgetInstance->RemoveFromParent();
+        selectorWidgetInstance = nullptr;
+    }
+
+    cachedPlayer = nullptr;
+    cachedController = nullptr;
+}
+
+void AMyMagicStatue::PerformTeleport()
+{
+    if (!cachedPlayer || !NextStatue) return;
+
+    FVector Forward = NextStatue->GetActorForwardVector();
+    FVector TargetLocation = NextStatue->GetActorLocation() + Forward * 500.f;
+
+    FVector TraceStart = TargetLocation + FVector(0, 0, 500.f);
+    FVector TraceEnd = TargetLocation - FVector(0, 0, 500.f);
+    FHitResult HitResult;
+    FCollisionQueryParams Params;
+    Params.AddIgnoredActor(cachedPlayer);
+
+    UWorld* World = GetWorld();
+    if (!World) return;
+
+    float FinalZ = TargetLocation.Z;
+    if (World->LineTraceSingleByChannel(HitResult, TraceStart, TraceEnd, ECC_Visibility, Params))
+    {
+        FinalZ = HitResult.ImpactPoint.Z;
+    }
+
+    TargetLocation.Z = FinalZ + 100.f;
+    cachedPlayer->SetActorLocation(TargetLocation);
+
+    UE_LOG(LogTemp, Warning, TEXT("Player teleported."));
 }

@@ -1,8 +1,8 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
+#include "BTTask_Wander.h"
 #include "SESSION.h"
 #include "EnemyCharacter.h"
-#include "BTTask_Wander.h"
 #include "AIController.h"
 #include "NavigationSystem.h"
 #include "BehaviorTree/BlackboardComponent.h"

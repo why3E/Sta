@@ -25,17 +25,20 @@ public:
 	AMySkillBase();
 	~AMySkillBase();
 
-	virtual void Overlap(AActor* OtherActor);
-	virtual void Overlap(ACharacter* OtherActor);
+	virtual void Overlap(char skill_type);
+	virtual void Overlap(unsigned short object_id, bool collision_start);
 
 	UPROPERTY()
 	uint16 m_id;
+	char m_type;
 
 	unsigned short GetId() { return m_id; }
+	char GetType() { return m_type; }
 	float GetDamage() { return Damage; }
 	EClassType GetElement() { return Element; }
 
 	void SetID(unsigned short skill_id) { m_id = skill_id; }
+	void SetType(char skill_type) { m_type = skill_type; }
 	void SetDamage(float damage) { Damage = damage; }
 	void SetElement(EClassType element) { Element = element; }
 };

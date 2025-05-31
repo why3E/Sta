@@ -55,17 +55,22 @@ void AMyWindWeapon::SpawnWindCutter(FVector ImpactPoint)
             TempWindCutter->ActivateNiagara();
 
             g_c_skills.emplace(skill_id, TempWindCutter);
-            if (g_c_collisions.count(skill_id)) {
-                while (!g_c_collisions[skill_id].empty()) {
-                    unsigned short other_id = g_c_collisions[skill_id].front();
-                    g_c_collisions[skill_id].pop();
 
-                    if (g_c_skills.count(other_id)) {
-                        FVector l = TempWindCutter->GetActorLocation();
-                        FVector ll = g_c_skills[other_id]->GetActorLocation();
-                        TempWindCutter->Overlap(g_c_skills[other_id]);
-                        g_c_skills[other_id]->Overlap(g_c_skills[skill_id]);
-                    }
+            if (g_c_skill_collisions.count(skill_id)) {
+                while (!g_c_skill_collisions[skill_id].empty()) {
+                    char skill_type = g_c_skill_collisions[skill_id].front();
+                    g_c_skill_collisions[skill_id].pop();
+
+                    g_c_skills[skill_id]->Overlap(skill_type);
+                }
+            }
+
+            if (g_c_object_collisions.count(skill_id)) {
+                while (!g_c_object_collisions[skill_id].empty()) {
+                    unsigned short object_id = g_c_object_collisions[skill_id].front();
+                    g_c_object_collisions[skill_id].pop();
+
+                    g_c_skills[skill_id]->Overlap(object_id);
                 }
             }
         }
@@ -107,19 +112,23 @@ void AMyWindWeapon::SpawnWindSkill(FVector TargetLocation)
         g_c_skills.emplace(skill_id, WindSkill);
         UGameplayStatics::FinishSpawningActor(WindSkill, SpawnTransform);
 
-        if (g_c_collisions.count(skill_id)) {
-            while (!g_c_collisions[skill_id].empty()) {
-                unsigned short other_id = g_c_collisions[skill_id].front();
-                g_c_collisions[skill_id].pop();
+        if (g_c_skill_collisions.count(skill_id)) {
+            while (!g_c_skill_collisions[skill_id].empty()) {
+                char skill_type = g_c_skill_collisions[skill_id].front();
+                g_c_skill_collisions[skill_id].pop();
 
-                if (g_c_skills.count(other_id)) {
-                    WindSkill->Overlap(g_c_skills[other_id]);
-                    g_c_skills[other_id]->Overlap(g_c_skills[skill_id]);
-                    UE_LOG(LogTemp, Error, TEXT("Skill %d and %d Collision Succeed!"), skill_id, other_id);
-                }
+                g_c_skills[skill_id]->Overlap(skill_type);
             }
         }
-        //UE_LOG(LogTemp, Warning, TEXT("WindSkill spawned at location: %s"), *TargetLocation.ToString());
+
+        if (g_c_object_collisions.count(skill_id)) {
+            while (!g_c_object_collisions[skill_id].empty()) {
+                unsigned short object_id = g_c_object_collisions[skill_id].front();
+                g_c_object_collisions[skill_id].pop();
+
+                g_c_skills[skill_id]->Overlap(object_id);
+            }
+        }
     }
     else
     {

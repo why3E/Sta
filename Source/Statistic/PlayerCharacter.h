@@ -244,7 +244,11 @@ private:
 	unsigned short m_skill_id;
 
 	bool m_is_player;
+
 	bool m_was_moving;
+
+	FVector m_stop_location;
+	bool m_is_stopping;
 
 public:
 	void do_send(void* buff);
@@ -266,6 +270,8 @@ public:
 		else m_current_element[1] = current_element; 
 	}
 	void set_is_player(bool is_player) { m_is_player = is_player; }
+	void set_stop_location(FVector stop_location) { m_stop_location = stop_location; }
+	void set_is_stopping(bool is_stopping) { m_is_stopping = is_stopping; }
 
 	void ready_skill(bool is_left);
 	void use_skill(unsigned short skill_id, char skill_type, FVector v, bool is_left, float time);
@@ -279,6 +285,8 @@ public:
 	void change_element();
 	void change_element(char element_type, bool is_left);
 	void rotate(float yaw);
+
+	void Overlap(char skill_type, bool collision_start);
 
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite ,Category = "Status")

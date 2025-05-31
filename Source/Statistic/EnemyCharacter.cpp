@@ -404,20 +404,32 @@ void AEnemyCharacter::SliceProcMesh(FVector PlaneNormal)
     CachedOtherHalfMesh = OtherHalfMesh;
 }
 
-
-
-void AEnemyCharacter::Overlap(AActor* OtherActor)
-{
-    AMySkillBase* Skill = Cast<AMySkillBase>(OtherActor);
-
+void AEnemyCharacter::Overlap(char skill_type, FVector skill_location) {
     FSkillInfo Info;
-    Info.Damage = Skill->GetDamage();
-    Info.Element = Skill->GetElement();
-    Info.StunTime = 1.5f;
-    Info.KnockbackDir = (OtherActor->GetActorLocation() - GetActorLocation()).GetSafeNormal();
+    Info.Damage = 10.0f;
 
-    ReceiveSkillHit(Info, Skill);
-    //UE_LOG(LogTemp, Warning, TEXT("Skill Hit to Monster %d"), get_id());
+    switch (skill_type) {
+    case SKILL_WIND_CUTTER:
+    case SKILL_WIND_TORNADO:
+        Info.Element = EClassType::CT_Wind;
+
+    case SKILL_FIRE_BALL:
+    case SKILL_FIRE_WALL:
+        Info.Element = EClassType::CT_Fire;
+
+    case SKILL_STONE_WAVE:
+    case SKILL_STONE_SKILL:
+        Info.Element = EClassType::CT_Stone;
+
+    case SKILL_ICE_ARROW:
+    case SKILL_ICE_WALL:
+        Info.Element = EClassType::CT_Ice;
+    }
+
+    Info.StunTime = 1.5f;
+    Info.KnockbackDir = (skill_location - GetActorLocation()).GetSafeNormal();
+
+    ReceiveSkillHit(Info, nullptr);
 }
 
 void AEnemyCharacter::ShowHud(float Damage, EClassType Type)

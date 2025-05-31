@@ -35,8 +35,8 @@ public:
 	UFUNCTION()
 	void OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
-	virtual void Overlap(AActor* OtherActor);
-	virtual void Overlap(ACharacter* OtherActor);
+	virtual void Overlap(char skill_type) override;
+	virtual void Overlap(unsigned short object_id, bool collision_start) override;
 
 protected:
 	UPROPERTY(VisibleAnywhere, Category = "Collision")

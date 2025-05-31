@@ -58,15 +58,22 @@ void AMyStoneWeapon::SpawnStoneWave(FVector FireLocation)
             StoneWave->SetOwner(OwnerCharacter);
 
             g_c_skills.emplace(skill_id, StoneWave);
-            if (g_c_collisions.count(skill_id)) {
-                while (!g_c_collisions[skill_id].empty()) {
-                    unsigned short other_id = g_c_collisions[skill_id].front();
-                    g_c_collisions[skill_id].pop();
 
-                    if (g_c_skills.count(other_id)) {
-                        StoneWave->Overlap(g_c_skills[other_id]);
-                        g_c_skills[other_id]->Overlap(g_c_skills[skill_id]);
-                    }
+            if (g_c_skill_collisions.count(skill_id)) {
+                while (!g_c_skill_collisions[skill_id].empty()) {
+                    char skill_type = g_c_skill_collisions[skill_id].front();
+                    g_c_skill_collisions[skill_id].pop();
+
+                    g_c_skills[skill_id]->Overlap(skill_type);
+                }
+            }
+
+            if (g_c_object_collisions.count(skill_id)) {
+                while (!g_c_object_collisions[skill_id].empty()) {
+                    unsigned short object_id = g_c_object_collisions[skill_id].front();
+                    g_c_object_collisions[skill_id].pop();
+
+                    g_c_skills[skill_id]->Overlap(object_id);
                 }
             }
 
@@ -109,16 +116,22 @@ void AMyStoneWeapon::SpawnStoneSkill(FVector ImpactPoint)
     TempStoneSkill->SetOwner(OwnerCharacter);
 
     g_c_skills.emplace(skill_id, TempStoneSkill);
-    if (g_c_collisions.count(skill_id)) {
-        while (!g_c_collisions[skill_id].empty()) {
-            unsigned short other_id = g_c_collisions[skill_id].front();
-            g_c_collisions[skill_id].pop();
 
-            if (g_c_skills.count(other_id)) {
-                TempStoneSkill->Overlap(g_c_skills[other_id]);
-                g_c_skills[other_id]->Overlap(g_c_skills[skill_id]);
-                UE_LOG(LogTemp, Error, TEXT("Skill %d and %d Collision Succeed!"), skill_id, other_id);
-            }
+    if (g_c_skill_collisions.count(skill_id)) {
+        while (!g_c_skill_collisions[skill_id].empty()) {
+            char skill_type = g_c_skill_collisions[skill_id].front();
+            g_c_skill_collisions[skill_id].pop();
+
+            g_c_skills[skill_id]->Overlap(skill_type);
+        }
+    }
+
+    if (g_c_object_collisions.count(skill_id)) {
+        while (!g_c_object_collisions[skill_id].empty()) {
+            unsigned short object_id = g_c_object_collisions[skill_id].front();
+            g_c_object_collisions[skill_id].pop();
+
+            g_c_skills[skill_id]->Overlap(object_id);
         }
     }
 

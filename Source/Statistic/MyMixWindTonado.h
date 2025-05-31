@@ -78,7 +78,8 @@ private:
 	TObjectPtr<UNiagaraSystem> IceEffect;
 
 public:
-	virtual void Overlap(AActor* OtherActor);
+	virtual void Overlap(char skill_type) override;
+	virtual void Overlap(unsigned short object_id, bool collision_start) override;
 
 	// MixWindTonado 스킬 사용
 	virtual void SkillMixWindTonado(EClassType MixType, unsigned short skill_id) override;

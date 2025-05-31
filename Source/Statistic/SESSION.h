@@ -15,10 +15,14 @@ extern SOCKET g_c_socket;
 extern std::array<APlayerCharacter*, MAX_CLIENTS> g_c_players;
 extern std::unordered_map<unsigned short, AMySkillBase*> g_c_skills;
 extern std::unordered_map<unsigned short, ACharacter*> g_c_monsters;
-extern std::unordered_map<unsigned short, std::queue<unsigned short>> g_c_collisions;
+extern std::unordered_map<unsigned short, std::queue<char>> g_c_skill_collisions;
+extern std::unordered_map<unsigned short, std::queue<unsigned short>> g_c_object_collisions;
 
 extern std::mutex g_s_monster_events_l;
 extern std::queue<MonsterEvent> g_s_monster_events;
+
+extern std::mutex g_s_collision_events_l;
+extern std::queue<CollisionEvent> g_s_collision_events;
 
 //////////////////////////////////////////////////
 // EXP_OVER

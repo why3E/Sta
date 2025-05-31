@@ -16,6 +16,7 @@
 #include "MyWeapon.h"
 #include "MyFireWeapon.h"
 #include "MyWindWeapon.h"
+#include "MyWindSkill.h"
 #include "MyStoneWeapon.h"
 #include "MyIceWeapon.h"
 #include "Kismet/GameplayStatics.h"
@@ -33,7 +34,9 @@ APlayerCharacter::APlayerCharacter()
 	m_skill_id = 0;
 
 	m_is_player = false;
+
 	m_was_moving = false;
+	m_is_stopping = false;
 
 	// Collision 설정
 	{
@@ -89,26 +92,31 @@ APlayerCharacter::APlayerCharacter()
         {
             IA_BasicJump = IA_BasicJumpRef.Object;
         }
+
 		static ConstructorHelpers::FObjectFinder<UInputAction>IA_DashRef(TEXT("/Script/EnhancedInput.InputAction'/Game/input/IA_Dash.IA_Dash'"));
 		if (IA_DashRef.Object)
 		{
 			IA_Dash = IA_DashRef.Object;
 		}
+
 		static ConstructorHelpers::FObjectFinder<UInputAction>IA_BasicAttackRef(TEXT("/Script/EnhancedInput.InputAction'/Game/input/attack/IA_BaseAttack.IA_BaseAttack'"));
 		if (IA_BasicAttackRef.Object)
 		{
 			IA_BasicAttack = IA_BasicAttackRef.Object;
 		}
+
 		static ConstructorHelpers::FObjectFinder<UInputAction>IA_RightAttackRef(TEXT("/Script/EnhancedInput.InputAction'/Game/input/attack/IA_RightAttack.IA_RightAttack'"));
 		if (IA_RightAttackRef.Object)
 		{
 			IA_RightAttack = IA_RightAttackRef.Object;
 		}
+
 		static ConstructorHelpers::FObjectFinder<UInputAction>IA_QSkillRef(TEXT("/Script/EnhancedInput.InputAction'/Game/input/IA_QSkill.IA_QSkill'"));
 		if (IA_QSkillRef.Object)
 		{
 			IA_QSkill = IA_QSkillRef.Object;
 		}
+
 		static ConstructorHelpers::FObjectFinder<UInputAction>IA_RSkillRef(TEXT("/Script/EnhancedInput.InputAction'/Game/input/IA_ESkill.IA_ESkill'"));
 		if (IA_RSkillRef.Object)
 		{
@@ -214,8 +222,8 @@ void APlayerCharacter::BeginPlay()
         } 
     }
 
-    ChangeClass(EClassType::CT_Ice, true);
-    ChangeClass(EClassType::CT_Ice, false);
+	change_element(static_cast<char>(EClassType::CT_Ice), true);
+	change_element(static_cast<char>(EClassType::CT_Ice), false);
 
     playerCurrentHp = playerMaxHp;
     playerCurrentMp = playerMaxMp;
@@ -402,9 +410,11 @@ void APlayerCharacter::BasicLook(const FInputActionValue& Value)
 
 void APlayerCharacter::StartJump()
 {
-    bPressedJump = true;
+	bPressedJump = true;
 
 	if (!(GetCharacterMovement()->IsFalling())) {
+		m_was_moving = true;
+
 		player_jump_packet p;
 		p.packet_size = sizeof(player_jump_packet);
 		p.packet_type = C2H_PLAYER_JUMP_PACKET;
@@ -416,7 +426,7 @@ void APlayerCharacter::StartJump()
 
 void APlayerCharacter::StopJump()
 {
-    bPressedJump = false;
+	bPressedJump = false;
 }
 
 void APlayerCharacter::DashStart()
@@ -980,7 +990,7 @@ void APlayerCharacter::Tick(float DeltaTime) {
 	float MpRenRate = 10.0f;
 	playerCurrentMp = FMath::Clamp(playerCurrentMp + MpRenRate * DeltaTime, 0.0f, playerMaxMp);
 
-	if(!bCanUseSkillQ)
+	if (!bCanUseSkillQ)
 	{
 		CurrnetSkillQTime += DeltaTime;
 		if(CurrnetSkillQTime >= SkillQCoolTime)
@@ -990,7 +1000,7 @@ void APlayerCharacter::Tick(float DeltaTime) {
 		}
 	}
 
-	if(!bCanUseSkillE)
+	if (!bCanUseSkillE)
 	{
 		CurrnetSkillETime += DeltaTime;
 		if(CurrnetSkillETime >= SkillECoolTime)
@@ -1003,33 +1013,8 @@ void APlayerCharacter::Tick(float DeltaTime) {
 	UpdateUI();
 
 	if (m_is_player) {
-		if (GetCharacterMovement()->IsFalling()) {
-			// Send Player Vector Packet 
-			FVector Velocity = GetCharacterMovement()->Velocity;
-
-			float DistanceDiff = FVector::Dist(Velocity, m_velocity);
-
-			if (DistanceDiff > 1.0f) {
-				m_velocity = Velocity;
-				m_was_moving = true;
-
-				FVector Position = GetActorLocation();
-
-				player_move_packet p;
-				p.packet_size = sizeof(player_move_packet);
-				p.packet_type = C2H_PLAYER_MOVE_PACKET;
-				p.id = m_id;
-				p.x = Position.X; p.y = Position.Y; p.z = Position.Z;
-				p.vx = Velocity.X; p.vy = Velocity.Y; p.vz = Velocity.Z;
-
-				do_send(&p);
-			}
-		}
-
-		// Stop
 		if (m_was_moving) {
 			FVector Velocity = GetCharacterMovement()->Velocity;
-			//UE_LOG(LogTemp, Warning, TEXT("[Client %d] VX : %.2f, VY : %.2f"), m_id, Velocity.X, Velocity.Y);
 
 			if (Velocity.IsNearlyZero()) {
 				m_velocity = FVector(0.0f, 0.0f, 0.0f);
@@ -1044,23 +1029,38 @@ void APlayerCharacter::Tick(float DeltaTime) {
 				p.x = Position.X; p.y = Position.Y; p.z = Position.Z;
 
 				do_send(&p);
-			}
+			} 
 		}
 	} else {
 		if (!GetCharacterMovement()->IsFalling()) {
-			GetCharacterMovement()->Velocity = m_velocity;
+			if (!m_is_stopping) {
+				GetCharacterMovement()->Velocity = m_velocity;
 
-			float Speed = m_velocity.Size();
+				float Speed = m_velocity.Size();
 
-			if (Speed > 500.0f) {
-				// Dash
-				GetCharacterMovement()->MaxWalkSpeed = 600.0f;
-			} else {
-				// Walk
-				GetCharacterMovement()->MaxWalkSpeed = 280.0f;
+				if (Speed > 500.0f) {
+					// Dash
+					GetCharacterMovement()->MaxWalkSpeed = 600.0f;
+				}
+				else {
+					// Walk
+					GetCharacterMovement()->MaxWalkSpeed = 280.0f;
+				}
+
+				AddMovementInput(m_velocity.GetSafeNormal(), 1.0f);
 			}
+		}
 
-			AddMovementInput(m_velocity.GetSafeNormal(), 1.0f);
+		if (m_is_stopping) {
+			FVector current_location = GetActorLocation();
+			FVector new_location = FMath::VInterpTo(current_location, m_stop_location, DeltaTime, 10);
+
+			SetActorLocation(new_location);
+
+			if ((new_location - m_stop_location).SizeSquared() < KINDA_SMALL_NUMBER) {
+				m_is_stopping = false;
+				SetActorLocation(m_stop_location);
+			}
 		}
 	}
 
@@ -1323,8 +1323,6 @@ void APlayerCharacter::ready_skill(bool is_left) {
 void APlayerCharacter::use_skill(unsigned short skill_id, char skill_type, FVector v, bool is_left, float time) {
 	float delay = time - GetWorld()->GetTimeSeconds();
 
-	UE_LOG(LogTemp, Warning, TEXT("CurrentTime: %.2f / TargetTime: %.2f / Delay: %.2f"), GetWorld()->GetTimeSeconds(), time, delay);
-
 	if (delay <= 0.0f) {
 		InternalUseSkill_Vector(skill_id, skill_type, v, is_left);
 	} else {
@@ -1343,14 +1341,11 @@ void APlayerCharacter::use_skill(unsigned short skill_id, char skill_type, FVect
 }
 
 void APlayerCharacter::use_skill(unsigned short skill_id, char skill_type, FVector v, FRotator r, bool is_left, float time) {
-	float delay = GetWorld()->GetTimeSeconds() - g_time_offset;
-
-	UE_LOG(LogTemp, Error, TEXT("delay : %.2f"), delay);
+	float delay = time - GetWorld()->GetTimeSeconds();
 
 	if (delay <= 0.0f) {
 		InternalUseSkill_Rotator(skill_id, skill_type, v, r, is_left);
-	}
-	else {
+	} else {
 		FTimerDelegate TimerDel;
 		TimerDel.BindUFunction(this, FName("InternalUseSkill_Rotator"), skill_id, skill_type, v, r, is_left);
 
@@ -1421,25 +1416,25 @@ void APlayerCharacter::change_element() {
 	switch (LeftClassType) {
 	case EClassType::CT_Wind:
 		UE_LOG(LogTemp, Warning, TEXT("Class changed to Fire"));
-		ChangeClass(EClassType::CT_Fire, true);
+		change_element(static_cast<char>(EClassType::CT_Fire), true);
 		p.element = static_cast<char>(EClassType::CT_Fire);
 		break;
 
 	case EClassType::CT_Fire:
 		UE_LOG(LogTemp, Warning, TEXT("Class changed to Stone"));
-		ChangeClass(EClassType::CT_Stone, true);
+		change_element(static_cast<char>(EClassType::CT_Stone), true);
 		p.element = static_cast<char>(EClassType::CT_Stone);
 		break;
 
 	case EClassType::CT_Stone:
 		UE_LOG(LogTemp, Warning, TEXT("Class changed to Ice"));
-		ChangeClass(EClassType::CT_Ice, true);
+		change_element(static_cast<char>(EClassType::CT_Ice), true);
 		p.element = static_cast<char>(EClassType::CT_Ice);
 		break;
 
 	case EClassType::CT_Ice:
 		UE_LOG(LogTemp, Warning, TEXT("Class changed to Wind"));
-		ChangeClass(EClassType::CT_Wind, true);
+		change_element(static_cast<char>(EClassType::CT_Wind), true);
 		p.element = static_cast<char>(EClassType::CT_Wind);
 		break;
 
@@ -1465,6 +1460,19 @@ void APlayerCharacter::rotate(float yaw) {
 	FRotator NewRotation = GetActorRotation();
 	NewRotation.Yaw = yaw;
 	SetActorRotation(NewRotation);
+}
+
+void APlayerCharacter::Overlap(char skill_type, bool collision_start) {
+	switch (skill_type) {
+	case SKILL_WIND_TORNADO:
+		if (collision_start) {
+			m_was_moving = false;
+			m_is_stopping = false;
+		} else {
+			m_was_moving = true;
+		}
+		break;
+	}
 }
 
 void APlayerCharacter::do_send(void* buff) {

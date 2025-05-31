@@ -20,6 +20,7 @@
 AMyWindCutter::AMyWindCutter()
 {
     SetElement(EClassType::CT_Wind);
+    SetType(SKILL_WIND_CUTTER);
 
     static ConstructorHelpers::FClassFinder<AMyBombAttack> BombBP(TEXT("/Game/Weapon/MyBombAttack.MyBombAttack_C"));
     if (BombBP.Succeeded())
@@ -76,7 +77,6 @@ void AMyWindCutter::Fire(FVector TargetLocation)
 {
     FVector LaunchDirection;
     
-    
     // 방향 계산
     if (Owner) {
         if ((TargetLocation - Owner->GetActorLocation()).Length() < 300.0f)
@@ -102,7 +102,7 @@ void AMyWindCutter::Fire(FVector TargetLocation)
 
 void AMyWindCutter::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-    if (!g_is_host || bIsHit) { return; } 
+    if (!g_is_host || bIsHit || (Owner == OtherActor)) { return; }
     
     if (OtherActor->IsA(AMySkillBase::StaticClass())) {
         // Skill - Skill Collision
@@ -112,14 +112,14 @@ void AMyWindCutter::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* 
             if (m_id < ptr->m_id) {
                 bIsHit = true;
 
-                collision_packet p;
-                p.packet_size = sizeof(collision_packet);
-                p.packet_type = C2H_COLLISION_PACKET;
-                p.collision_type = SKILL_SKILL_COLLISION;
-                p.attacker_id = m_id;
-                p.victim_id = ptr->m_id;
+                {
+                    CollisionEvent collision_event = SkillSkillEvent(m_id, ptr->GetType());
+                    std::lock_guard<std::mutex> lock(g_s_collision_events_l);
+                    g_s_collision_events.push(collision_event);
 
-                Cast<APlayerCharacter>(Owner)->do_send(&p);
+                    collision_event = SkillSkillEvent(ptr->GetId(), GetType());
+                    g_s_collision_events.push(collision_event);
+                }
             }
         }
     } else if (OtherActor->IsA(AEnemyCharacter::StaticClass())) {
@@ -130,22 +130,34 @@ void AMyWindCutter::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* 
             if (ptr->get_hp() > 0.0f) {
                 bIsHit = true;
 
-                collision_packet p;
-                p.packet_size = sizeof(collision_packet);
-                p.packet_type = C2H_COLLISION_PACKET;
-                p.collision_type = SKILL_MONSTER_COLLISION;
-                p.attacker_id = m_id;
-                p.victim_id = ptr->get_id();
+                {
+                    CollisionEvent collision_event = SkillMonsterEvent(m_id);
+                    std::lock_guard<std::mutex> lock(g_s_collision_events_l);
+                    g_s_collision_events.push(collision_event);
 
-                Cast<APlayerCharacter>(Owner)->do_send(&p);
+                    collision_event = MonsterSkillEvent(ptr->get_id(), GetType(), GetActorLocation());
+                    g_s_collision_events.push(collision_event);
+                }
+            }
+        }
+    } else if (OtherActor->IsA(APlayerCharacter::StaticClass())) {
+        // Skill - Player Collision
+        APlayerCharacter* ptr = Cast<APlayerCharacter>(OtherActor);
+
+        if (g_c_players[ptr->get_id()]) {
+            bIsHit = true;
+
+            {
+                CollisionEvent collision_event = SkillPlayerEvent(m_id, ptr->get_id());
+                std::lock_guard<std::mutex> lock(g_s_collision_events_l);
+                g_s_collision_events.push(collision_event);
             }
         }
     }
 }
 
-void AMyWindCutter::Overlap(AActor* OtherActor) {
-    if (WindCutterHitSound)
-    {
+void AMyWindCutter::Overlap(char skill_type) {
+    if (WindCutterHitSound) {
         UGameplayStatics::PlaySoundAtLocation(this, WindCutterHitSound, GetActorLocation(),2.0f);
     }
 
@@ -155,32 +167,26 @@ void AMyWindCutter::Overlap(AActor* OtherActor) {
     }
 
     if (g_is_host) {
-        if (OtherActor && OtherActor->IsA(AMyFireBall::StaticClass())) {
+        switch (skill_type) {
+        case SKILL_FIRE_BALL: {
             // BombAttack
             FVector SpawnLocation = GetActorLocation();
 
-            skill_create_packet p;
-            p.packet_size = sizeof(skill_create_packet);
-            p.packet_type = C2H_SKILL_CREATE_PACKET;
-            p.skill_type = SKILL_WIND_FIRE_BOMB;
-            p.old_skill_id = m_id;
-            p.new_skill_x = SpawnLocation.X; p.new_skill_y = SpawnLocation.Y; p.new_skill_z = SpawnLocation.Z;
-
-            Cast<APlayerCharacter>(Owner)->do_send(&p);
+            CollisionEvent collision_event = SkillCreateEvent(m_id, SKILL_WIND_FIRE_BOMB, SpawnLocation);
+            std::lock_guard<std::mutex> lock(g_s_collision_events_l);
+            g_s_collision_events.push(collision_event);
             return;
-        } else if (OtherActor && OtherActor->IsA(AMyIceArrow::StaticClass())) {
+        }
+
+        case SKILL_ICE_ARROW: {
             // BombAttack
             FVector SpawnLocation = GetActorLocation();
 
-            skill_create_packet p;
-            p.packet_size = sizeof(skill_create_packet);
-            p.packet_type = C2H_SKILL_CREATE_PACKET;
-            p.skill_type = SKILL_WIND_ICE_BOMB;
-            p.old_skill_id = m_id;
-            p.new_skill_x = SpawnLocation.X; p.new_skill_y = SpawnLocation.Y; p.new_skill_z = SpawnLocation.Z;
-
-            Cast<APlayerCharacter>(Owner)->do_send(&p);
+            CollisionEvent collision_event = SkillCreateEvent(m_id, SKILL_WIND_ICE_BOMB, SpawnLocation);
+            std::lock_guard<std::mutex> lock(g_s_collision_events_l);
+            g_s_collision_events.push(collision_event);
             return;
+        }
         }
     }
 
@@ -193,11 +199,11 @@ void AMyWindCutter::Overlap(AActor* OtherActor) {
     Destroy();
 }
 
-void AMyWindCutter::Overlap(ACharacter* OtherActor) {
-    if (WindCutterHitSound)
-    {
-        UGameplayStatics::PlaySoundAtLocation(this, WindCutterHitSound, GetActorLocation(),2.0f);
+void AMyWindCutter::Overlap(unsigned short object_id, bool collision_start) {
+    if (WindCutterHitSound) {
+        UGameplayStatics::PlaySoundAtLocation(this, WindCutterHitSound, GetActorLocation(), 2.0f);
     }
+
     // 나이아가라 파티클 시스템 비활성화
     if (WindCutterNiagaraComponent) {
         WindCutterNiagaraComponent->Deactivate();
@@ -207,7 +213,7 @@ void AMyWindCutter::Overlap(ACharacter* OtherActor) {
     if (WindCutterNiagaraComponent) {
         UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), HitEffectNiagaraSystem, GetActorLocation());
     }
-    
+
     // 충돌 상태 설정
     bIsHit = true;
 
@@ -272,20 +278,23 @@ void AMyWindCutter::MixBombAttack(EClassType MixType, unsigned short skill_id)
         g_c_skills[skill_id] = BombAttack;
         UGameplayStatics::FinishSpawningActor(BombAttack, SpawnTransform);
 
-        if (g_c_collisions.count(skill_id)) {
-            while (!g_c_collisions[skill_id].empty()) {
-                unsigned short other_id = g_c_collisions[skill_id].front();
-                g_c_collisions[skill_id].pop();
+        if (g_c_skill_collisions.count(skill_id)) {
+            while (!g_c_skill_collisions[skill_id].empty()) {
+                char skill_type = g_c_skill_collisions[skill_id].front();
+                g_c_skill_collisions[skill_id].pop();
 
-                if (g_c_skills.count(other_id)) {
-                    BombAttack->Overlap(g_c_skills[other_id]);
-                    g_c_skills[other_id]->Overlap(g_c_skills[skill_id]);
-                    UE_LOG(LogTemp, Error, TEXT("Skill %d and %d Collision Succeed!"), skill_id, other_id);
-                }
+                g_c_skills[skill_id]->Overlap(skill_type);
             }
         }
 
-        UE_LOG(LogTemp, Warning, TEXT("BombAttack spawned at location: %s with MixType: %d"), *SpawnLocation.ToString(), static_cast<int32>(MixType));
+        if (g_c_object_collisions.count(skill_id)) {
+            while (!g_c_object_collisions[skill_id].empty()) {
+                unsigned short object_id = g_c_object_collisions[skill_id].front();
+                g_c_object_collisions[skill_id].pop();
+
+                g_c_skills[skill_id]->Overlap(object_id);
+            }
+        }
     } else {
         UE_LOG(LogTemp, Error, TEXT("Failed to spawn BombAttack at location: %s"), *SpawnLocation.ToString());
     }

@@ -78,15 +78,22 @@ void AMyIceWeapon::ShootIceArrow(FVector FirePoint)
         TempIceArrow->SetID(skill_id);
 
         g_c_skills.emplace(skill_id, TempIceArrow);
-        if (g_c_collisions.count(skill_id)) {
-            while (!g_c_collisions[skill_id].empty()) {
-                unsigned short other_id = g_c_collisions[skill_id].front();
-                g_c_collisions[skill_id].pop();
 
-                if (g_c_skills.count(other_id)) {
-                    TempIceArrow->Overlap(g_c_skills[other_id]);
-                    g_c_skills[other_id]->Overlap(g_c_skills[skill_id]);
-                }
+        if (g_c_skill_collisions.count(skill_id)) {
+            while (!g_c_skill_collisions[skill_id].empty()) {
+                char skill_type = g_c_skill_collisions[skill_id].front();
+                g_c_skill_collisions[skill_id].pop();
+
+                g_c_skills[skill_id]->Overlap(skill_type);
+            }
+        }
+
+        if (g_c_object_collisions.count(skill_id)) {
+            while (!g_c_object_collisions[skill_id].empty()) {
+                unsigned short object_id = g_c_object_collisions[skill_id].front();
+                g_c_object_collisions[skill_id].pop();
+
+                g_c_skills[skill_id]->Overlap(object_id);
             }
         }
 
@@ -146,15 +153,21 @@ void AMyIceWeapon::SpawnIceSkill(FVector Location, FRotator Rotation)
         g_c_skills.emplace(skill_id, IceWall);
         UGameplayStatics::FinishSpawningActor(IceWall, SpawnTransform);
 
-        if (g_c_collisions.count(skill_id)) {
-            while (!g_c_collisions[skill_id].empty()) {
-                unsigned short other_id = g_c_collisions[skill_id].front();
-                g_c_collisions[skill_id].pop();
+        if (g_c_skill_collisions.count(skill_id)) {
+            while (!g_c_skill_collisions[skill_id].empty()) {
+                char skill_type = g_c_skill_collisions[skill_id].front();
+                g_c_skill_collisions[skill_id].pop();
 
-                if (g_c_skills.count(other_id)) {
-                    IceWall->Overlap(g_c_skills[other_id]);
-                    g_c_skills[other_id]->Overlap(g_c_skills[skill_id]);
-                }
+                g_c_skills[skill_id]->Overlap(skill_type);
+            }
+        }
+
+        if (g_c_object_collisions.count(skill_id)) {
+            while (!g_c_object_collisions[skill_id].empty()) {
+                unsigned short object_id = g_c_object_collisions[skill_id].front();
+                g_c_object_collisions[skill_id].pop();
+
+                g_c_skills[skill_id]->Overlap(object_id);
             }
         }
 

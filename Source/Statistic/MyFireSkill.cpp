@@ -17,6 +17,7 @@
 AMyFireSkill::AMyFireSkill()
 {
     SetElement(EClassType::CT_Fire);
+    SetType(SKILL_FIRE_WALL);
 
     // 콜리전 컴포넌트 초기화
     CollisionComponent = CreateDefaultSubobject<UBoxComponent>(TEXT("CollisionComponent"));
@@ -101,15 +102,14 @@ void AMyFireSkill::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* O
 
             if (g_c_skills.count(ptr->m_id)) {
                 if (m_id < ptr->m_id) {
-                    collision_packet p;
-                    p.packet_size = sizeof(collision_packet);
-                    p.packet_type = C2H_COLLISION_PACKET;
-                    p.collision_type = SKILL_SKILL_COLLISION;
-                    p.attacker_id = m_id;
-                    p.victim_id = ptr->m_id;
+                    {
+                        CollisionEvent collision_event = SkillSkillEvent(m_id, ptr->GetType());
+                        std::lock_guard<std::mutex> lock(g_s_collision_events_l);
+                        g_s_collision_events.push(collision_event);
 
-                    Cast<APlayerCharacter>(Owner)->do_send(&p);
-                    UE_LOG(LogTemp, Warning, TEXT("Wall ID : %d"), m_id);
+                        collision_event = SkillSkillEvent(ptr->GetId(), GetType());
+                        g_s_collision_events.push(collision_event);
+                    }
                 }
             }
         } else if (OtherActor->IsA(AEnemyCharacter::StaticClass())) {
@@ -118,14 +118,11 @@ void AMyFireSkill::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* O
 
             if (g_c_monsters.count(ptr->get_id())) {
                 if (ptr->get_hp() > 0.0f) {
-                    collision_packet p;
-                    p.packet_size = sizeof(collision_packet);
-                    p.packet_type = C2H_COLLISION_PACKET;
-                    p.collision_type = SKILL_MONSTER_COLLISION;
-                    p.attacker_id = m_id;
-                    p.victim_id = ptr->get_id();
-
-                    Cast<APlayerCharacter>(Owner)->do_send(&p);
+                    {
+                        CollisionEvent collision_event = MonsterSkillEvent(ptr->get_id(), GetType(), GetActorLocation());
+                        std::lock_guard<std::mutex> lock(g_s_collision_events_l);
+                        g_s_collision_events.push(collision_event);
+                    }
                 }
             }
         }
@@ -134,13 +131,15 @@ void AMyFireSkill::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* O
     }
 }
 
-void AMyFireSkill::Overlap(AActor* OtherActor) {
-    if (OtherActor && OtherActor->IsA(AMyWindSkill::StaticClass())) {
+void AMyFireSkill::Overlap(char skill_type) {
+    switch (skill_type) {
+    case SKILL_WIND_TORNADO:
         Destroy();
+        break;
     }
 }
 
-void AMyFireSkill::Overlap(ACharacter* OtherActor) {
+void AMyFireSkill::Overlap(unsigned short object_id, bool collision_start) {
 
 }
 

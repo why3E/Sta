@@ -14,8 +14,6 @@ UBTTask_Chase::UBTTask_Chase() {
 }
 
 EBTNodeResult::Type UBTTask_Chase::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) {
-    UE_LOG(LogTemp, Error, TEXT("Chase"));
-
     return EBTNodeResult::InProgress;
 }
 
@@ -32,7 +30,16 @@ void UBTTask_Chase::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemor
     float dist = to_target.Size2D();
 
     if (dist < 100.0f) {
+        Cast<AEnemyCharacter>(Pawn)->MeleeAttack();
+
         OwnerComp.GetBlackboardComponent()->ClearValue(TEXT("TargetLocation"));
+
+        {
+            MonsterEvent monster_event = AttackEvent(Cast<AEnemyCharacter>(Pawn)->get_id());
+            std::lock_guard<std::mutex> lock(g_s_monster_events_l);
+            g_s_monster_events.push(monster_event);
+        }
+
         FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded);
         return;
     } 

@@ -12,8 +12,15 @@ UBTTask_Return::UBTTask_Return() {
 }
 
 EBTNodeResult::Type UBTTask_Return::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) {
-    UE_LOG(LogTemp, Error, TEXT("Return"));
+    AAIController* AICon = OwnerComp.GetAIOwner();
+    APawn* Pawn = AICon ? AICon->GetPawn() : nullptr;
+
+    if (!Pawn) { return EBTNodeResult::Failed; }
+
+    Cast<AEnemyCharacter>(Pawn)->StartHeal();
+
     StartLocation = OwnerComp.GetBlackboardComponent()->GetValueAsVector(TEXT("StartLocation"));
+
     return EBTNodeResult::InProgress;
 }
 
@@ -29,7 +36,10 @@ void UBTTask_Return::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemo
     float dist = to_target.Size2D();
 
     if (dist < 50.0f) {
+        Cast<AEnemyCharacter>(Pawn)->StopHeal();
+
         OwnerComp.GetBlackboardComponent()->ClearValue(TEXT("bIsReturning"));
+
         FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded);
         return;
     }

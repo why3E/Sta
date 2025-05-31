@@ -342,6 +342,23 @@ void process_monster_event() {
 			break;
 		}
 
+		case MonsterEventType::Heal: {
+			hc_monster_heal_packet p;
+			p.packet_size = sizeof(hc_monster_heal_packet);
+			p.packet_type = H2C_MONSTER_HEAL_PACKET;
+			p.id = monster_event.data.heal.id;
+			p.heal_amount = monster_event.data.heal.heal_amount;
+
+			for (char client_id = 0; client_id < MAX_CLIENTS; ++client_id) {
+				if (client_id) {
+					if (g_s_clients[client_id]) {
+						g_s_clients[client_id]->do_send(&p);
+					}
+				}
+			}
+			break;
+		}
+
 		case MonsterEventType::Respawn: {
 			hc_monster_respawn_packet p;
 			p.packet_size = sizeof(hc_monster_respawn_packet);
@@ -1320,6 +1337,18 @@ void c_process_packet(char* packet) {
 			if (nullptr == g_c_monsters[p->id]) { break; }
 
 			Cast<AEnemyCharacter>(g_c_monsters[p->id])->MeleeAttack();
+		}
+
+		break;
+	}
+
+	case H2C_MONSTER_HEAL_PACKET: {
+		hc_monster_heal_packet* p = reinterpret_cast<hc_monster_heal_packet*>(packet);
+
+		if (g_c_monsters.count(p->id)) {
+			if (nullptr == g_c_monsters[p->id]) { break; }
+
+			Cast<AEnemyCharacter>(g_c_monsters[p->id])->Heal(p->heal_amount);
 		}
 
 		break;

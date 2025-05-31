@@ -54,6 +54,7 @@ private:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats", Meta = (AllowPrivateAccess = "true"))
     float HP = 100.0f;
     float MaxHP = 100.0f;
+    FTimerHandle HealTimerHandle;
 
     UPROPERTY()
     UProceduralMeshComponent* CachedOtherHalfMesh = nullptr;
@@ -65,6 +66,11 @@ public:
     void set_hp(float hp) { HP = hp; }
     float get_hp() { return HP; }
     bool get_is_attacking() { return bIsAttacking; }
+
+    void StartHeal();
+    void StopHeal();
+    void HealTick();
+    void Heal(float HealAmount);
 
 public:
     unsigned short m_id;

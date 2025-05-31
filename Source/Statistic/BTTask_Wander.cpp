@@ -13,8 +13,6 @@ UBTTask_Wander::UBTTask_Wander() {
 }
 
 EBTNodeResult::Type UBTTask_Wander::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) {
-    UE_LOG(LogTemp, Error, TEXT("Wander"));
-
     AAIController* AICon = OwnerComp.GetAIOwner();
     APawn* Pawn = AICon ? AICon->GetPawn() : nullptr;
 

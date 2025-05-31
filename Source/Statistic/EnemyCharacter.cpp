@@ -119,7 +119,7 @@ void AEnemyCharacter::ReceiveSkillHit(const FSkillInfo& Info, AActor* Causer)
 
     UE_LOG(LogTemp, Warning, TEXT("Damage: %f, HP: %f"), Info.Damage, HP);
 
-    if (HP <= 0.f)
+    if (HP <= 0.0f)
     {
         Die();
     }
@@ -133,6 +133,7 @@ void AEnemyCharacter::Die()
     GetCapsuleComponent()->SetCanEverAffectNavigation(false);
 
     GetMesh()->SetVisibility(false);
+
     CopySkeletalMeshToProcedural(0);
     ProcMeshComponent->SetVisibility(true);
     ProcMeshComponent->SetSimulatePhysics(true);
@@ -145,19 +146,18 @@ void AEnemyCharacter::Die()
     if (AICon) {
         AICon->StopMovement();
 
-        if (AICon->BrainComponent)
-        {
+        if (AICon->BrainComponent) {
             AICon->BrainComponent->StopLogic(TEXT("Character Died"));
         }
     }
 
     if (g_is_host) {
-        GetWorldTimerManager().SetTimer(RespawnTimerHandle, this, &AEnemyCharacter::Respawn, 10.0f, false);
+        GetWorldTimerManager().SetTimer(RespawnTimerHandle, this, &AEnemyCharacter::Respawn, 2.5f, false);
     }
 }
 
 void AEnemyCharacter::Reset() {
-    HP = 100.f;
+    HP = MaxHP;
 
     // Reset Collision
     GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
@@ -183,12 +183,14 @@ void AEnemyCharacter::Respawn() {
     AAIController* AICon = Cast<AAIController>(GetController());
 
     UBlackboardComponent* BB = AICon->GetBlackboardComponent();
+
     SetActorLocation(BB->GetValueAsVector(TEXT("StartLocation")));
 
     UBehaviorTree* BTAsset = LoadObject<UBehaviorTree>(
         nullptr,
         TEXT("/Game/Slime/AI/BT_EnemyAI.BT_EnemyAI")
     );
+
     AICon->RunBehaviorTree(BTAsset);
 
     {
@@ -402,6 +404,34 @@ void AEnemyCharacter::SliceProcMesh(FVector PlaneNormal)
 
     // 나중에 제거 위해 저장
     CachedOtherHalfMesh = OtherHalfMesh;
+}
+
+void AEnemyCharacter::StartHeal() {
+    if (!GetWorldTimerManager().IsTimerActive(HealTimerHandle)) {
+        if (HP < MaxHP) {
+            GetWorldTimerManager().SetTimer(HealTimerHandle, this, &AEnemyCharacter::HealTick, 0.1f, true);
+        }
+    }
+}
+
+void AEnemyCharacter::StopHeal() {
+    GetWorldTimerManager().ClearTimer(HealTimerHandle);
+}
+
+void AEnemyCharacter::HealTick() {
+    Heal(10.0f);
+
+    MonsterEvent monster_event = HealEvent(m_id, 10.0f);
+    std::lock_guard<std::mutex> lock(g_s_monster_events_l);
+    g_s_monster_events.push(monster_event);
+}
+
+void AEnemyCharacter::Heal(float HealAmount) {
+    HP += HealAmount;
+
+    if (HP > MaxHP) {
+        HP = MaxHP;
+    }
 }
 
 void AEnemyCharacter::Overlap(char skill_type, FVector skill_location) {

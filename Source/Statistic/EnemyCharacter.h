@@ -28,6 +28,7 @@ public:
     void MeleeAttack();
     UFUNCTION(BlueprintPure, Category = "Combat")
     bool GetIsAttacking() const { return bIsAttacking; }
+    
     UFUNCTION()
     void OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 

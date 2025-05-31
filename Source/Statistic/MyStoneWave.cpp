@@ -71,8 +71,6 @@ void AMyStoneWave::Tick(float DeltaTime)
 	if (StoneWaveNiagaraComponent && !MovementComponent->Velocity.IsNearlyZero())
 	{
 		FVector NiagaraLoc = NewLocation;
-
-		// 🔥 이동 방향 기준으로 회전 계산
 		FVector MoveDir = MovementComponent->Velocity.GetSafeNormal();
 		FRotator NiagaraRotation = MoveDir.Rotation();
 		NiagaraRotation.Pitch = 0.f;  // 바닥 기준으로만 회전

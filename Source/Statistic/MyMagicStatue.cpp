@@ -36,6 +36,7 @@ void AMyMagicStatue::BeginPlay()
     for (TActorIterator<AMyMagicStatue> It(World); It; ++It)
     {
         AMyMagicStatue* Statue = *It;
+
         if (!Statue) continue;
 
         // 가장 작은 번호 찾기
@@ -70,7 +71,8 @@ void AMyMagicStatue::OnBeginOverlapCollision(UPrimitiveComponent* OverlappedComp
     if (!OtherActor || cachedPlayer) return;
 
     APlayerCharacter* Player = Cast<APlayerCharacter>(OtherActor);
-    if (!Player) return;
+
+    if (!Player || !Player->get_is_player()) return;
 
     cachedPlayer = Player;
     cachedController = Cast<APlayerController>(Player->GetController());
@@ -242,6 +244,13 @@ void AMyMagicStatue::PerformTeleport()
 
     TargetLocation.Z = FinalZ + 100.f;
     cachedPlayer->SetActorLocation(TargetLocation);
+
+    player_teleport_packet p;
+    p.packet_size = sizeof(player_teleport_packet);
+    p.packet_type = C2H_PLAYER_TELEPORT_PACKET;
+    p.id = cachedPlayer->get_id();
+    p.x = TargetLocation.X; p.y = TargetLocation.Y; p.z = TargetLocation.Z;
+    cachedPlayer->do_send(&p);
 
     UE_LOG(LogTemp, Warning, TEXT("Player teleported."));
 }

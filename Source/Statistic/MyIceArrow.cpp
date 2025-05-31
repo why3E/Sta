@@ -1,4 +1,5 @@
 #include "MyIceArrow.h"
+#include "MyMagicStatue.h"
 #include "EnemyCharacter.h"
 #include "PlayerCharacter.h"
 #include "Components/SphereComponent.h"
@@ -136,6 +137,15 @@ void AMyIceArrow::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* Ot
                 std::lock_guard<std::mutex> lock(g_s_collision_events_l);
                 g_s_collision_events.push(collision_event);
             }
+        }
+    } else if (OtherActor->IsA(AMyMagicStatue::StaticClass())) {
+        // Skill - Object Collision
+        bIsHit = true;
+
+        {
+            CollisionEvent collision_event = SkillObjectEvent(m_id);
+            std::lock_guard<std::mutex> lock(g_s_collision_events_l);
+            g_s_collision_events.push(collision_event);
         }
     }
 }

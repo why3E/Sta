@@ -254,7 +254,7 @@ public:
 	void do_send(void* buff);
 
 	char get_id() { return m_id; }
-	float get_yaw() { return m_yaw; }
+	float get_yaw() { return GetControlRotation().Yaw; }
 	FVector get_velocity() { return m_velocity; }
 	char get_hp() { return m_hp; }
 	char get_current_element(bool is_left) { return is_left ? m_current_element[0] : m_current_element[1]; }

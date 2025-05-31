@@ -24,6 +24,9 @@ extern std::queue<MonsterEvent> g_s_monster_events;
 extern std::mutex g_s_collision_events_l;
 extern std::queue<CollisionEvent> g_s_collision_events;
 
+extern std::mutex g_s_events_l;
+extern std::queue<Event> g_s_events;
+
 //////////////////////////////////////////////////
 // EXP_OVER
 class EXP_OVER {

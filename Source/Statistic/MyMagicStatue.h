@@ -1,5 +1,6 @@
 #pragma once
 
+#include "SESSION.h"
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "InteractableInterface.h"
@@ -43,7 +44,7 @@ public:
     TSubclassOf<UMyFadeWidget> fadeWidget;
 
     UPROPERTY(EditAnywhere, Category="Teleport")
-    int32 StatueNumber = 0;
+    int32 StatueNumber = STATUE_ID_START;
 
 protected:
     UFUNCTION()
@@ -73,7 +74,6 @@ private:
     UUserWidget* interactionWidgetInstance = nullptr;
     UMyUserSelectorUI* selectorWidgetInstance = nullptr;
     UMyFadeWidget* fadeWidgetInstance = nullptr;
-
 	
     // 멤버 변수로 다음 석상과 첫 번째 석상 저장
     AMyMagicStatue* NextStatue = nullptr;

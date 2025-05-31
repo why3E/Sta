@@ -3,6 +3,7 @@
 #include "MyWindCutter.h"
 #include "MyFireBall.h"
 #include "MyIceArrow.h"
+#include "MyMagicStatue.h"
 #include "EnemyCharacter.h"
 #include "PlayerCharacter.h"
 #include "Kismet/GameplayStatics.h"
@@ -153,6 +154,15 @@ void AMyWindCutter::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* 
                 g_s_collision_events.push(collision_event);
             }
         }
+    } else if (OtherActor->IsA(AMyMagicStatue::StaticClass())) {
+        // Skill - Object Collision
+        bIsHit = true;
+
+        {
+            CollisionEvent collision_event = SkillObjectEvent(m_id);
+            std::lock_guard<std::mutex> lock(g_s_collision_events_l);
+            g_s_collision_events.push(collision_event);
+        }
     }
 }
 
@@ -172,9 +182,9 @@ void AMyWindCutter::Overlap(char skill_type) {
             // BombAttack
             FVector SpawnLocation = GetActorLocation();
 
-            CollisionEvent collision_event = SkillCreateEvent(m_id, SKILL_WIND_FIRE_BOMB, SpawnLocation);
-            std::lock_guard<std::mutex> lock(g_s_collision_events_l);
-            g_s_collision_events.push(collision_event);
+            Event event = SkillCreateEvent(m_id, SKILL_WIND_FIRE_BOMB, SpawnLocation);
+            std::lock_guard<std::mutex> lock(g_s_events_l);
+            g_s_events.push(event);
             return;
         }
 
@@ -182,9 +192,9 @@ void AMyWindCutter::Overlap(char skill_type) {
             // BombAttack
             FVector SpawnLocation = GetActorLocation();
 
-            CollisionEvent collision_event = SkillCreateEvent(m_id, SKILL_WIND_ICE_BOMB, SpawnLocation);
-            std::lock_guard<std::mutex> lock(g_s_collision_events_l);
-            g_s_collision_events.push(collision_event);
+            Event event = SkillCreateEvent(m_id, SKILL_WIND_ICE_BOMB, SpawnLocation);
+            std::lock_guard<std::mutex> lock(g_s_events_l);
+            g_s_events.push(event);
             return;
         }
         }

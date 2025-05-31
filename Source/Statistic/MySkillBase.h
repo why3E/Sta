@@ -26,7 +26,7 @@ public:
 	~AMySkillBase();
 
 	virtual void Overlap(char skill_type);
-	virtual void Overlap(unsigned short object_id, bool collision_start);
+	virtual void Overlap(unsigned short object_id, bool collision_start = true);
 
 	UPROPERTY()
 	uint16 m_id;

@@ -71,7 +71,7 @@ void AMyPlayerController::InitSocket()
 	g_c_object_collisions.clear();
 
 	g_s_skill_id = 0;
-	g_s_monster_id = MAX_CLIENTS;
+	g_s_monster_id = MONSTER_ID_START;
 
 	g_c_remained = 0;
 
@@ -305,8 +305,8 @@ void process_monster_event() {
 		MonsterEvent monster_event = g_s_monster_events.front();
 		g_s_monster_events.pop();
 
-		switch (monster_event.event_type) {
-		case EventType::Target: {
+		switch (monster_event.monster_event_type) {
+		case MonsterEventType::Target: {
 			hc_monster_move_packet p;
 			p.packet_size = sizeof(hc_monster_move_packet);
 			p.packet_type = H2C_MONSTER_MOVE_PACKET;
@@ -329,7 +329,7 @@ void process_monster_event() {
 			break;
 		}
 
-		case EventType::Attack: {
+		case MonsterEventType::Attack: {
 			hc_monster_attack_packet p;
 			p.packet_size = sizeof(hc_monster_attack_packet);
 			p.packet_type = H2C_MONSTER_ATTACK_PACKET;
@@ -345,7 +345,7 @@ void process_monster_event() {
 			break;
 		}
 
-		case EventType::Respawn: {
+		case MonsterEventType::Respawn: {
 			hc_monster_respawn_packet p;
 			p.packet_size = sizeof(hc_monster_respawn_packet);
 			p.packet_type = H2C_MONSTER_RESPAWN_PACKET;
@@ -418,14 +418,11 @@ void process_collision_event() {
 			break;
 		}
 
-		case CollisionType::SkillCreate: {
-			skill_create_packet p;
-			p.packet_size = sizeof(skill_create_packet);
-			p.packet_type = H2C_SKILL_CREATE_PACKET;
-			p.skill_type = collision_event.data.skill_create.skill_type;
-			p.old_skill_id = collision_event.data.skill_create.skill_id;
-			p.new_skill_id = g_s_skill_id++;
-			p.new_skill_x = collision_event.data.skill_create.skill_location.X; p.new_skill_y = collision_event.data.skill_create.skill_location.Y; p.new_skill_z = collision_event.data.skill_create.skill_location.Z;
+		case CollisionType::SkillObject: {
+			skill_object_collision_packet p;
+			p.packet_size = sizeof(skill_object_collision_packet);
+			p.packet_type = H2C_SKILL_OBJECT_COLLISION_PACKET;
+			p.skill_id = collision_event.data.skill_player.skill_id;
 
 			for (char client_id = 0; client_id < MAX_CLIENTS; ++client_id) {
 				if (g_s_clients[client_id]) {
@@ -458,6 +455,34 @@ void process_collision_event() {
 			p.player_id = collision_event.data.player_skill.player_id;
 			p.skill_type = collision_event.data.player_skill.skill_type;
 			p.collision_start = collision_event.collision_start;
+
+			for (char client_id = 0; client_id < MAX_CLIENTS; ++client_id) {
+				if (g_s_clients[client_id]) {
+					g_s_clients[client_id]->do_send(&p);
+				}
+			}
+			break;
+		}
+		}
+	}
+}
+
+void process_event() {
+	std::lock_guard<std::mutex> lock(g_s_events_l);
+
+	while (!g_s_events.empty()) {
+		Event event = g_s_events.front();
+		g_s_events.pop();
+
+		switch (event.event_type) {
+		case EventType::SkillCreate: {
+			skill_create_packet p;
+			p.packet_size = sizeof(skill_create_packet);
+			p.packet_type = H2C_SKILL_CREATE_PACKET;
+			p.skill_type = event.data.skill_create.skill_type;
+			p.old_skill_id = event.data.skill_create.skill_id;
+			p.new_skill_id = g_s_skill_id++;
+			p.new_skill_x = event.data.skill_create.skill_location.X; p.new_skill_y = event.data.skill_create.skill_location.Y; p.new_skill_z = event.data.skill_create.skill_location.Z;
 
 			for (char client_id = 0; client_id < MAX_CLIENTS; ++client_id) {
 				if (g_s_clients[client_id]) {
@@ -511,6 +536,7 @@ void server_thread() {
 		if (16 <= exec_ms) {
 			process_monster_event();
 			process_collision_event();
+			process_event();
 
 			last_packet_t = std::chrono::system_clock::now();
 		}
@@ -561,7 +587,7 @@ void accept_thread() {
 					p.packet_type = H2C_PLAYER_INFO_PACKET;
 					p.id = client_id;
 					p.yaw = 0.0f;
-					p.x = 37'975.0f; p.y = -40'000.0f; p.z = 950.0f;
+					p.x = 37'975.0f + (client_id * 250.0f); p.y = -40'000.0f; p.z = 950.0f;
 					p.vx = 0.0f; p.vy = 0.0f; p.vz = 0.0f;
 					p.hp = 100;
 					p.element[0] = static_cast<char>(EClassType::CT_Wind);
@@ -711,6 +737,20 @@ void h_process_packet(char* packet) {
 	case C2H_PLAYER_JUMP_PACKET: {
 		player_jump_packet* p = reinterpret_cast<player_jump_packet*>(packet);
 		p->packet_type = H2C_PLAYER_JUMP_PACKET;
+
+		for (char other_id = 0; other_id < MAX_CLIENTS; ++other_id) {
+			if (p->id != other_id) {
+				if (g_s_clients[other_id]) {
+					g_s_clients[other_id]->do_send(p);
+				}
+			}
+		}
+		break;
+	}
+
+	case C2H_PLAYER_TELEPORT_PACKET: {
+		player_teleport_packet* p = reinterpret_cast<player_teleport_packet*>(packet);
+		p->packet_type = H2C_PLAYER_TELEPORT_PACKET;
 
 		for (char other_id = 0; other_id < MAX_CLIENTS; ++other_id) {
 			if (p->id != other_id) {
@@ -879,8 +919,8 @@ void c_process_packet(char* packet) {
 			MyPlayer->set_velocity(p->vx, p->vy, p->vz);
 			MyPlayer->set_is_player(true);
 			MyPlayer->set_hp(p->hp);
-			MyPlayer->set_current_element(p->element[0], true);
-			MyPlayer->set_current_element(p->element[1], false);
+			MyPlayer->change_element(p->element[0], true);
+			MyPlayer->change_element(p->element[1], false);
 
 			g_c_players[p->id] = MyPlayer;
 		}
@@ -945,7 +985,7 @@ void c_process_packet(char* packet) {
 
 		UClass* AnimClass = LoadClass<UAnimInstance>(
 			nullptr,
-			TEXT("/Game/player_anim/MyPlayerAnim.MyPlayerAnim_C")
+			TEXT("/Game/player_anim/New/BPA_ElfCharacter.BPA_ElfCharacter_C")
 		);
 
 		if (AnimClass)
@@ -1025,6 +1065,15 @@ void c_process_packet(char* packet) {
 		break;
 	}
 
+	case H2C_PLAYER_TELEPORT_PACKET: {
+		player_teleport_packet* p = reinterpret_cast<player_teleport_packet*>(packet);
+
+		if (nullptr == g_c_players[p->id]) { break; }
+
+		g_c_players[p->id]->SetActorLocation(FVector(p->x, p->y, p->z));
+		break;
+	}
+
 	case H2C_PLAYER_READY_SKILL_PACKET: {
 		player_ready_skill_packet* p = reinterpret_cast<player_ready_skill_packet*>(packet);
 
@@ -1079,7 +1128,7 @@ void c_process_packet(char* packet) {
 		skill_monster_collision_packet* p = reinterpret_cast<skill_monster_collision_packet*>(packet);
 		if (g_c_skills.count(p->skill_id)) {
 			if (nullptr != g_c_skills[p->skill_id]) {
-				g_c_skills[p->skill_id]->Overlap(INVALID_OBJECT_ID, TRUE);
+				g_c_skills[p->skill_id]->Overlap(INVALID_OBJECT_ID);
 			}
 		} else {
 			g_c_object_collisions[p->skill_id].push(INVALID_OBJECT_ID);
@@ -1095,6 +1144,18 @@ void c_process_packet(char* packet) {
 			}
 		} else {
 			g_c_object_collisions[p->skill_id].push(static_cast<unsigned short>(p->player_id));
+		}
+		break;
+	}
+
+	case H2C_SKILL_OBJECT_COLLISION_PACKET: {
+		skill_object_collision_packet* p = reinterpret_cast<skill_object_collision_packet*>(packet);
+		if (g_c_skills.count(p->skill_id)) {
+			if (nullptr != g_c_skills[p->skill_id]) {
+				g_c_skills[p->skill_id]->Overlap(INVALID_OBJECT_ID);
+			}
+		} else {
+			g_c_object_collisions[p->skill_id].push(INVALID_OBJECT_ID);
 		}
 		break;
 	}

@@ -172,17 +172,20 @@ APlayerCharacter::APlayerCharacter()
     {
         FireWeaponBP = FireWeaponBPRef.Class;
     }
+
 	static ConstructorHelpers::FClassFinder<AMyWeapon> WindWeaponBPRef(TEXT("/Game/Weapon/BP_WindWeapon.BP_WindWeapon_C"));
     if (WindWeaponBPRef.Succeeded())
     {
         WindWeaponBP = WindWeaponBPRef.Class;
     }
+
     // StoneWeaponBP 초기화
     static ConstructorHelpers::FClassFinder<AMyWeapon> StoneWeaponBPRef(TEXT("/Game/Weapon/BP_StoneWeapon.BP_StoneWeapon_C"));
     if (StoneWeaponBPRef.Succeeded())
     {
         StoneWeaponBP = StoneWeaponBPRef.Class;
     }
+
 	static ConstructorHelpers::FClassFinder<AMyWeapon> IceWeaponBPRef(TEXT("/Game/Weapon/BP_IceWeapon.BP_IceWeapon_C"));
     if (IceWeaponBPRef.Succeeded())
     {
@@ -1460,6 +1463,9 @@ void APlayerCharacter::rotate(float yaw) {
 	FRotator NewRotation = GetActorRotation();
 	NewRotation.Yaw = yaw;
 	SetActorRotation(NewRotation);
+
+	UE_LOG(LogTemp, Warning, TEXT("[Client] rotate : %.2f"), yaw);
+
 }
 
 void APlayerCharacter::Overlap(char skill_type, bool collision_start) {

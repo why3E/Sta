@@ -31,24 +31,28 @@ constexpr char H2C_PLAYER_MOVE_PACKET = 21;
 constexpr char H2C_PLAYER_STOP_PACKET = 22;
 constexpr char H2C_PLAYER_ROTATE_PACKET = 23;
 constexpr char H2C_PLAYER_JUMP_PACKET = 24;
-constexpr char H2C_PLAYER_READY_SKILL_PACKET = 25;
-constexpr char H2C_PLAYER_CHANGE_ELEMENT_PACKET = 26;
+constexpr char H2C_PLAYER_TELEPORT_PACKET = 25;
+constexpr char H2C_PLAYER_READY_SKILL_PACKET = 26;
+constexpr char H2C_PLAYER_CHANGE_ELEMENT_PACKET = 27;
 constexpr char H2C_SKILL_VECTOR_PACKET = 29;
 constexpr char H2C_SKILL_ROTATOR_PACKET = 30;
 
 constexpr char H2C_SKILL_SKILL_COLLISION_PACKET = 60;
 constexpr char H2C_SKILL_MONSTER_COLLISION_PACKET = 61;
 constexpr char H2C_SKILL_PLAYER_COLLISION_PACKET = 62;
-constexpr char H2C_SKILL_CREATE_PACKET = 63;
+constexpr char H2C_SKILL_OBJECT_COLLISION_PACKET = 63;
 constexpr char H2C_MONSTER_SKILL_COLLISION_PACKET = 64;
 constexpr char H2C_PLAYER_SKILL_COLLISION_PACKET = 65;
+
+constexpr char H2C_SKILL_CREATE_PACKET = 70;
 
 constexpr char C2H_PLAYER_MOVE_PACKET = 41;
 constexpr char C2H_PLAYER_STOP_PACKET = 42;
 constexpr char C2H_PLAYER_ROTATE_PACKET = 43;
 constexpr char C2H_PLAYER_JUMP_PACKET = 44;
-constexpr char C2H_PLAYER_READY_SKILL_PACKET = 45;
-constexpr char C2H_PLAYER_CHANGE_ELEMENT_PACKET = 46;
+constexpr char C2H_PLAYER_TELEPORT_PACKET = 45;
+constexpr char C2H_PLAYER_READY_SKILL_PACKET = 46;
+constexpr char C2H_PLAYER_CHANGE_ELEMENT_PACKET = 47;
 constexpr char C2H_SKILL_VECTOR_PACKET = 49;
 constexpr char C2H_SKILL_ROTATOR_PACKET = 50;
 
@@ -74,10 +78,12 @@ constexpr char SKILL_STONE_SKILL = 22;
 constexpr char SKILL_ICE_ARROW = 31;
 constexpr char SKILL_ICE_WALL = 32;
 
-constexpr unsigned short INVALID_OBJECT_ID = 65535;
-
 constexpr char MAX_CLIENTS = 4;
 constexpr unsigned short MAX_MONSTERS_PER_PACKET = 5;
+
+constexpr int32 STATUE_ID_START = 100;
+constexpr unsigned short MONSTER_ID_START = 1000;
+constexpr unsigned short INVALID_OBJECT_ID = 65535;
 
 //////////////////////////////////////////////////
 // Monster
@@ -88,7 +94,7 @@ struct monster_init_info {
 	float target_x; float target_y; float target_z;
 };
 
-enum class EventType {
+enum class MonsterEventType {
 	Target,
 	Attack,
 	Respawn
@@ -109,7 +115,7 @@ struct RespawnEvent {
 };
 
 struct MonsterEvent {
-	EventType event_type;
+	MonsterEventType monster_event_type;
 
 	union Data {
 		TargetEvent target;
@@ -121,31 +127,31 @@ struct MonsterEvent {
 	} data;
 
 	MonsterEvent(const TargetEvent& e) {
-		event_type = EventType::Target;
+		monster_event_type = MonsterEventType::Target;
 		new (&data.target) TargetEvent(e);
 	}
 
 	MonsterEvent(const AttackEvent& e) {
-		event_type = EventType::Attack;
+		monster_event_type = MonsterEventType::Attack;
 		new (&data.attack) AttackEvent(e);
 	}
 
 	MonsterEvent(const RespawnEvent& e) {
-		event_type = EventType::Respawn;
+		monster_event_type = MonsterEventType::Respawn;
 		new (&data.attack) RespawnEvent(e);
 	}
 
 	~MonsterEvent() {
-		switch (event_type) {
-		case EventType::Target:
+		switch (monster_event_type) {
+		case MonsterEventType::Target:
 			data.target.~TargetEvent();
 			break;
 
-		case EventType::Attack:
+		case MonsterEventType::Attack:
 			data.attack.~AttackEvent();
 			break;
 
-		case EventType::Respawn:
+		case MonsterEventType::Respawn:
 			data.respawn.~RespawnEvent();
 			break;
 		}
@@ -158,7 +164,7 @@ enum class CollisionType {
 	SkillSkill,
 	SkillMonster,
 	SkillPlayer,
-	SkillCreate,
+	SkillObject,
 	MonsterSkill,
 	PlayerSkill
 };
@@ -177,10 +183,8 @@ struct SkillPlayerEvent {
 	char player_id;
 };
 
-struct SkillCreateEvent {
+struct SkillObjectEvent {
 	unsigned short skill_id;
-	char skill_type;
-	FVector skill_location;
 };
 
 struct MonsterSkillEvent {
@@ -202,7 +206,7 @@ struct CollisionEvent {
 		SkillSkillEvent skill_skill;
 		SkillMonsterEvent skill_monster;
 		SkillPlayerEvent skill_player;
-		SkillCreateEvent skill_create;
+		SkillObjectEvent skill_object;
 		MonsterSkillEvent monster_skill;
 		PlayerSkillEvent player_skill;
 
@@ -228,10 +232,10 @@ struct CollisionEvent {
 		new (&data.skill_player) SkillPlayerEvent(e);
 	}
 
-	CollisionEvent(const SkillCreateEvent& e) {
-		collision_type = CollisionType::SkillCreate;
+	CollisionEvent(const SkillObjectEvent& e) {
+		collision_type = CollisionType::SkillObject;
 		collision_start = true;
-		new (&data.skill_create) SkillCreateEvent(e);
+		new (&data.skill_object) SkillObjectEvent(e);
 	}
 
 	CollisionEvent(const MonsterSkillEvent& e) {
@@ -266,6 +270,42 @@ struct CollisionEvent {
 
 		case CollisionType::PlayerSkill:
 			data.player_skill.~PlayerSkillEvent();
+			break;
+		}
+	}
+};
+
+//////////////////////////////////////////////////
+// Etc
+enum class EventType {
+	SkillCreate
+};
+
+struct SkillCreateEvent {
+	unsigned short skill_id;
+	char skill_type;
+	FVector skill_location;
+};
+
+struct Event {
+	EventType event_type;
+
+	union Data {
+		SkillCreateEvent skill_create;
+
+		Data() {}
+		~Data() {}
+	} data;
+
+	Event(const SkillCreateEvent& e) {
+		event_type = EventType::SkillCreate;
+		new (&data.skill_create) SkillCreateEvent(e);
+	}
+
+	~Event() {
+		switch (event_type) {
+		case EventType::SkillCreate:
+			data.skill_create.~SkillCreateEvent();
 			break;
 		}
 	}
@@ -357,6 +397,13 @@ struct player_jump_packet {
 	char id;
 };
 
+struct player_teleport_packet {
+	unsigned char packet_size;
+	char packet_type;
+	char id;
+	float x, y, z;
+};
+
 struct player_ready_skill_packet {
 	unsigned char packet_size;
 	char packet_type;
@@ -414,6 +461,12 @@ struct skill_player_collision_packet {
 	unsigned short skill_id;
 	char player_id;
 	bool collision_start;
+};
+
+struct skill_object_collision_packet {
+	unsigned char packet_size;
+	char packet_type;
+	unsigned short skill_id;
 };
 
 struct monster_skill_collision_packet {

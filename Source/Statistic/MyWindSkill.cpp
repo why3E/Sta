@@ -210,15 +210,16 @@ void AMyWindSkill::Overlap(char skill_type) {
         if (g_is_host) {
             FVector SpawnLocation = GetActorLocation();
 
-            CollisionEvent collision_event = SkillCreateEvent(m_id, SKILL_WIND_WIND_TORNADO, SpawnLocation);
-            std::lock_guard<std::mutex> lock(g_s_collision_events_l);
-            g_s_collision_events.push(collision_event);
+            Event event = SkillCreateEvent(m_id, SKILL_WIND_WIND_TORNADO, SpawnLocation);
+            std::lock_guard<std::mutex> lock(g_s_events_l);
+            g_s_events.push(event);
         }
         break;
     }
 }
 
 void AMyWindSkill::Overlap(unsigned short object_id, bool collision_start) {
+    // Skill - Player Collision
     if ((0 <= object_id) && (object_id < MAX_CLIENTS)) {
         APlayerCharacter* ptr = Cast<APlayerCharacter>(g_c_players[object_id]);
 

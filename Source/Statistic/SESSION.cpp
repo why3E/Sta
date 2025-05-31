@@ -18,6 +18,9 @@ std::queue<MonsterEvent> g_s_monster_events;
 std::mutex g_s_collision_events_l;
 std::queue<CollisionEvent> g_s_collision_events;
 
+std::mutex g_s_events_l;
+std::queue<Event> g_s_events;
+
 //////////////////////////////////////////////////
 // EXP_OVER
 EXP_OVER::EXP_OVER() {

@@ -440,6 +440,7 @@ void process_collision_event() {
 			p.packet_type = H2C_PLAYER_SKILL_COLLISION_PACKET;
 			p.player_id = collision_event.data.player_skill.player_id;
 			p.skill_type = collision_event.data.player_skill.skill_type;
+			p.collision_start = collision_event.collision_start;
 
 			for (char client_id = 0; client_id < MAX_CLIENTS; ++client_id) {
 				if (g_s_clients[client_id]) {
@@ -771,18 +772,6 @@ void h_process_packet(char* packet) {
 		break;
 	}
 
-	case C2H_PLAYER_AIRBORNE_PACKET: {
-		player_airborne_packet* p = reinterpret_cast<player_airborne_packet*>(packet);
-		p->packet_type = H2C_PLAYER_AIRBORNE_PACKET;
-
-		for (char other_id = 0; other_id < MAX_CLIENTS; ++other_id) {
-			if (g_s_clients[other_id]) {
-				g_s_clients[other_id]->do_send(p);
-			}
-		}
-		break;
-	}
-
 	case C2H_SKILL_CREATE_PACKET: {
 		skill_create_packet* p = reinterpret_cast<skill_create_packet*>(packet);
 		p->packet_type = H2C_SKILL_CREATE_PACKET;
@@ -860,7 +849,8 @@ extern void CALLBACK h_send_callback(DWORD err, DWORD num_bytes, LPWSAOVERLAPPED
 // Client CALLBACK
 void c_process_packet(char* packet) {
 	char packet_type = packet[1];
-	//UE_LOG(LogTemp, Warning, TEXT("[Client] Received Packet Type : %d"), packet_type);
+	
+	UE_LOG(LogTemp, Warning, TEXT("[Client] Received Packet Type : %d"), packet_type);
 
 	switch (packet_type) {
 	case H2C_TIME_OFFSET_PACKET: {
@@ -993,10 +983,9 @@ void c_process_packet(char* packet) {
 		FVector Position(p->x, p->y, p->z);
 		FVector Velocity(p->vx, p->vy, p->vz);
 
+		g_c_players[p->id]->SetActorLocation(Position);
 		g_c_players[p->id]->set_velocity(Velocity.X, Velocity.Y, Velocity.Z);
 		g_c_players[p->id]->set_is_stopping(false);
-		g_c_players[p->id]->set_target_location(Position);
-		g_c_players[p->id]->set_is_interpolating(true);
 		break;
 	}
 
@@ -1010,7 +999,6 @@ void c_process_packet(char* packet) {
 		g_c_players[p->id]->set_velocity(0.0f, 0.0f, 0.0f);
 		g_c_players[p->id]->set_is_stopping(true);
 		g_c_players[p->id]->set_stop_location(Position);
-		g_c_players[p->id]->set_is_interpolating(false);
 		break;
 	}
 
@@ -1039,16 +1027,6 @@ void c_process_packet(char* packet) {
 		if (nullptr == g_c_players[p->id]) { break; }
 
 		g_c_players[p->id]->ready_skill(p->is_left);
-		break;
-	}
-
-	case H2C_PLAYER_AIRBORNE_PACKET: {
-		player_airborne_packet* p = reinterpret_cast<player_airborne_packet*>(packet);
-
-		if (nullptr == g_c_players[p->id]) { break; }
-
-		g_c_players[p->id]->AirBorne(p->force);
-		g_c_players[p->id]->set_is_stopping(false);
 		break;
 	}
 
@@ -1130,7 +1108,7 @@ void c_process_packet(char* packet) {
 	case H2C_PLAYER_SKILL_COLLISION_PACKET: {
 		player_skill_collision_packet* p = reinterpret_cast<player_skill_collision_packet*>(packet);
 		if (nullptr != g_c_players[p->player_id]) {
-			g_c_players[p->player_id]->Overlap(p->skill_type);
+			g_c_players[p->player_id]->Overlap(p->skill_type, p->collision_start);
 		}
 		break;
 	}

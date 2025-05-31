@@ -60,31 +60,33 @@ void AMyWindSkill::Tick(float DeltaTime)
     Super::Tick(DeltaTime);
 
     FVector TornadoCenter = GetActorLocation();
+
     float PullSpeed = 500.f;        // 중심으로 당기는 속도
     float LiftSpeed = 800.f;         // 위로 올라가는 속도
     float SpinSpeed = 800.f;         // 회전 속도
     float AcceptanceRadius = 50.f;   // 너무 가까우면 안 당김
 
     for (APlayerCharacter* Player : OverlappingCharacters) {
-        if (!IsValid(Player)) continue;
+        if (IsValid(Player)) {
+            FVector PlayerLocation = Player->GetActorLocation();
+            FVector ToCenter = TornadoCenter - PlayerLocation;
+            float Distance = ToCenter.Size();
 
-        FVector PlayerLocation = Player->GetActorLocation();
-        FVector ToCenter = TornadoCenter - PlayerLocation;
-        float Distance = ToCenter.Size();
+            if (Distance < AcceptanceRadius) { continue; }
 
-        if (Distance < AcceptanceRadius) continue;
+            ToCenter.Normalize();
 
-        ToCenter.Normalize();
+            // 회전 벡터
+            FVector RotateVector = FVector::CrossProduct(ToCenter, FVector::UpVector).GetSafeNormal();
 
-        // 회전 벡터
-        FVector RotateVector = FVector::CrossProduct(ToCenter, FVector::UpVector).GetSafeNormal();
+            // 이동 방향 조합 (끌림 + 회전 + 상승)
+            FVector MoveDir = ToCenter * PullSpeed + RotateVector * SpinSpeed + FVector(0, 0, LiftSpeed);
+            FVector NewLocation = PlayerLocation + MoveDir * DeltaTime;
 
-        // 이동 방향 조합 (끌림 + 회전 + 상승)
-        FVector MoveDir = ToCenter * PullSpeed + RotateVector * SpinSpeed + FVector(0, 0, LiftSpeed);
-        FVector NewLocation = PlayerLocation + MoveDir * DeltaTime;
-
-        // 강제로 위치 이동 (또는 Smooth하게 하고 싶으면 InterpTo 사용)
-        Player->SetActorLocation(NewLocation, true);
+            // 강제로 위치 이동 (또는 Smooth하게 하고 싶으면 InterpTo 사용)
+            Player->SetActorLocation(NewLocation, true);
+            Player->LaunchCharacter(FVector(0, 0, 50), false, false);
+        }
     }
 }
 
@@ -110,7 +112,7 @@ void AMyWindSkill::PostInitializeComponents()
 }
 
 void AMyWindSkill::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult) {
-    if (!g_is_host || !bIsValid) return;
+    if (!g_is_host || !bIsValid) { return; }
 
     if (OtherActor && OtherActor != this) {
         if (OtherActor->IsA(AMySkillBase::StaticClass())) {
@@ -168,7 +170,7 @@ void AMyWindSkill::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* O
 }
 
 void AMyWindSkill::OnEndOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex) {
-    if (!g_is_host || !bIsValid) return;
+    if (!g_is_host || !bIsValid) { return; }
 
     if (OtherActor && OtherActor->IsA(APlayerCharacter::StaticClass())) {
         APlayerCharacter* ptr = Cast<APlayerCharacter>(OtherActor);
@@ -177,6 +179,10 @@ void AMyWindSkill::OnEndOverlap(UPrimitiveComponent* OverlappedComp, AActor* Oth
             CollisionEvent collision_event = SkillPlayerEvent(m_id, ptr->get_id());
             collision_event.collision_start = false;
             std::lock_guard<std::mutex> lock(g_s_collision_events_l);
+            g_s_collision_events.push(collision_event);
+
+            collision_event = PlayerSkillEvent(ptr->get_id(), GetType());
+            collision_event.collision_start = false;
             g_s_collision_events.push(collision_event);
         }
     }

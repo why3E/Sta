@@ -37,9 +37,6 @@ APlayerCharacter::APlayerCharacter()
 	m_was_moving = false;
 	m_is_stopping = false;
 
-	m_is_interpolating = false;
-	m_interpolate_timer = 0.0f;
-
 	// Collision 설정
 	{
 		GetCapsuleComponent()->InitCapsuleSize(35.0f, 90.0f);
@@ -94,26 +91,31 @@ APlayerCharacter::APlayerCharacter()
         {
             IA_BasicJump = IA_BasicJumpRef.Object;
         }
+
 		static ConstructorHelpers::FObjectFinder<UInputAction>IA_DashRef(TEXT("/Script/EnhancedInput.InputAction'/Game/input/IA_Dash.IA_Dash'"));
 		if (IA_DashRef.Object)
 		{
 			IA_Dash = IA_DashRef.Object;
 		}
+
 		static ConstructorHelpers::FObjectFinder<UInputAction>IA_BasicAttackRef(TEXT("/Script/EnhancedInput.InputAction'/Game/input/attack/IA_BaseAttack.IA_BaseAttack'"));
 		if (IA_BasicAttackRef.Object)
 		{
 			IA_BasicAttack = IA_BasicAttackRef.Object;
 		}
+
 		static ConstructorHelpers::FObjectFinder<UInputAction>IA_RightAttackRef(TEXT("/Script/EnhancedInput.InputAction'/Game/input/attack/IA_RightAttack.IA_RightAttack'"));
 		if (IA_RightAttackRef.Object)
 		{
 			IA_RightAttack = IA_RightAttackRef.Object;
 		}
+
 		static ConstructorHelpers::FObjectFinder<UInputAction>IA_QSkillRef(TEXT("/Script/EnhancedInput.InputAction'/Game/input/IA_QSkill.IA_QSkill'"));
 		if (IA_QSkillRef.Object)
 		{
 			IA_QSkill = IA_QSkillRef.Object;
 		}
+
 		static ConstructorHelpers::FObjectFinder<UInputAction>IA_RSkillRef(TEXT("/Script/EnhancedInput.InputAction'/Game/input/IA_ESkill.IA_ESkill'"));
 		if (IA_RSkillRef.Object)
 		{
@@ -1002,37 +1004,14 @@ void APlayerCharacter::Tick(float DeltaTime) {
 	UpdateUI();
 
 	if (m_is_player) {
-		FVector Position = GetActorLocation();
-
-		m_interpolate_timer += DeltaTime;
-
-		float DistSq = FVector::DistSquared(Position, m_target_location);
-
-		if (DistSq > 100.0f) {
-			if (m_interpolate_timer >= 0.2f) {
-				m_target_location = Position;
-				m_interpolate_timer = 0.0f;
-
-				FVector Velocity = GetCharacterMovement()->Velocity;
-
-				player_move_packet p;
-				p.packet_size = sizeof(player_move_packet);
-				p.packet_type = C2H_PLAYER_MOVE_PACKET;
-				p.id = m_id;
-				p.x = Position.X; p.y = Position.Y; p.z = Position.Z;
-				p.vx = Velocity.X; p.vy = Velocity.Y; p.vz = Velocity.Z;
-
-				UE_LOG(LogTemp, Warning, TEXT("Send Interp : %.2f, %.2f, %.2f"), Position.X, Position.Y, Position.Z);
-			}
-		}
-
 		if (m_was_moving) {
 			FVector Velocity = GetCharacterMovement()->Velocity;
 
 			if (Velocity.IsNearlyZero()) {
 				m_velocity = FVector(0.0f, 0.0f, 0.0f);
 				m_was_moving = false;
-				m_interpolate_timer = 0.0f;
+
+				FVector Position = GetActorLocation();
 
 				player_stop_packet p;
 				p.packet_size = sizeof(player_stop_packet);
@@ -1044,21 +1023,6 @@ void APlayerCharacter::Tick(float DeltaTime) {
 			} 
 		}
 	} else {
-		if (m_is_interpolating) {
-			m_target_location += m_velocity * DeltaTime;
-
-			FVector Interp = FMath::VInterpTo(GetActorLocation(), m_target_location, DeltaTime, 5.f);
-			SetActorLocation(Interp);
-
-			UE_LOG(LogTemp, Warning, TEXT("Interp : %.2f, %.2f, %.2f"), Interp.X, Interp.Y, Interp.Z);
-
-			float DistSq = FVector::DistSquared(GetActorLocation(), m_target_location);
-
-			if (DistSq < 100.0f) {
-				m_is_interpolating = false;
-			}
-		}
-
 		if (!GetCharacterMovement()->IsFalling()) {
 			if (!m_is_stopping) {
 				GetCharacterMovement()->Velocity = m_velocity;
@@ -1075,16 +1039,18 @@ void APlayerCharacter::Tick(float DeltaTime) {
 				}
 
 				AddMovementInput(m_velocity.GetSafeNormal(), 1.0f);
-			} else {
-				FVector current_location = GetActorLocation();
-				FVector new_location = FMath::VInterpTo(current_location, m_stop_location, DeltaTime, 10);
+			}
+		}
 
-				SetActorLocation(new_location);
+		if (m_is_stopping) {
+			FVector current_location = GetActorLocation();
+			FVector new_location = FMath::VInterpTo(current_location, m_stop_location, DeltaTime, 10);
 
-				if ((new_location - m_stop_location).SizeSquared() < KINDA_SMALL_NUMBER) {
-					m_is_stopping = false;
-					SetActorLocation(m_stop_location);
-				}
+			SetActorLocation(new_location);
+
+			if ((new_location - m_stop_location).SizeSquared() < KINDA_SMALL_NUMBER) {
+				m_is_stopping = false;
+				SetActorLocation(m_stop_location);
 			}
 		}
 	}
@@ -1487,35 +1453,17 @@ void APlayerCharacter::rotate(float yaw) {
 	SetActorRotation(NewRotation);
 }
 
-void APlayerCharacter::Overlap(char skill_type) {
+void APlayerCharacter::Overlap(char skill_type, bool collision_start) {
 	switch (skill_type) {
 	case SKILL_WIND_TORNADO:
-		if (g_is_host) {
-			UCharacterMovementComponent* MoveComp = GetCharacterMovement();
-
-			if (MoveComp) {
-				// Send Player Vector Packet 
-				FVector Position = GetActorLocation();
-
-				player_airborne_packet p;
-				p.packet_size = sizeof(player_airborne_packet);
-				p.packet_type = C2H_PLAYER_AIRBORNE_PACKET;
-				p.id = m_id;
-				p.force = 500.0f;
-
-				do_send(&p);
-			}
+		if (collision_start) {
+			m_was_moving = false;
+			m_is_stopping = false;
+		} else {
+			m_was_moving = true;
 		}
 		break;
 	}
-}
-
-void APlayerCharacter::AirBorne(float velocity) {
-	if (m_is_player) { 
-		m_was_moving = true; 
-	}
-
-	LaunchCharacter(FVector(0, 0, 500), false, false);
 }
 
 void APlayerCharacter::do_send(void* buff) {

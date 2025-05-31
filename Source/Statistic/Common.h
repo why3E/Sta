@@ -33,7 +33,6 @@ constexpr char H2C_PLAYER_ROTATE_PACKET = 23;
 constexpr char H2C_PLAYER_JUMP_PACKET = 24;
 constexpr char H2C_PLAYER_READY_SKILL_PACKET = 25;
 constexpr char H2C_PLAYER_CHANGE_ELEMENT_PACKET = 26;
-constexpr char H2C_PLAYER_AIRBORNE_PACKET = 27;
 constexpr char H2C_SKILL_VECTOR_PACKET = 29;
 constexpr char H2C_SKILL_ROTATOR_PACKET = 30;
 constexpr char H2C_SKILL_CREATE_PACKET = 31;
@@ -50,7 +49,6 @@ constexpr char C2H_PLAYER_ROTATE_PACKET = 43;
 constexpr char C2H_PLAYER_JUMP_PACKET = 44;
 constexpr char C2H_PLAYER_READY_SKILL_PACKET = 45;
 constexpr char C2H_PLAYER_CHANGE_ELEMENT_PACKET = 46;
-constexpr char C2H_PLAYER_AIRBORNE_PACKET = 47;
 constexpr char C2H_SKILL_VECTOR_PACKET = 49;
 constexpr char C2H_SKILL_ROTATOR_PACKET = 50;
 constexpr char C2H_SKILL_CREATE_PACKET = 51;
@@ -361,13 +359,6 @@ struct player_change_element_packet {
 	bool is_left;
 };
 
-struct player_airborne_packet {
-	unsigned char packet_size;
-	char packet_type;
-	char id;
-	float force;
-};
-
 struct skill_vector_packet {
 	unsigned char packet_size;
 	char packet_type;
@@ -425,6 +416,7 @@ struct player_skill_collision_packet {
 	char packet_type;
 	char player_id;
 	char skill_type;
+	bool collision_start;
 };
 
 struct skill_create_packet {

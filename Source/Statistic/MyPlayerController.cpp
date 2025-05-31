@@ -45,6 +45,12 @@ void CALLBACK c_send_callback(DWORD err, DWORD num_bytes, LPWSAOVERLAPPED p_over
 
 //////////////////////////////////////////////////
 // AMyPlayerController
+AMyPlayerController::AMyPlayerController() {
+	static ConstructorHelpers::FClassFinder<AEnemyCharacter> SlimeBP(TEXT("/Game/Slime/BP_Slime.BP_Slime_C"));
+	static ConstructorHelpers::FObjectFinder<UBehaviorTree> BTAsset(TEXT("/Game/Slime/AI/BT_EnemyAI.BT_EnemyAI"));
+	static ConstructorHelpers::FClassFinder<UAnimInstance> AnimBP(TEXT("/Game/Slime/slime/anim/BP_AnimSlime.BP_AnimSlime_C"));
+}
+
 void AMyPlayerController::BeginPlay()
 {
     Super::BeginPlay();
@@ -169,8 +175,6 @@ void AMyPlayerController::CleanupSocket()
 //////////////////////////////////////////////////
 // Server Thread
 void spawn_monster(FVector Location) {
-	UE_LOG(LogTemp, Error, TEXT("Spawn Monster!"));
-
 	AsyncTask(ENamedThreads::GameThread, [Location]() {
 		UWorld* World = GEngine->GetWorldFromContextObjectChecked(GEngine->GameViewport);
 
@@ -264,7 +268,7 @@ void spawn_monster(FVector Location) {
 }
 
 void spawn_monster_from_json() {
-	FString FilePath = FPaths::ProjectContentDir() + TEXT("Data/MonsterSpawnLocations.json");
+	FString FilePath = FPaths::ProjectDir() + TEXT("Data/MonsterSpawnLocations.json");
 	FString JsonString;
 
 	UE_LOG(LogTemp, Warning, TEXT("Loading JSON from: %s"), *FilePath);

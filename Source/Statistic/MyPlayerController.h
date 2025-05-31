@@ -10,11 +10,12 @@
  *
  */
 UCLASS()
-class STATISTIC_API AMyPlayerController : public APlayerController
-{
+class STATISTIC_API AMyPlayerController : public APlayerController {
 	GENERATED_BODY()
 
 public:
+	AMyPlayerController();
+
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 

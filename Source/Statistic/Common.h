@@ -35,13 +35,13 @@ constexpr char H2C_PLAYER_READY_SKILL_PACKET = 25;
 constexpr char H2C_PLAYER_CHANGE_ELEMENT_PACKET = 26;
 constexpr char H2C_SKILL_VECTOR_PACKET = 29;
 constexpr char H2C_SKILL_ROTATOR_PACKET = 30;
-constexpr char H2C_SKILL_CREATE_PACKET = 31;
 
 constexpr char H2C_SKILL_SKILL_COLLISION_PACKET = 60;
 constexpr char H2C_SKILL_MONSTER_COLLISION_PACKET = 61;
 constexpr char H2C_SKILL_PLAYER_COLLISION_PACKET = 62;
-constexpr char H2C_MONSTER_SKILL_COLLISION_PACKET = 63;
-constexpr char H2C_PLAYER_SKILL_COLLISION_PACKET = 64;
+constexpr char H2C_SKILL_CREATE_PACKET = 63;
+constexpr char H2C_MONSTER_SKILL_COLLISION_PACKET = 64;
+constexpr char H2C_PLAYER_SKILL_COLLISION_PACKET = 65;
 
 constexpr char C2H_PLAYER_MOVE_PACKET = 41;
 constexpr char C2H_PLAYER_STOP_PACKET = 42;
@@ -51,7 +51,6 @@ constexpr char C2H_PLAYER_READY_SKILL_PACKET = 45;
 constexpr char C2H_PLAYER_CHANGE_ELEMENT_PACKET = 46;
 constexpr char C2H_SKILL_VECTOR_PACKET = 49;
 constexpr char C2H_SKILL_ROTATOR_PACKET = 50;
-constexpr char C2H_SKILL_CREATE_PACKET = 51;
 
 
 
@@ -159,6 +158,7 @@ enum class CollisionType {
 	SkillSkill,
 	SkillMonster,
 	SkillPlayer,
+	SkillCreate,
 	MonsterSkill,
 	PlayerSkill
 };
@@ -175,6 +175,12 @@ struct SkillMonsterEvent {
 struct SkillPlayerEvent {
 	unsigned short skill_id;
 	char player_id;
+};
+
+struct SkillCreateEvent {
+	unsigned short skill_id;
+	char skill_type;
+	FVector skill_location;
 };
 
 struct MonsterSkillEvent {
@@ -196,6 +202,7 @@ struct CollisionEvent {
 		SkillSkillEvent skill_skill;
 		SkillMonsterEvent skill_monster;
 		SkillPlayerEvent skill_player;
+		SkillCreateEvent skill_create;
 		MonsterSkillEvent monster_skill;
 		PlayerSkillEvent player_skill;
 
@@ -219,6 +226,12 @@ struct CollisionEvent {
 		collision_type = CollisionType::SkillPlayer;
 		collision_start = true;
 		new (&data.skill_player) SkillPlayerEvent(e);
+	}
+
+	CollisionEvent(const SkillCreateEvent& e) {
+		collision_type = CollisionType::SkillCreate;
+		collision_start = true;
+		new (&data.skill_create) SkillCreateEvent(e);
 	}
 
 	CollisionEvent(const MonsterSkillEvent& e) {

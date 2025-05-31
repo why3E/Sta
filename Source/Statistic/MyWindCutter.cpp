@@ -172,14 +172,9 @@ void AMyWindCutter::Overlap(char skill_type) {
             // BombAttack
             FVector SpawnLocation = GetActorLocation();
 
-            skill_create_packet p;
-            p.packet_size = sizeof(skill_create_packet);
-            p.packet_type = C2H_SKILL_CREATE_PACKET;
-            p.skill_type = SKILL_WIND_FIRE_BOMB;
-            p.old_skill_id = m_id;
-            p.new_skill_x = SpawnLocation.X; p.new_skill_y = SpawnLocation.Y; p.new_skill_z = SpawnLocation.Z;
-
-            Cast<APlayerCharacter>(Owner)->do_send(&p);
+            CollisionEvent collision_event = SkillCreateEvent(m_id, SKILL_WIND_FIRE_BOMB, SpawnLocation);
+            std::lock_guard<std::mutex> lock(g_s_collision_events_l);
+            g_s_collision_events.push(collision_event);
             return;
         }
 
@@ -187,14 +182,9 @@ void AMyWindCutter::Overlap(char skill_type) {
             // BombAttack
             FVector SpawnLocation = GetActorLocation();
 
-            skill_create_packet p;
-            p.packet_size = sizeof(skill_create_packet);
-            p.packet_type = C2H_SKILL_CREATE_PACKET;
-            p.skill_type = SKILL_WIND_ICE_BOMB;
-            p.old_skill_id = m_id;
-            p.new_skill_x = SpawnLocation.X; p.new_skill_y = SpawnLocation.Y; p.new_skill_z = SpawnLocation.Z;
-
-            Cast<APlayerCharacter>(Owner)->do_send(&p);
+            CollisionEvent collision_event = SkillCreateEvent(m_id, SKILL_WIND_ICE_BOMB, SpawnLocation);
+            std::lock_guard<std::mutex> lock(g_s_collision_events_l);
+            g_s_collision_events.push(collision_event);
             return;
         }
         }

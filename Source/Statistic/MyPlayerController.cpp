@@ -418,6 +418,23 @@ void process_collision_event() {
 			break;
 		}
 
+		case CollisionType::SkillCreate: {
+			skill_create_packet p;
+			p.packet_size = sizeof(skill_create_packet);
+			p.packet_type = H2C_SKILL_CREATE_PACKET;
+			p.skill_type = collision_event.data.skill_create.skill_type;
+			p.old_skill_id = collision_event.data.skill_create.skill_id;
+			p.new_skill_id = g_s_skill_id++;
+			p.new_skill_x = collision_event.data.skill_create.skill_location.X; p.new_skill_y = collision_event.data.skill_create.skill_location.Y; p.new_skill_z = collision_event.data.skill_create.skill_location.Z;
+
+			for (char client_id = 0; client_id < MAX_CLIENTS; ++client_id) {
+				if (g_s_clients[client_id]) {
+					g_s_clients[client_id]->do_send(&p);
+				}
+			}
+			break;
+		}
+
 		case CollisionType::MonsterSkill: {
 			monster_skill_collision_packet p;
 			p.packet_size = sizeof(monster_skill_collision_packet);
@@ -771,19 +788,6 @@ void h_process_packet(char* packet) {
 		}
 		break;
 	}
-
-	case C2H_SKILL_CREATE_PACKET: {
-		skill_create_packet* p = reinterpret_cast<skill_create_packet*>(packet);
-		p->packet_type = H2C_SKILL_CREATE_PACKET;
-		p->new_skill_id = g_s_skill_id++;
-
-		for (char client_id = 0; client_id < MAX_CLIENTS; ++client_id) {
-			if (g_s_clients[client_id]) {
-				g_s_clients[client_id]->do_send(p);
-			}
-		}
-		break;
-	}
 	}
 }
 
@@ -850,7 +854,7 @@ extern void CALLBACK h_send_callback(DWORD err, DWORD num_bytes, LPWSAOVERLAPPED
 void c_process_packet(char* packet) {
 	char packet_type = packet[1];
 	
-	UE_LOG(LogTemp, Warning, TEXT("[Client] Received Packet Type : %d"), packet_type);
+	//UE_LOG(LogTemp, Warning, TEXT("[Client] Received Packet Type : %d"), packet_type);
 
 	switch (packet_type) {
 	case H2C_TIME_OFFSET_PACKET: {

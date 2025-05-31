@@ -215,8 +215,8 @@ void APlayerCharacter::BeginPlay()
         } 
     }
 
-    ChangeClass(EClassType::CT_Ice, true);
-    ChangeClass(EClassType::CT_Ice, false);
+	change_element(static_cast<char>(EClassType::CT_Ice), true);
+	change_element(static_cast<char>(EClassType::CT_Ice), false);
 
     playerCurrentHp = playerMaxHp;
     playerCurrentMp = playerMaxMp;

@@ -54,28 +54,28 @@ void AEnemyCharacter::BeginPlay()
     UE_LOG(LogTemp, Warning, TEXT("Slime Position: %s"), *GetActorLocation().ToString());
 }
 
-void AEnemyCharacter::Tick(float DeltaTime)
-{
+void AEnemyCharacter::Tick(float DeltaTime) {
     Super::Tick(DeltaTime);
 
     if (!g_is_host) {
-        if (get_is_attacking()) { return; }
+        if (!get_is_attacking()) {
+            if ((m_target_location - GetActorLocation()).Size2D() < 100.0f) {
+                m_target_location = GetActorLocation();
+                return; 
+            }
 
-        float Distance = FVector::Dist2D(GetActorLocation(), m_target_location);
+            FVector Direction = (m_target_location - GetActorLocation()).GetSafeNormal2D();
 
-        if (Distance < 100.0f) { return; }
+            // Rotate
+            FRotator TargetRotation = Direction.Rotation();
+            FRotator CurrentRotation = GetActorRotation();
+            FRotator NewRotation = FMath::RInterpTo(CurrentRotation, TargetRotation, DeltaTime, 5.0f);
 
-        FVector Direction = (m_target_location - GetActorLocation()).GetSafeNormal2D();
+            SetActorRotation(NewRotation);
 
-        // Rotate
-        FRotator TargetRotation = Direction.Rotation();
-        FRotator CurrentRotation = GetActorRotation();
-        FRotator NewRotation = FMath::RInterpTo(CurrentRotation, TargetRotation, DeltaTime, 5.0f);
-
-        SetActorRotation(NewRotation);
-
-        // Move
-        AddMovementInput(Direction, 1.0f);
+            // Move
+            AddMovementInput(Direction, 1.0f);
+        }
     }
 }
 
@@ -119,7 +119,7 @@ void AEnemyCharacter::ReceiveSkillHit(const FSkillInfo& Info, AActor* Causer)
 
     UE_LOG(LogTemp, Warning, TEXT("Damage: %f, HP: %f"), Info.Damage, HP);
 
-    if (HP <= 0.f)
+    if (HP <= 0.0f)
     {
         Die();
     }
@@ -133,6 +133,7 @@ void AEnemyCharacter::Die()
     GetCapsuleComponent()->SetCanEverAffectNavigation(false);
 
     GetMesh()->SetVisibility(false);
+
     CopySkeletalMeshToProcedural(0);
     ProcMeshComponent->SetVisibility(true);
     ProcMeshComponent->SetSimulatePhysics(true);
@@ -145,19 +146,18 @@ void AEnemyCharacter::Die()
     if (AICon) {
         AICon->StopMovement();
 
-        if (AICon->BrainComponent)
-        {
+        if (AICon->BrainComponent) {
             AICon->BrainComponent->StopLogic(TEXT("Character Died"));
         }
     }
 
     if (g_is_host) {
-        GetWorldTimerManager().SetTimer(RespawnTimerHandle, this, &AEnemyCharacter::Respawn, 10.0f, false);
+        GetWorldTimerManager().SetTimer(RespawnTimerHandle, this, &AEnemyCharacter::Respawn, 2.5f, false);
     }
 }
 
 void AEnemyCharacter::Reset() {
-    HP = 100.f;
+    HP = MaxHP;
 
     // Reset Collision
     GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
@@ -183,12 +183,14 @@ void AEnemyCharacter::Respawn() {
     AAIController* AICon = Cast<AAIController>(GetController());
 
     UBlackboardComponent* BB = AICon->GetBlackboardComponent();
+
     SetActorLocation(BB->GetValueAsVector(TEXT("StartLocation")));
 
     UBehaviorTree* BTAsset = LoadObject<UBehaviorTree>(
         nullptr,
         TEXT("/Game/Slime/AI/BT_EnemyAI.BT_EnemyAI")
     );
+
     AICon->RunBehaviorTree(BTAsset);
 
     {
@@ -404,20 +406,64 @@ void AEnemyCharacter::SliceProcMesh(FVector PlaneNormal)
     CachedOtherHalfMesh = OtherHalfMesh;
 }
 
+void AEnemyCharacter::StartHeal() {
+    if (!GetWorldTimerManager().IsTimerActive(HealTimerHandle)) {
+        if (HP < MaxHP) {
+            GetWorldTimerManager().SetTimer(HealTimerHandle, this, &AEnemyCharacter::HealTick, 0.1f, true);
+        }
+    }
+}
 
+void AEnemyCharacter::StopHeal() {
+    GetWorldTimerManager().ClearTimer(HealTimerHandle);
+}
 
-void AEnemyCharacter::Overlap(AActor* OtherActor)
-{
-    AMySkillBase* Skill = Cast<AMySkillBase>(OtherActor);
+void AEnemyCharacter::HealTick() {
+    Heal(10.0f);
 
+    MonsterEvent monster_event = HealEvent(m_id, 10.0f);
+    std::lock_guard<std::mutex> lock(g_s_monster_events_l);
+    g_s_monster_events.push(monster_event);
+}
+
+void AEnemyCharacter::Heal(float HealAmount) {
+    HP += HealAmount;
+
+    if (HP > MaxHP) {
+        HP = MaxHP;
+    }
+}
+
+void AEnemyCharacter::Overlap(char skill_type, FVector skill_location) {
     FSkillInfo Info;
-    Info.Damage = Skill->GetDamage();
-    Info.Element = Skill->GetElement();
-    Info.StunTime = 1.5f;
-    Info.KnockbackDir = (OtherActor->GetActorLocation() - GetActorLocation()).GetSafeNormal();
+    Info.Damage = 10.0f;
 
-    ReceiveSkillHit(Info, Skill);
-    //UE_LOG(LogTemp, Warning, TEXT("Skill Hit to Monster %d"), get_id());
+    switch (skill_type) {
+    case SKILL_WIND_CUTTER:
+    case SKILL_WIND_TORNADO:
+        Info.Element = EClassType::CT_Wind;
+        break;
+
+    case SKILL_FIRE_BALL:
+    case SKILL_FIRE_WALL:
+        Info.Element = EClassType::CT_Fire;
+        break;
+
+    case SKILL_STONE_WAVE:
+    case SKILL_STONE_SKILL:
+        Info.Element = EClassType::CT_Stone;
+        break;
+
+    case SKILL_ICE_ARROW:
+    case SKILL_ICE_WALL:
+        Info.Element = EClassType::CT_Ice;
+        break;
+    }
+
+    Info.StunTime = 1.5f;
+    Info.KnockbackDir = (skill_location - GetActorLocation()).GetSafeNormal();
+
+    ReceiveSkillHit(Info, nullptr);
 }
 
 void AEnemyCharacter::ShowHud(float Damage, EClassType Type)

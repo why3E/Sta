@@ -1,4 +1,5 @@
 #include "MyIceArrow.h"
+#include "MyMagicStatue.h"
 #include "EnemyCharacter.h"
 #include "PlayerCharacter.h"
 #include "Components/SphereComponent.h"
@@ -13,6 +14,7 @@
 AMyIceArrow::AMyIceArrow()
 {
     SetElement(EClassType::CT_Ice);
+    SetType(SKILL_ICE_ARROW);
 
     // 콜리전 컴포넌트 초기화
     CollisionComponent = CreateDefaultSubobject<USphereComponent>(TEXT("CollisionComponent"));
@@ -85,7 +87,7 @@ void AMyIceArrow::Fire(FVector TargetLocation)
 
 void AMyIceArrow::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-    if (!g_is_host || bIsHit) { return; } 
+    if (!g_is_host || bIsHit || (Owner == OtherActor)) { return; }
 
     if (OtherActor->IsA(AMySkillBase::StaticClass())) {
         // Skill - Skill Collision
@@ -95,14 +97,14 @@ void AMyIceArrow::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* Ot
             if (m_id < ptr->m_id) {
                 bIsHit = true;
 
-                collision_packet p;
-                p.packet_size = sizeof(collision_packet);
-                p.packet_type = C2H_COLLISION_PACKET;
-                p.collision_type = SKILL_SKILL_COLLISION;
-                p.attacker_id = m_id;
-                p.victim_id = ptr->m_id;
+                {
+                    CollisionEvent collision_event = SkillSkillEvent(m_id, ptr->GetType());
+                    std::lock_guard<std::mutex> lock(g_s_collision_events_l);
+                    g_s_collision_events.push(collision_event);
 
-                Cast<APlayerCharacter>(Owner)->do_send(&p);
+                    collision_event = SkillSkillEvent(ptr->GetId(), GetType());
+                    g_s_collision_events.push(collision_event);
+                }
             }
         }
     } else if (OtherActor->IsA(AEnemyCharacter::StaticClass())) {
@@ -113,20 +115,45 @@ void AMyIceArrow::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* Ot
             if (ptr->get_hp() > 0.0f) {
                 bIsHit = true;
 
-                collision_packet p;
-                p.packet_size = sizeof(collision_packet);
-                p.packet_type = C2H_COLLISION_PACKET;
-                p.collision_type = SKILL_MONSTER_COLLISION;
-                p.attacker_id = m_id;
-                p.victim_id = ptr->get_id();
+                {
+                    CollisionEvent collision_event = SkillMonsterEvent(m_id);
+                    std::lock_guard<std::mutex> lock(g_s_collision_events_l);
+                    g_s_collision_events.push(collision_event);
 
-                Cast<APlayerCharacter>(Owner)->do_send(&p);
+                    collision_event = MonsterSkillEvent(ptr->get_id(), GetType(), GetActorLocation());
+                    g_s_collision_events.push(collision_event);
+                }
             }
+        }
+    } else if (OtherActor->IsA(APlayerCharacter::StaticClass())) {
+        // Skill - Player Collision
+        APlayerCharacter* ptr = Cast<APlayerCharacter>(OtherActor);
+
+        if (g_c_players[ptr->get_id()]) {
+            bIsHit = true;
+
+            {
+                CollisionEvent collision_event = SkillPlayerEvent(m_id, ptr->get_id());
+                std::lock_guard<std::mutex> lock(g_s_collision_events_l);
+                g_s_collision_events.push(collision_event);
+            }
+        }
+    } else if (OtherActor->IsA(AMyMagicStatue::StaticClass())) {
+        // Skill - Object Collision
+        bIsHit = true;
+
+        {
+            CollisionEvent collision_event = SkillObjectEvent(m_id);
+            std::lock_guard<std::mutex> lock(g_s_collision_events_l);
+            g_s_collision_events.push(collision_event);
         }
     }
 }
 
-void AMyIceArrow::Overlap(AActor* OtherActor) {
+void AMyIceArrow::Overlap(char skill_type) {
+    // 충돌 상태 설정
+    bIsHit = true;
+
     if (HitEffectNiagaraSystem) {
         UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), HitEffectNiagaraSystem, GetActorLocation());
     }
@@ -135,7 +162,7 @@ void AMyIceArrow::Overlap(AActor* OtherActor) {
     Destroy();
 }
 
-void AMyIceArrow::Overlap(ACharacter* OtherActor) {
+void AMyIceArrow::Overlap(unsigned short object_id, bool collision_start) {
     // 충돌 상태 설정
     bIsHit = true;
 

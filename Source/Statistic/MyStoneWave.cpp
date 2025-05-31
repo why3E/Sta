@@ -10,6 +10,7 @@
 AMyStoneWave::AMyStoneWave()
 {
 	SetElement(EClassType::CT_Stone);
+	SetType(SKILL_STONE_WAVE);
 
 	PrimaryActorTick.bCanEverTick = true;
 
@@ -124,38 +125,40 @@ void AMyStoneWave::OnNiagaraFinished(UNiagaraComponent* PSystem)
 void AMyStoneWave::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult) {
 	if (!g_is_host || !OtherActor || OtherActor == this) return;
 
-	if (OtherActor->IsA(AMySkillBase::StaticClass()))
-	{
+	if (OtherActor->IsA(AMySkillBase::StaticClass())) {
 		AMySkillBase* ptr = Cast<AMySkillBase>(OtherActor);
-		if (g_c_skills.count(ptr->m_id) && m_id < ptr->m_id)
-		{
-			collision_packet p;
-			p.packet_size = sizeof(collision_packet);
-			p.packet_type = C2H_COLLISION_PACKET;
-			p.collision_type = SKILL_SKILL_COLLISION;
-			p.attacker_id = m_id;
-			p.victim_id = ptr->m_id;
 
-			Cast<APlayerCharacter>(Owner)->do_send(&p);
+		if (g_c_skills.count(ptr->m_id)) {
+			if (m_id < ptr->m_id) {
+				{
+					CollisionEvent collision_event = SkillSkillEvent(m_id, ptr->GetType());
+					std::lock_guard<std::mutex> lock(g_s_collision_events_l);
+					g_s_collision_events.push(collision_event);
+
+					collision_event = SkillSkillEvent(ptr->GetId(), GetType());
+					g_s_collision_events.push(collision_event);
+				}
+			}
 		}
-	}
-	else if (OtherActor->IsA(AEnemyCharacter::StaticClass()))
-	{
+	} else if (OtherActor->IsA(AEnemyCharacter::StaticClass())) {
 		AEnemyCharacter* ptr = Cast<AEnemyCharacter>(OtherActor);
-		if (g_c_monsters.count(ptr->get_id()) && ptr->get_hp() > 0.0f)
-		{
-			collision_packet p;
-			p.packet_size = sizeof(collision_packet);
-			p.packet_type = C2H_COLLISION_PACKET;
-			p.collision_type = SKILL_MONSTER_COLLISION;
-			p.attacker_id = m_id;
-			p.victim_id = ptr->get_id();
 
-			Cast<APlayerCharacter>(Owner)->do_send(&p);
+		if (g_c_monsters.count(ptr->get_id())) {
+			if (ptr->get_hp() > 0.0f) {
+				{
+					CollisionEvent collision_event = MonsterSkillEvent(ptr->get_id(), GetType(), GetActorLocation());
+					std::lock_guard<std::mutex> lock(g_s_collision_events_l);
+					g_s_collision_events.push(collision_event);
+				}
+			}
 		}
 	}
 }
 
-void AMyStoneWave::Overlap(AActor* OtherActor) {}
+void AMyStoneWave::Overlap(char skill_type) {
 
-void AMyStoneWave::Overlap(ACharacter* OtherActor) {}
+}
+
+void AMyStoneWave::Overlap(unsigned short object_id, bool collision_start) {
+
+}

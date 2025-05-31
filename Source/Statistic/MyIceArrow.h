@@ -26,8 +26,8 @@ public:
 
     void ActivateNiagara();
     
-    virtual void Overlap(AActor* OtherActor);
-    virtual void Overlap(ACharacter* OtherActor);
+    virtual void Overlap(char skill_type) override;
+    virtual void Overlap(unsigned short object_id, bool collision_start) override;
 
 protected:
     // 콜리전 처리 함수

@@ -53,7 +53,9 @@ private:
     FTimerHandle RespawnTimerHandle;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats", Meta = (AllowPrivateAccess = "true"))
-    float HP = 100.f;
+    float HP = 100.0f;
+    float MaxHP = 100.0f;
+    FTimerHandle HealTimerHandle;
 
     UPROPERTY()
     UProceduralMeshComponent* CachedOtherHalfMesh = nullptr;
@@ -66,12 +68,17 @@ public:
     float get_hp() { return HP; }
     bool get_is_attacking() { return bIsAttacking; }
 
+    void StartHeal();
+    void StopHeal();
+    void HealTick();
+    void Heal(float HealAmount);
+
 public:
     unsigned short m_id;
     FVector m_target_location;
 
 public:
-    virtual void Overlap(AActor* OtherActor);
+    virtual void Overlap(char skill_type, FVector skill_location);
 
     unsigned short get_id() { return m_id; }
     FVector get_target_location() { return m_target_location; }

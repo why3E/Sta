@@ -4,28 +4,19 @@
 #include "GameFramework/Pawn.h"
 #include "AIController.h"
 
-UBTTask_Attack::UBTTask_Attack()
-{
-    NodeName = TEXT("Attack");
+UBTTask_Attack::UBTTask_Attack() {
     bNotifyTaskFinished = true;
     bCreateNodeInstance = true;
 }
 
-EBTNodeResult::Type UBTTask_Attack::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
-{
+EBTNodeResult::Type UBTTask_Attack::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) {
     Super::ExecuteTask(OwnerComp, NodeMemory);
 
-    if (OwnerComp.GetAIOwner() == nullptr)
-    {
-        return EBTNodeResult::Failed;
-    }
+    if (OwnerComp.GetAIOwner() == nullptr) { return EBTNodeResult::Failed; }
 
     EnemyCharacter = Cast<AEnemyCharacter>(OwnerComp.GetAIOwner()->GetPawn());
 
-    if (EnemyCharacter == nullptr)
-    {
-        return EBTNodeResult::Failed;
-    }
+    if (EnemyCharacter == nullptr) { return EBTNodeResult::Failed; }
 
     APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(GetWorld(), 0);
     
@@ -43,23 +34,18 @@ EBTNodeResult::Type UBTTask_Attack::ExecuteTask(UBehaviorTreeComponent& OwnerCom
     return EBTNodeResult::InProgress;
 }
 
-void UBTTask_Attack::OnAttackEnded()
-{
-    if (EnemyCharacter)
-    {
+void UBTTask_Attack::OnAttackEnded() {
+    if (EnemyCharacter) {
         EnemyCharacter->OnAttackEnded.RemoveDynamic(this, &UBTTask_Attack::OnAttackEnded);
     }
 
-    if (CachedOwnerComp)
-    {
+    if (CachedOwnerComp) {
         FinishLatentTask(*CachedOwnerComp, EBTNodeResult::Succeeded);
     }
 }
 
-void UBTTask_Attack::OnTaskFinished(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, EBTNodeResult::Type TaskResult)
-{
-    if (EnemyCharacter)
-    {
+void UBTTask_Attack::OnTaskFinished(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, EBTNodeResult::Type TaskResult) {
+    if (EnemyCharacter) {
         EnemyCharacter->OnAttackEnded.RemoveDynamic(this, &UBTTask_Attack::OnAttackEnded);
     }
 

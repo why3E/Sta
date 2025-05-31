@@ -8,11 +8,18 @@ SOCKET g_c_socket;
 
 std::array<APlayerCharacter*, MAX_CLIENTS> g_c_players;
 std::unordered_map<unsigned short, AMySkillBase*> g_c_skills; 
-std::unordered_map<unsigned short, std::queue<unsigned short>> g_c_collisions; 
 std::unordered_map<unsigned short, ACharacter*> g_c_monsters;
+std::unordered_map<unsigned short, std::queue<char>> g_c_skill_collisions;
+std::unordered_map<unsigned short, std::queue<unsigned short>> g_c_object_collisions;
 
 std::mutex g_s_monster_events_l;
 std::queue<MonsterEvent> g_s_monster_events;
+
+std::mutex g_s_collision_events_l;
+std::queue<CollisionEvent> g_s_collision_events;
+
+std::mutex g_s_events_l;
+std::queue<Event> g_s_events;
 
 //////////////////////////////////////////////////
 // EXP_OVER

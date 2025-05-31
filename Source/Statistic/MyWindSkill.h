@@ -33,8 +33,8 @@ public:
 	void SpawnMixTonado(unsigned short skill_id);
 
 	// 외부에서 수동 충돌 감지할 때 호출
-	virtual void Overlap(AActor* OtherActor) override;
-	virtual void Overlap(ACharacter* OtherActor) override;
+	virtual void Overlap(char skill_type) override;
+	virtual void Overlap(unsigned short object_id, bool collision_start) override;
 
 protected:
 	/** 콜리전 메시 */

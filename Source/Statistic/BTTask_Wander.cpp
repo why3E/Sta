@@ -13,16 +13,12 @@ UBTTask_Wander::UBTTask_Wander() {
 }
 
 EBTNodeResult::Type UBTTask_Wander::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) {
-    AAIController* AIController = OwnerComp.GetAIOwner();
-    if (!AIController) return EBTNodeResult::Failed;
+    AAIController* AICon = OwnerComp.GetAIOwner();
+    APawn* Pawn = AICon ? AICon->GetPawn() : nullptr;
 
-    APawn* AIPawn = AIController->GetPawn();
-    if (!AIPawn) return EBTNodeResult::Failed;
+    if (!Pawn) { return EBTNodeResult::Failed; }
 
-    UBlackboardComponent* BlackboardComp = OwnerComp.GetBlackboardComponent();
-    if (!BlackboardComp) return EBTNodeResult::Failed;
-
-    FVector Origin = BlackboardComp->GetValueAsVector(TEXT("StartLocation"));
+    FVector Origin = OwnerComp.GetBlackboardComponent()->GetValueAsVector(TEXT("StartLocation"));
 
     // Create Random Vector
     FVector RandomDirection = FMath::VRand();
@@ -31,10 +27,10 @@ EBTNodeResult::Type UBTTask_Wander::ExecuteTask(UBehaviorTreeComponent& OwnerCom
 
     // Calculate Destination
     FVector Destination = Origin + RandomDirection * SearchRadius;
-    BlackboardComp->SetValueAsVector(TEXT("WanderLocation"), Destination);
+    OwnerComp.GetBlackboardComponent()->SetValueAsVector(TEXT("WanderLocation"), Destination);
 
     {
-        MonsterEvent monster_event = TargetEvent(Cast<AEnemyCharacter>(AIPawn)->get_id(), Destination);
+        MonsterEvent monster_event = TargetEvent(Cast<AEnemyCharacter>(Pawn)->get_id(), Destination);
         std::lock_guard<std::mutex> lock(g_s_monster_events_l);
         g_s_monster_events.push(monster_event);
     }
@@ -43,42 +39,28 @@ EBTNodeResult::Type UBTTask_Wander::ExecuteTask(UBehaviorTreeComponent& OwnerCom
 }
 
 void UBTTask_Wander::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds) {
-    AAIController* AIController = OwnerComp.GetAIOwner();
-    if (!AIController) {
-        FinishLatentTask(OwnerComp, EBTNodeResult::Failed);
-        return;
-    }
+    AAIController* AICon = OwnerComp.GetAIOwner();
+    APawn* Pawn = AICon ? AICon->GetPawn() : nullptr;
 
-    APawn* AIPawn = AIController->GetPawn();
-    if (!AIPawn) {
-        FinishLatentTask(OwnerComp, EBTNodeResult::Failed);
-        return;
-    }
+    if (!Pawn) { return; }
 
-    UBlackboardComponent* BlackboardComp = OwnerComp.GetBlackboardComponent();
-    if (!BlackboardComp) {
-        FinishLatentTask(OwnerComp, EBTNodeResult::Failed);
-        return;
-    }
-
-    FVector Destination = BlackboardComp->GetValueAsVector(TEXT("WanderLocation"));
-    FVector CurrentLocation = AIPawn->GetActorLocation();
+    FVector Destination = OwnerComp.GetBlackboardComponent()->GetValueAsVector(TEXT("WanderLocation"));
+    FVector CurrentLocation = Pawn->GetActorLocation();
 
     FVector Direction = (Destination - CurrentLocation).GetSafeNormal2D();
 
     // Rotate
     FRotator TargetRotation = Direction.Rotation();
-    FRotator CurrentRotation = AIPawn->GetActorRotation();
+    FRotator CurrentRotation = Pawn->GetActorRotation();
 
     FRotator NewRotation = FMath::RInterpTo(CurrentRotation, TargetRotation, GetWorld()->GetDeltaSeconds(), 5.0f);
-    AIPawn->SetActorRotation(NewRotation);
+    Pawn->SetActorRotation(NewRotation);
 
     // Move
-    AIPawn->AddMovementInput(Direction, 1.0f);
+    Pawn->AddMovementInput(Direction, 1.0f);
 
     // Finish Task
-    float Distance = FVector::Dist2D(CurrentLocation, Destination);
-    if (Distance < 100.0f) { 
+    if ((CurrentLocation - Destination).Size2D() < 100.0f) {
         FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded);
     }
 }

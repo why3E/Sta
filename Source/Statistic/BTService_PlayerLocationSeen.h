@@ -10,9 +10,9 @@
  * 
  */
 UCLASS()
-class STATISTIC_API UBTService_PlayerLocationSeen : public UBTService_BlackboardBase
-{
+class STATISTIC_API UBTService_PlayerLocationSeen : public UBTService_BlackboardBase {
 	GENERATED_BODY()
+
 public:
 	UBTService_PlayerLocationSeen();
 	

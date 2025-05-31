@@ -10,56 +10,53 @@
 #include "Kismet/GameplayStatics.h"
 #include "GameFramework/Pawn.h"
 
-UBTService_PlayerLocationSeen::UBTService_PlayerLocationSeen()
-{
-    NodeName = "Update Player Location If Seen";
+UBTService_PlayerLocationSeen::UBTService_PlayerLocationSeen() {
+
 }
 
-void UBTService_PlayerLocationSeen::TickNode(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds)
-{
-    AAIController* AIController = Cast<AAIController>(OwnerComp.GetAIOwner());
-    if (!AIController) { return; }
+void UBTService_PlayerLocationSeen::TickNode(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds) {
+    AAIController* AICon = OwnerComp.GetAIOwner();
+    APawn* Pawn = AICon ? AICon->GetPawn() : nullptr;
 
-    AEnemyCharacter* Monster = Cast<AEnemyCharacter>(AIController->GetPawn());
-    if (!Monster || Monster->get_is_attacking()) { return; }
+    if (!Pawn) { return; }
 
-    UBlackboardComponent* BlackboardComp = AIController->GetBlackboardComponent();
-    if (!BlackboardComp) { return; }
+    AEnemyCharacter* monster = Cast<AEnemyCharacter>(AICon->GetPawn());
 
-    char c_id = 0;
-    float min_dist = 2000.0f;
-    bool found_target = false;
+    if (!monster) { return; }
+
+    FVector monster_location = monster->GetActorLocation();
+
+    float min_dist = 1000.0f;
+    FVector target_location = FVector::ZeroVector;
+    bool found = false;
 
     for (char client_id = 0; client_id < MAX_CLIENTS; ++client_id) {
         APlayerCharacter* player = g_c_players[client_id];
 
-        if (!player) continue;
+        if (!player) { continue; }
 
         FVector player_location = player->GetActorLocation();
-        FVector monster_location = Monster->GetActorLocation();
 
-        float dist = FVector::Dist2D(player_location, monster_location);
+        float dist = (monster_location - player_location).Size2D();
 
-        if (min_dist > dist) {
-            c_id = client_id;
+        if (dist < min_dist) {
             min_dist = dist;
-            found_target = true;
+            target_location = player_location;
+            found = true;
         }
     }
 
-    if (found_target) {
-        APlayerCharacter* player = g_c_players[c_id];
+    if (found) {
+        OwnerComp.GetBlackboardComponent()->SetValueAsVector(TEXT("TargetLocation"), target_location);
 
-        if (AIController->LineOfSightTo(player)) {
-            BlackboardComp->SetValueAsVector(GetSelectedBlackboardKey(), player->GetActorLocation());
-
-            {
-                MonsterEvent monster_event = TargetEvent(Monster->get_id(), player->GetActorLocation());
-                std::lock_guard<std::mutex> lock(g_s_monster_events_l);
-                g_s_monster_events.push(monster_event);
-            }
+        if (!OwnerComp.GetBlackboardComponent()->GetValueAsBool(TEXT("bIsReturning"))) {
+            MonsterEvent monster_event = TargetEvent(Cast<AEnemyCharacter>(Pawn)->get_id(), target_location);
+            std::lock_guard<std::mutex> lock(g_s_monster_events_l);
+            g_s_monster_events.push(monster_event);
         }
     } else {
-        BlackboardComp->ClearValue(GetSelectedBlackboardKey());
+        OwnerComp.GetBlackboardComponent()->ClearValue(TEXT("TargetLocation"));
     }
+
+    return;
 }

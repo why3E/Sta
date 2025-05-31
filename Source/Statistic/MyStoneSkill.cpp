@@ -11,6 +11,7 @@
 AMyStoneSkill::AMyStoneSkill()
 {
     SetElement(EClassType::CT_Stone);
+    SetType(SKILL_STONE_SKILL);
 
     PrimaryActorTick.bCanEverTick = true;
 
@@ -24,7 +25,6 @@ AMyStoneSkill::AMyStoneSkill()
     StoneMesh->SetupAttachment(RootComponent);
     StoneMesh->SetVisibility(false); // Fire 전까지 안보이게
     StoneMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision); // Fire 전까지 충돌 비활성화
-
 
     // 무브먼트
     ProjectileMovement = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ProjectileMovement"));
@@ -132,13 +132,11 @@ void AMyStoneSkill::Tick(float DeltaTime)
     }
 }
 
-void AMyStoneSkill::Overlap(AActor* OtherActor)
-{
+void AMyStoneSkill::Overlap(char skill_type) {
 
 }
 
-void AMyStoneSkill::Overlap(ACharacter* OtherActor)
-{
+void AMyStoneSkill::Overlap(unsigned short object_id, bool collision_start) {
 
 }
 
@@ -152,14 +150,14 @@ void AMyStoneSkill::OnBeginOverlap(class UPrimitiveComponent* OverlappedComp, cl
 
         if (g_c_skills.count(ptr->m_id)) {
             if (m_id < ptr->m_id) {
-                collision_packet p;
-                p.packet_size = sizeof(collision_packet);
-                p.packet_type = C2H_COLLISION_PACKET;
-                p.collision_type = SKILL_SKILL_COLLISION;
-                p.attacker_id = m_id;
-                p.victim_id = ptr->m_id;
+                {
+                    CollisionEvent collision_event = SkillSkillEvent(m_id, ptr->GetType());
+                    std::lock_guard<std::mutex> lock(g_s_collision_events_l);
+                    g_s_collision_events.push(collision_event);
 
-                Cast<APlayerCharacter>(Owner)->do_send(&p);
+                    collision_event = SkillSkillEvent(ptr->GetId(), GetType());
+                    g_s_collision_events.push(collision_event);
+                }
             }
         }
     } else if (OtherActor->IsA(AEnemyCharacter::StaticClass())) {
@@ -168,29 +166,12 @@ void AMyStoneSkill::OnBeginOverlap(class UPrimitiveComponent* OverlappedComp, cl
 
         if (g_c_monsters.count(ptr->get_id())) {
             if (ptr->get_hp() > 0.0f) {
-                collision_packet p;
-                p.packet_size = sizeof(collision_packet);
-                p.packet_type = C2H_COLLISION_PACKET;
-                p.collision_type = SKILL_MONSTER_COLLISION;
-                p.attacker_id = m_id;
-                p.victim_id = ptr->get_id();
-
-                Cast<APlayerCharacter>(Owner)->do_send(&p);
+                {
+                    CollisionEvent collision_event = MonsterSkillEvent(ptr->get_id(), GetType(), GetActorLocation());
+                    std::lock_guard<std::mutex> lock(g_s_collision_events_l);
+                    g_s_collision_events.push(collision_event);
+                }
             }
-        }
-    } else if (OtherActor->IsA(APlayerCharacter::StaticClass())) {
-        // Skill - Player Collision
-        APlayerCharacter* ptr = Cast<APlayerCharacter>(OtherActor);
-
-        if (g_c_players[ptr->get_id()]) {
-            collision_packet p;
-            p.packet_size = sizeof(collision_packet);
-            p.packet_type = C2H_COLLISION_PACKET;
-            p.collision_type = SKILL_PLAYER_COLLISION;
-            p.attacker_id = m_id;
-            p.victim_id = ptr->get_id();
-
-            Cast<APlayerCharacter>(Owner)->do_send(&p);
         }
     }
 }

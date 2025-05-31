@@ -10,6 +10,7 @@
 AMyIceSkill::AMyIceSkill()
 {
     SetElement(EClassType::CT_Ice);
+    SetType(SKILL_ICE_WALL);
 
     PrimaryActorTick.bCanEverTick = true;
 
@@ -77,14 +78,14 @@ void AMyIceSkill::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* Ot
 
             if (g_c_skills.count(ptr->m_id)) {
                 if (m_id < ptr->m_id) {
-                    collision_packet p;
-                    p.packet_size = sizeof(collision_packet);
-                    p.packet_type = C2H_COLLISION_PACKET;
-                    p.collision_type = SKILL_SKILL_COLLISION;
-                    p.attacker_id = m_id;
-                    p.victim_id = ptr->m_id;
+                    {
+                        CollisionEvent collision_event = SkillSkillEvent(m_id, ptr->GetType());
+                        std::lock_guard<std::mutex> lock(g_s_collision_events_l);
+                        g_s_collision_events.push(collision_event);
 
-                    Cast<APlayerCharacter>(Owner)->do_send(&p);
+                        collision_event = SkillSkillEvent(ptr->GetId(), GetType());
+                        g_s_collision_events.push(collision_event);
+                    }
                 }
             }
         } else if (OtherActor->IsA(AEnemyCharacter::StaticClass())) {
@@ -93,33 +94,31 @@ void AMyIceSkill::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* Ot
 
             if (g_c_monsters.count(ptr->get_id())) {
                 if (ptr->get_hp() > 0.0f) {
-                    collision_packet p;
-                    p.packet_size = sizeof(collision_packet);
-                    p.packet_type = C2H_COLLISION_PACKET;
-                    p.collision_type = SKILL_MONSTER_COLLISION;
-                    p.attacker_id = m_id;
-                    p.victim_id = ptr->get_id();
-
-                    Cast<APlayerCharacter>(Owner)->do_send(&p);
+                    {
+                        CollisionEvent collision_event = MonsterSkillEvent(ptr->get_id(), GetType(), GetActorLocation());
+                        std::lock_guard<std::mutex> lock(g_s_collision_events_l);
+                        g_s_collision_events.push(collision_event);
+                    }
                 }
             }
         }
     }
 }
 
-void AMyIceSkill::Overlap(AActor* OtherActor) {
-    if (OtherActor && OtherActor->IsA(AMyStoneSkill::StaticClass())) {
-        BreakAndDestroy();
-        return;
-    }
-
-    if ((OtherActor && OtherActor->IsA(AMyFireBall::StaticClass())) ||
-        (OtherActor && OtherActor->IsA(AMyFireSkill::StaticClass()))) {
+void AMyIceSkill::Overlap(char skill_type) {
+    switch (skill_type) {
+    case SKILL_FIRE_BALL:
+    case SKILL_FIRE_WALL:
         SmallAndDestroy();
-    } 
+        break;
+
+    case SKILL_STONE_SKILL:
+        BreakAndDestroy();
+        break;
+    }
 }
 
-void AMyIceSkill::Overlap(ACharacter* OtherActor) {
+void AMyIceSkill::Overlap(unsigned short object_id, bool collision_start) {
 
 }
 

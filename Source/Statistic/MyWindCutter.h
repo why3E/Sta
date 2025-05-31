@@ -30,10 +30,11 @@ public:
 	void Fire(FVector TargetLocation);
 	
     void ActivateNiagara();
-protected:
 
+protected:
     UPROPERTY(EditAnywhere, Category = "Sound", meta = (AllowPrivateAccess = "true"))
     TObjectPtr<class USoundBase> WindCutterHitSound;
+
 protected:
     // 콜리전 처리 함수
     UFUNCTION()
@@ -63,8 +64,8 @@ private:
 	uint8 bIsHit : 1;
 
 public:
-    virtual void Overlap(AActor* OtherActor);
-    virtual void Overlap(ACharacter* OtherActor);
+    virtual void Overlap(char skill_type) override;
+    virtual void Overlap(unsigned short object_id, bool collision_start) override;
 
     virtual void MixBombAttack(EClassType MixType, unsigned short skill_id) override;
 };

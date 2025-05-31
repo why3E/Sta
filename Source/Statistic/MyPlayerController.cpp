@@ -169,8 +169,11 @@ void AMyPlayerController::CleanupSocket()
 //////////////////////////////////////////////////
 // Server Thread
 void spawn_monster(FVector Location) {
+	UE_LOG(LogTemp, Error, TEXT("Spawn Monster!"));
+
 	AsyncTask(ENamedThreads::GameThread, [Location]() {
 		UWorld* World = GEngine->GetWorldFromContextObjectChecked(GEngine->GameViewport);
+
 		if (!World) return;
 
 		FVector SpawnLocation(Location.X, Location.Y, Location.Z);
@@ -250,12 +253,12 @@ void spawn_monster(FVector Location) {
 			NewMonster->GetMesh()->bNoSkeletonUpdate = false;
 
 			UE_LOG(LogTemp, Warning, TEXT("AnimInstance Set: %s"), *AnimClass->GetName());
-		}
-		else {
+		} else {
 			UE_LOG(LogTemp, Error, TEXT("Failed to Load AnimBP"));
 		}
 
 		g_c_monsters[NewMonster->get_id()] = NewMonster;
+
 		UE_LOG(LogTemp, Warning, TEXT("[Client] Spawned Monster %d and Stored in g_s_monsters"), NewMonster->get_id());
 	});
 }
@@ -312,12 +315,6 @@ void process_monster_event() {
 			p.packet_type = H2C_MONSTER_MOVE_PACKET;
 			p.id = monster_event.data.target.id;
 			p.target_x = monster_event.data.target.target_location.X; p.target_y = monster_event.data.target.target_location.Y; p.target_z = monster_event.data.target.target_location.Z;
-
-			if (g_c_monsters[p.id]) {
-				if (nullptr != g_c_monsters[p.id]) {
-					Cast<AEnemyCharacter>(g_c_monsters[p.id])->set_target_location(monster_event.data.target.target_location);
-				}
-			}
 
 			for (char client_id = 0; client_id < MAX_CLIENTS; ++client_id) {
 				if (client_id) {
@@ -663,7 +660,7 @@ void accept_thread() {
 						}
 
 						g_s_clients[client_id]->do_send(p);
-						UE_LOG(LogTemp, Warning, TEXT("[Host] Send %d Monsters to Clinet"), monster_count);
+
 						free(p);
 					}
 				}
@@ -894,7 +891,7 @@ extern void CALLBACK h_send_callback(DWORD err, DWORD num_bytes, LPWSAOVERLAPPED
 void c_process_packet(char* packet) {
 	char packet_type = packet[1];
 	
-	//UE_LOG(LogTemp, Warning, TEXT("[Client] Received Packet Type : %d"), packet_type);
+	UE_LOG(LogTemp, Warning, TEXT("[Client] Received Packet Type : %d"), packet_type);
 
 	switch (packet_type) {
 	case H2C_TIME_OFFSET_PACKET: {
@@ -1162,7 +1159,7 @@ void c_process_packet(char* packet) {
 
 	case H2C_MONSTER_SKILL_COLLISION_PACKET: {
 		monster_skill_collision_packet* p = reinterpret_cast<monster_skill_collision_packet*>(packet);
-		if (g_c_monsters[p->monster_id]) {
+		if (g_c_monsters.count(p->monster_id)) {
 			if (nullptr != g_c_monsters[p->monster_id]) {
 				Cast<AEnemyCharacter>(g_c_monsters[p->monster_id])->Overlap(p->skill_type, FVector(p->skill_x, p->skill_y, p->skill_z));
 			}

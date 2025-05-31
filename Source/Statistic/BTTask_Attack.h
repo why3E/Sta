@@ -12,19 +12,20 @@ class AEnemyCharacter;
 class UBehaviorTreeComponent;
 
 UCLASS()
-class STATISTIC_API UBTTask_Attack : public UBTTaskNode
-{
+class STATISTIC_API UBTTask_Attack : public UBTTaskNode {
 	GENERATED_BODY()
+
 public:
 	UBTTask_Attack();
+
 protected:
 	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
 	virtual void OnTaskFinished(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, EBTNodeResult::Type TaskResult) override;
+
 	UFUNCTION()
 	void OnAttackEnded();
 
 private:
 	AEnemyCharacter* EnemyCharacter;
 	UBehaviorTreeComponent* CachedOwnerComp;
-
 };

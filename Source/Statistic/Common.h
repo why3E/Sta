@@ -101,16 +101,16 @@ enum class MonsterEventType {
 };
 
 struct TargetEvent {
-	int id;
+	unsigned short id;
 	FVector target_location;
 };
 
 struct AttackEvent {
-	int id;
+	unsigned short id;
 };
 
 struct RespawnEvent {
-	int id;
+	unsigned short id;
 	FVector respawn_location;
 };
 
@@ -352,20 +352,20 @@ struct hc_init_monster_packet {
 struct hc_monster_move_packet {
 	unsigned char packet_size;
 	char packet_type;
-	unsigned char id;
+	unsigned short id;
 	float target_x; float target_y; float target_z;
 };
 
 struct hc_monster_attack_packet {
 	unsigned char packet_size;
 	char packet_type;
-	unsigned char id;
+	unsigned short id;
 };
 
 struct hc_monster_respawn_packet {
 	unsigned char packet_size;
 	char packet_type;
-	unsigned char id;
+	unsigned short id;
 	float respawn_x; float respawn_y; float respawn_z;
 };
 

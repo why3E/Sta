@@ -1463,9 +1463,6 @@ void APlayerCharacter::rotate(float yaw) {
 	FRotator NewRotation = GetActorRotation();
 	NewRotation.Yaw = yaw;
 	SetActorRotation(NewRotation);
-
-	UE_LOG(LogTemp, Warning, TEXT("[Client] rotate : %.2f"), yaw);
-
 }
 
 void APlayerCharacter::Overlap(char skill_type, bool collision_start) {

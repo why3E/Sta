@@ -54,28 +54,28 @@ void AEnemyCharacter::BeginPlay()
     UE_LOG(LogTemp, Warning, TEXT("Slime Position: %s"), *GetActorLocation().ToString());
 }
 
-void AEnemyCharacter::Tick(float DeltaTime)
-{
+void AEnemyCharacter::Tick(float DeltaTime) {
     Super::Tick(DeltaTime);
 
     if (!g_is_host) {
-        if (get_is_attacking()) { return; }
+        if (!get_is_attacking()) {
+            if ((m_target_location - GetActorLocation()).Size2D() < 100.0f) {
+                m_target_location = GetActorLocation();
+                return; 
+            }
 
-        float Distance = FVector::Dist2D(GetActorLocation(), m_target_location);
+            FVector Direction = (m_target_location - GetActorLocation()).GetSafeNormal2D();
 
-        if (Distance < 100.0f) { return; }
+            // Rotate
+            FRotator TargetRotation = Direction.Rotation();
+            FRotator CurrentRotation = GetActorRotation();
+            FRotator NewRotation = FMath::RInterpTo(CurrentRotation, TargetRotation, DeltaTime, 5.0f);
 
-        FVector Direction = (m_target_location - GetActorLocation()).GetSafeNormal2D();
+            SetActorRotation(NewRotation);
 
-        // Rotate
-        FRotator TargetRotation = Direction.Rotation();
-        FRotator CurrentRotation = GetActorRotation();
-        FRotator NewRotation = FMath::RInterpTo(CurrentRotation, TargetRotation, DeltaTime, 5.0f);
-
-        SetActorRotation(NewRotation);
-
-        // Move
-        AddMovementInput(Direction, 1.0f);
+            // Move
+            AddMovementInput(Direction, 1.0f);
+        }
     }
 }
 
@@ -412,18 +412,22 @@ void AEnemyCharacter::Overlap(char skill_type, FVector skill_location) {
     case SKILL_WIND_CUTTER:
     case SKILL_WIND_TORNADO:
         Info.Element = EClassType::CT_Wind;
+        break;
 
     case SKILL_FIRE_BALL:
     case SKILL_FIRE_WALL:
         Info.Element = EClassType::CT_Fire;
+        break;
 
     case SKILL_STONE_WAVE:
     case SKILL_STONE_SKILL:
         Info.Element = EClassType::CT_Stone;
+        break;
 
     case SKILL_ICE_ARROW:
     case SKILL_ICE_WALL:
         Info.Element = EClassType::CT_Ice;
+        break;
     }
 
     Info.StunTime = 1.5f;

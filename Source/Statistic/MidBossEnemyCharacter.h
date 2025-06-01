@@ -145,9 +145,9 @@ public:
     // 절단용 함수들
     void CopySkeletalMeshToProcedural(int32 LODIndex);
     void SliceMeshAtBone(FVector SliceNormal, bool bCreateOtherHalf);
-
+	void ApplyVertexAlphaToSkeletalMesh();
     // 자를 본 이름 가져오기
-    FName GetSecondBoneName() const;
+    FName GetBoneName() const;
 
 private:
     // ProceduralMesh용 데이터
@@ -165,15 +165,20 @@ private:
     UPROPERTY(EditAnywhere)
     FName TargetBoneName;
 
-    UPROPERTY(EditAnywhere)
-    FName ProceduralMeshAttachSocketName;
+    UPROPERTY(EditAnywhere, Category="Slice")
+	FName ProceduralMeshAttachSocketName = TEXT("SliceSocket_Upper");
+
+	UPROPERTY(EditAnywhere, Category="Slice")
+	FName OtherHalfMeshAttachSocketName = TEXT("SliceSocket_Lower");
 
     UPROPERTY(EditAnywhere)
-    FName OtherHalfMeshAttachSocketName;
-
-    UPROPERTY(EditAnywhere)
-    float CreateProceduralMeshDistance = 50.0f;
+    float CreateProceduralMeshDistance = 250.0f;
 
     UPROPERTY()
     UProceduralMeshComponent* CachedOtherHalfMesh = nullptr;
+
+	UPROPERTY()
+	UMaterialInterface* CapMaterial;
+
+	int32 NumVertices;
 };

@@ -25,6 +25,7 @@ void AMyMagicStatue::BeginPlay()
     Super::BeginPlay();
 
     boxCollision->OnComponentBeginOverlap.AddDynamic(this, &AMyMagicStatue::OnBeginOverlapCollision);
+    boxCollision->OnComponentEndOverlap.AddDynamic(this, &AMyMagicStatue::OnEndOverlapCollision);
 
     UWorld* World = GetWorld();
     if (!World) return;
@@ -90,6 +91,24 @@ void AMyMagicStatue::OnBeginOverlapCollision(UPrimitiveComponent* OverlappedComp
 
     Player->bIsInteraction = true;
     Player->CurrentInteractTarget = this;
+}
+
+void AMyMagicStatue::OnEndOverlapCollision(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
+    UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
+{
+    APlayerCharacter* Player = Cast<APlayerCharacter>(OtherActor);
+    if (!Player) return;
+
+    cachedController = Cast<APlayerController>(Player->GetController());
+    if (!cachedController) return;
+
+    if (interactionWidgetInstance)
+    {
+        interactionWidgetInstance->RemoveFromParent();
+        interactionWidgetInstance = nullptr;
+        Player->bIsInteraction = false;
+        Player->CurrentInteractTarget = nullptr;
+    }
 }
 
 void AMyMagicStatue::Interact(APlayerCharacter* InteractingPlayer)

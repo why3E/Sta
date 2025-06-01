@@ -158,13 +158,15 @@ void AEnemyCharacter::ReceiveSkillHit(const FSkillInfo& Info, AActor* Causer)
 void AEnemyCharacter::Die()
 {
     // Remove Collision
+    
+    CopySkeletalMeshToProcedural(0);
+
     GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
     GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
     GetCapsuleComponent()->SetCanEverAffectNavigation(false);
 
     GetMesh()->SetVisibility(false);
-
-    CopySkeletalMeshToProcedural(0);
+    
     ProcMeshComponent->SetVisibility(true);
     ProcMeshComponent->SetSimulatePhysics(true);
 

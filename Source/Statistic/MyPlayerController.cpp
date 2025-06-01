@@ -380,12 +380,30 @@ void process_monster_event() {
 			p.packet_size = sizeof(hc_monster_attack_packet);
 			p.packet_type = H2C_MONSTER_ATTACK_PACKET;
 			p.id = monster_event.data.attack.id;
+			p.x = monster_event.data.attack.location.X; p.y = monster_event.data.attack.location.Y; p.z = monster_event.data.attack.location.Z;
+			p.attack_type = static_cast<char>(monster_event.data.attack.attack_type);
 
 			for (char client_id = 0; client_id < MAX_CLIENTS; ++client_id) {
-				if (client_id) {
-					if (g_s_clients[client_id]) {
-						g_s_clients[client_id]->do_send(&p);
-					}
+				if (g_s_clients[client_id]) {
+					g_s_clients[client_id]->do_send(&p);
+				}
+			}
+			break;
+		}
+
+		case MonsterEventType::Skill: {
+			hc_monster_skill_packet p;
+			p.packet_size = sizeof(hc_monster_attack_packet);
+			p.packet_type = H2C_MONSTER_SKILL_PACKET;
+			p.id = monster_event.data.skill.id;
+			p.x = monster_event.data.skill.location.X; p.y = monster_event.data.skill.location.Y; p.z = monster_event.data.skill.location.Z;
+			p.skill_id = g_s_skill_id++;
+			p.skill_type = static_cast<char>(monster_event.data.skill.skill_type);
+			p.skill_x = monster_event.data.skill.skill_location.X; p.skill_y = monster_event.data.skill.skill_location.Y; p.skill_z = monster_event.data.skill.skill_location.Z;
+
+			for (char client_id = 0; client_id < MAX_CLIENTS; ++client_id) {
+				if (g_s_clients[client_id]) {
+					g_s_clients[client_id]->do_send(&p);
 				}
 			}
 			break;
@@ -448,6 +466,7 @@ void process_collision_event() {
 					g_s_clients[client_id]->do_send(&p);
 				}
 			}
+			UE_LOG(LogTemp, Error, TEXT("Skill %d", p.skill_id));
 			break;
 		}
 
@@ -462,6 +481,7 @@ void process_collision_event() {
 					g_s_clients[client_id]->do_send(&p);
 				}
 			}
+			UE_LOG(LogTemp, Error, TEXT("Skill %d", p.skill_id));
 			break;
 		}
 
@@ -478,6 +498,7 @@ void process_collision_event() {
 					g_s_clients[client_id]->do_send(&p);
 				}
 			}
+			UE_LOG(LogTemp, Error, TEXT("Skill %d", p.skill_id));
 			break;
 		}
 
@@ -492,6 +513,7 @@ void process_collision_event() {
 					g_s_clients[client_id]->do_send(&p);
 				}
 			}
+			UE_LOG(LogTemp, Error, TEXT("Skill %d", p.skill_id));
 			break;
 		}
 
@@ -508,6 +530,7 @@ void process_collision_event() {
 					g_s_clients[client_id]->do_send(&p);
 				}
 			}
+			UE_LOG(LogTemp, Error, TEXT("Monster %d", p.monster_id));
 			break;
 		}
 
@@ -524,6 +547,7 @@ void process_collision_event() {
 					g_s_clients[client_id]->do_send(&p);
 				}
 			}
+			UE_LOG(LogTemp, Error, TEXT("Player %d", p.player_id));
 			break;
 		}
 		}
@@ -1409,9 +1433,7 @@ void c_process_packet(char* packet) {
 		if (g_c_monsters.count(p->id)) {
 			if (nullptr == g_c_monsters[p->id]) { break; }
 
-			AEnemyCharacter* Monster = Cast<AEnemyCharacter>(g_c_monsters[p->id]);
-
-			Monster->set_target_location(FVector(p->target_x, p->target_y, p->target_z));
+			g_c_monsters[p->id]->set_target_location(FVector(p->target_x, p->target_y, p->target_z));
 		}
 		break;
 	}
@@ -1422,7 +1444,22 @@ void c_process_packet(char* packet) {
 		if (g_c_monsters.count(p->id)) {
 			if (nullptr == g_c_monsters[p->id]) { break; }
 
-			Cast<AEnemyCharacter>(g_c_monsters[p->id])->MeleeAttack();
+			g_c_monsters[p->id]->SetActorLocation(FVector(p->x, p->y, p->z));
+			g_c_monsters[p->id]->start_attack(static_cast<AttackType>(p->attack_type));
+		}
+
+		break;
+	}
+
+	case H2C_MONSTER_SKILL_PACKET: {
+		hc_monster_skill_packet* p = reinterpret_cast<hc_monster_skill_packet*>(packet);
+
+		if (g_c_monsters.count(p->id)) {
+			if (nullptr == g_c_monsters[p->id]) { break; }
+
+			g_c_monsters[p->id]->set_skill_id(p->skill_id);
+			g_c_monsters[p->id]->SetActorLocation(FVector(p->x, p->y, p->z));
+			g_c_monsters[p->id]->start_attack(static_cast<AttackType>(p->skill_type), FVector(p->skill_x, p->skill_y, p->skill_z));
 		}
 
 		break;
@@ -1434,7 +1471,7 @@ void c_process_packet(char* packet) {
 		if (g_c_monsters.count(p->id)) {
 			if (nullptr == g_c_monsters[p->id]) { break; }
 
-			Cast<AEnemyCharacter>(g_c_monsters[p->id])->Heal(p->heal_amount);
+			g_c_monsters[p->id]->Heal(p->heal_amount);
 		}
 
 		break;
@@ -1446,7 +1483,7 @@ void c_process_packet(char* packet) {
 		if (g_c_monsters.count(p->id)) {
 			if (nullptr == g_c_monsters[p->id]) { break; }
 
-			Cast<AEnemyCharacter>(g_c_monsters[p->id])->Respawn(FVector(p->respawn_x, p->respawn_y, p->respawn_z));
+			g_c_monsters[p->id]->Respawn(FVector(p->respawn_x, p->respawn_y, p->respawn_z));
 		}
 
 		break;

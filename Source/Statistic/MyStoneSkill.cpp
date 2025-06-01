@@ -160,7 +160,9 @@ void AMyStoneSkill::OnBeginOverlap(class UPrimitiveComponent* OverlappedComp, cl
                 }
             }
         }
-    } else if (OtherActor->IsA(AMyEnemyBase::StaticClass())) {
+    } 
+    
+    if (OtherActor->IsA(AMyEnemyBase::StaticClass())) {
         // Skill - Monster Collision
         AMyEnemyBase* ptr = Cast<AMyEnemyBase>(OtherActor);
 
@@ -171,6 +173,19 @@ void AMyStoneSkill::OnBeginOverlap(class UPrimitiveComponent* OverlappedComp, cl
                     std::lock_guard<std::mutex> lock(g_s_collision_events_l);
                     g_s_collision_events.push(collision_event);
                 }
+            }
+        }
+    }
+
+    if (OtherActor->IsA(APlayerCharacter::StaticClass())) {
+        // Skill - Player Collision
+        APlayerCharacter* ptr = Cast<APlayerCharacter>(OtherActor);
+
+        if (g_c_players[ptr->get_id()]) {
+            {
+                CollisionEvent collision_event = SkillPlayerEvent(m_id, ptr->get_id());
+                std::lock_guard<std::mutex> lock(g_s_collision_events_l);
+                g_s_collision_events.push(collision_event);
             }
         }
     }

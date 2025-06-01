@@ -6,6 +6,7 @@
 #include "PlayerCharacter.h"
 #include "MyStoneWave.h"
 #include "MyStoneSkill.h"
+#include "PlayerCharacter.h"
 
 #include "MidBossEnemyCharacter.h"
 #include "ProceduralMeshComponent.h"
@@ -22,6 +23,14 @@
 
 AMidBossEnemyCharacter::AMidBossEnemyCharacter()
 {
+    MaxHP = 1000.0f;
+    HP = MaxHP;
+
+    m_view_radius = 2000.0f;
+    m_track_radius = 3000.0f;
+    m_wander_radius = 1000.0f;
+    m_attack_radius = 2000.0f;
+
 	PrimaryActorTick.bCanEverTick = true;
 
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.f);
@@ -100,8 +109,6 @@ void AMidBossEnemyCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
-	GetWorldTimerManager().SetTimer(AttackTimerHandle, this, &AMidBossEnemyCharacter::SkillAttack, 3.0f, false);
-
 	MontageToHitCapsuleMap.Add(TEXT("WindLaser"), RightArmLowerCollision);
 	MontageToHitCapsuleMap.Add(TEXT("WindCutter"), LeftArmLowerCollision);
 	MontageToHitCapsuleMap.Add(TEXT("StoneWave"), ChestCollision);
@@ -113,65 +120,160 @@ void AMidBossEnemyCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	if (CachedPlayerCharacter)
-	{
-		FVector Direction = (CachedPlayerCharacter->GetActorLocation() - GetActorLocation()).GetSafeNormal();
-		FRotator NewRot = FMath::RInterpTo(GetActorRotation(), Direction.Rotation(), DeltaTime, 3.0f);
-		SetActorRotation(NewRot);
-	}
+    if (m_is_rotating) {
+        rotate_to_target(DeltaTime);
+    }
+
+    if (!g_is_host) {
+        if ((m_target_location - GetActorLocation()).Size2D() < 100.0f) {
+            m_target_location = GetActorLocation();
+            return;
+        }
+
+        FVector Direction = (m_target_location - GetActorLocation()).GetSafeNormal2D();
+
+        // Rotate
+        FRotator TargetRotation = Direction.Rotation();
+        FRotator CurrentRotation = GetActorRotation();
+        FRotator NewRotation = FMath::RInterpTo(CurrentRotation, TargetRotation, DeltaTime, 5.0f);
+
+        SetActorRotation(NewRotation);
+
+        // Move
+        AddMovementInput(Direction, 1.0f);
+    }
 }
 
-void AMidBossEnemyCharacter::Attack()
-{
-	if (AttackMontage)
-	{
-		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-		if (AnimInstance)
-		{
-			TArray<FName> Sections = { TEXT("WindLaser"), TEXT("WindCutter"), TEXT("StoneWave") };
-			int32 RandomIndex = FMath::RandRange(0, Sections.Num() - 1);
-			FName SelectedSection = Sections[RandomIndex];
+void AMidBossEnemyCharacter::rotate_to_target(float DeltaTime) {
+    FVector direction = (m_skill_location - GetActorLocation()).GetSafeNormal2D();
 
-			float PlayRate = (SelectedSection == TEXT("WindLaser")) ? 0.5f : 1.0f;
+    // Rotate
+    FRotator target_rotation = FRotator(0.0f, direction.Rotation().Yaw, 0.0f);
+    FRotator current_rotation = GetActorRotation();
 
-			bIsPlayingMontageSection = true; // 몽타주 시작
-			AnimInstance->Montage_Play(AttackMontage, PlayRate);
-			AnimInstance->Montage_JumpToSection(SelectedSection, AttackMontage);
-			SpawnWeakPointEffectForCurrentSection(SelectedSection);
-		}
-	}
+    FRotator NewRotation = FMath::RInterpTo(current_rotation, target_rotation, DeltaTime, 5.0f);
+    SetActorRotation(NewRotation);
+
+    float angle_diff = FMath::Abs(FRotator::NormalizeAxis(current_rotation.Yaw - target_rotation.Yaw));
+
+    if (angle_diff < 5.0f) {
+        m_is_rotating = false;
+    }
 }
 
-void AMidBossEnemyCharacter::SkillAttack()
-{
-	if (AttackMontage)
-	{
-		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-		if (AnimInstance)
-		{
-			TArray<FName> Sections = { TEXT("StoneThrow"), TEXT("WindTonado") };
-			int32 RandomIndex = FMath::RandRange(0, Sections.Num() - 1);
-			FName SelectedSection = Sections[RandomIndex];
+void AMidBossEnemyCharacter::start_attack(AttackType attack_type) {
 
-			bIsPlayingMontageSection = true; // 몽타주 시작
-			AnimInstance->Montage_Play(AttackMontage, 0.3f);
-			AnimInstance->Montage_JumpToSection(SelectedSection, AttackMontage);
-			SpawnWeakPointEffectForCurrentSection(SelectedSection);
-		}
-	}
+}
+
+void AMidBossEnemyCharacter::start_attack(AttackType attack_type, FVector attack_location) {
+    m_is_rotating = true;
+
+    m_skill_location = attack_location;
+
+    Attack(attack_type);
+}
+
+void AMidBossEnemyCharacter::Attack(AttackType attack_type)
+{
+    switch (attack_type) {
+    case AttackType::WindCutter:
+    case AttackType::WindLaser:
+    case AttackType::StoneWave:
+        if (AttackMontage) {
+            UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+            if (AnimInstance) {
+                AnimInstance->OnMontageEnded.RemoveDynamic(this, &AMidBossEnemyCharacter::OnAttackMontageEnded);
+                AnimInstance->OnMontageEnded.AddDynamic(this, &AMidBossEnemyCharacter::OnAttackMontageEnded);
+
+                int32 SectionIndex = static_cast<int32>(attack_type) - 1;
+                FName SelectedSection = Sections[SectionIndex];
+
+                float PlayRate = (SelectedSection == TEXT("WindLaser")) ? 0.5f : 1.0f;
+
+                bIsPlayingMontageSection = true; 
+                AnimInstance->Montage_Play(AttackMontage, PlayRate);
+                AnimInstance->Montage_JumpToSection(SelectedSection, AttackMontage);
+                SpawnWeakPointEffectForCurrentSection(SelectedSection);
+            }
+        }
+        break;
+
+    case AttackType::WindTornado:
+    case AttackType::StoneSkill:
+        if (AttackMontage) {
+            UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+            if (AnimInstance)
+            {
+                AnimInstance->OnMontageEnded.RemoveDynamic(this, &AMidBossEnemyCharacter::OnAttackMontageEnded);
+                AnimInstance->OnMontageEnded.AddDynamic(this, &AMidBossEnemyCharacter::OnAttackMontageEnded);
+
+                int32 SectionIndex = static_cast<int32>(attack_type) - 1;
+                FName SelectedSection = Sections[SectionIndex];
+
+                bIsPlayingMontageSection = true; 
+                AnimInstance->Montage_Play(AttackMontage, 0.3f);
+                AnimInstance->Montage_JumpToSection(SelectedSection, AttackMontage);
+                SpawnWeakPointEffectForCurrentSection(SelectedSection);
+            }
+        }
+        break;
+    }
 }
 
 void AMidBossEnemyCharacter::PlayHitAttackMontage()
 {
-	if (HitAttackMontage)
-	{
-		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-		if (AnimInstance)
-		{
-			AnimInstance->Montage_Play(HitAttackMontage, 1.0f);
-			RemoveWeakPointEffect();
-		}
-	}
+    if (HitAttackMontage)
+    {
+        UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+        if (AnimInstance)
+        {
+            AnimInstance->Montage_Play(HitAttackMontage, 1.0f);
+            RemoveWeakPointEffect();
+        }
+    }
+}
+
+void AMidBossEnemyCharacter::FindPlayerCharacter()
+{
+    TArray<AActor*> PlayerActors;
+
+    UGameplayStatics::GetAllActorsOfClass(GetWorld(), APlayerCharacter::StaticClass(), PlayerActors);
+
+    float closest_dist = m_attack_radius;
+    APlayerCharacter* closest_player = nullptr;
+
+    for (int i = 0; i < MAX_CLIENTS; ++i) {
+        if (g_c_players[i]) {
+            APlayerCharacter* player = Cast<APlayerCharacter>(g_c_players[i]);
+
+            if (player != nullptr) {
+                float dist = (player->GetActorLocation() - GetActorLocation()).Size2D();
+
+                if ((dist < m_attack_radius) && (dist < closest_dist)) {
+                    closest_dist = dist;
+                    closest_player = player;
+                }
+            }
+        }
+    }
+
+    CachedPlayerCharacter = closest_player ? closest_player : nullptr;
+}
+
+void AMidBossEnemyCharacter::OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted) {
+    OnAttackEnded.Broadcast();
+}
+
+FVector AMidBossEnemyCharacter::GetFireLocation() {
+    return m_skill_location; 
+}
+
+FVector AMidBossEnemyCharacter::GetCurrentImpactPoint() { 
+    return m_skill_location;
+}
+
+FRotator AMidBossEnemyCharacter::GetCurrentImpactRot() { 
+    return (m_skill_location - GetActorLocation()).GetSafeNormal().Rotation();
 }
 
 void AMidBossEnemyCharacter::SpawnWeakPointEffectForCurrentSection(FName SectionName)
@@ -200,63 +302,17 @@ void AMidBossEnemyCharacter::RemoveWeakPointEffect()
 	}
 }
 
-void AMidBossEnemyCharacter::OnHitCollisionOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult) {
-	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-
-	if (!AnimInstance || !AnimInstance->Montage_IsPlaying(AttackMontage)) return;
-
-	FName CurrentSection = AnimInstance->Montage_GetCurrentSection(AttackMontage);
-
-	if (CurrentSection.IsNone()) return;
-
-	if (MontageToHitCapsuleMap.Contains(CurrentSection) && MontageToHitCapsuleMap[CurrentSection] == OverlappedComp)
-	{
-		AnimInstance->Montage_Stop(0.1f, AttackMontage);
-		PlayHitAttackMontage();
-		bIsPlayingMontageSection = false; // 몽타주 종료
-	}
-}
-
-FVector AMidBossEnemyCharacter::GetCurrentImpactPoint() { FindPlayerCharacter(); return CachedPlayerCharacter ? CachedPlayerCharacter->GetActorLocation() : GetActorLocation(); }
-FRotator AMidBossEnemyCharacter::GetCurrentImpactRot() { FindPlayerCharacter(); return CachedPlayerCharacter ? (CachedPlayerCharacter->GetActorLocation() - GetActorLocation()).GetSafeNormal().Rotation() : GetActorRotation(); }
-FVector AMidBossEnemyCharacter::GetFireLocation() { FindPlayerCharacter(); return CachedPlayerCharacter ? CachedPlayerCharacter->GetActorLocation() : GetActorLocation() + GetActorForwardVector() * 500.f; }
-
-void AMidBossEnemyCharacter::FindPlayerCharacter()
-{
-	TArray<AActor*> PlayerActors;
-	UGameplayStatics::GetAllActorsOfClass(GetWorld(), APlayerCharacter::StaticClass(), PlayerActors);
-	CachedPlayerCharacter = PlayerActors.Num() > 0 ? Cast<APlayerCharacter>(PlayerActors[FMath::RandRange(0, PlayerActors.Num() - 1)]) : nullptr;
-}
-
-
-TArray<FVector> AMidBossEnemyCharacter::GenerateWindTonadoLocations(int32 Count, float MinRadius, float MaxRadius, float MinDistance)
-{
+TArray<FVector> AMidBossEnemyCharacter::GenerateWindTonadoLocations(int32 Count, float MinRadius, float MaxRadius, float MinDistance) {
     TArray<FVector> Result;
-    FVector Origin = GetActorLocation();
+    FVector Center = m_skill_location;
+    float Radius = 300.0f;
 
-    for (int32 i = 0; i < Count; ++i)
-    {
-        float Angle = FMath::FRandRange(0.f, 360.f);
-        float Radius = FMath::FRandRange(MinRadius, MaxRadius);
-        FVector Offset = FVector(FMath::Cos(FMath::DegreesToRadians(Angle)), FMath::Sin(FMath::DegreesToRadians(Angle)), 0.f) * Radius;
+    for (int32 i = 0; i < 3; ++i) {
+        float AngleDeg = i * 120.0f; 
+        float AngleRad = FMath::DegreesToRadians(AngleDeg);
+        FVector Offset = FVector(FMath::Cos(AngleRad), FMath::Sin(AngleRad), 0.f) * Radius;
 
-        bool bOverlap = false;
-        for (const FVector& Existing : Result)
-        {
-            if (FVector::Dist(Origin + Offset, Existing) < MinDistance)
-            {
-                bOverlap = true;
-                break;
-            }
-        }
-
-        if (bOverlap)
-        {
-            --i;
-            continue;
-        }
-
-        Result.Add(Origin + Offset);
+        Result.Add(Center + Offset);
     }
 
     return Result;
@@ -304,13 +360,25 @@ void AMidBossEnemyCharacter::Respawn(FVector respawn_location) {
 
 }
 
-void AMidBossEnemyCharacter::Overlap(char skill_type, FVector skill_location) {
+void AMidBossEnemyCharacter::OnHitCollisionOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult) {
+    UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 
+    if (!AnimInstance || !AnimInstance->Montage_IsPlaying(AttackMontage)) return;
+
+    FName CurrentSection = AnimInstance->Montage_GetCurrentSection(AttackMontage);
+
+    if (CurrentSection.IsNone()) return;
+
+    if (MontageToHitCapsuleMap.Contains(CurrentSection) && MontageToHitCapsuleMap[CurrentSection] == OverlappedComp)
+    {
+        AnimInstance->Montage_Stop(0.1f, AttackMontage);
+        PlayHitAttackMontage();
+        bIsPlayingMontageSection = false; // 몽타주 종료
+    }
 }
 
-FName AMidBossEnemyCharacter::GetSecondBoneName() const
-{
-    return TEXT("spine_04");
+void AMidBossEnemyCharacter::Overlap(char skill_type, FVector skill_location) {
+
 }
 
 void AMidBossEnemyCharacter::CopySkeletalMeshToProcedural(int32 LODIndex)
@@ -474,4 +542,9 @@ void AMidBossEnemyCharacter::SliceMeshAtBone(FVector SliceNormal, bool bCreateOt
     GetMesh()->SetSimulatePhysics(true);
 
     ProcMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+}
+
+FName AMidBossEnemyCharacter::GetSecondBoneName() const
+{
+    return TEXT("spine_04");
 }

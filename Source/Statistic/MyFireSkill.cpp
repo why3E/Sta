@@ -88,7 +88,7 @@ void AMyFireSkill::PostInitializeComponents()
 
 void AMyFireSkill::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-    if (!g_is_host) { return; }
+    if (!g_is_host || (Owner == OtherActor)) { return; }
     
     if (OtherActor && OtherActor != this)
     {
@@ -123,6 +123,17 @@ void AMyFireSkill::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* O
                         std::lock_guard<std::mutex> lock(g_s_collision_events_l);
                         g_s_collision_events.push(collision_event);
                     }
+                }
+            }
+        } else if (OtherActor->IsA(APlayerCharacter::StaticClass())) {
+            // Skill - Player Collision
+            APlayerCharacter* ptr = Cast<APlayerCharacter>(OtherActor);
+
+            if (g_c_players[ptr->get_id()]) {
+                {
+                    CollisionEvent collision_event = SkillPlayerEvent(m_id, ptr->get_id());
+                    std::lock_guard<std::mutex> lock(g_s_collision_events_l);
+                    g_s_collision_events.push(collision_event);
                 }
             }
         }

@@ -65,7 +65,7 @@ void AMyIceSkill::Tick(float DeltaTime)
 }
 
 void AMyIceSkill::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult) {
-    if (!g_is_host || bIsBroken) { return; }
+    if (!g_is_host || bIsBroken || (Owner == OtherActor)) { return; }
 
     if (OtherActor && OtherActor != this) {
         if (OtherActor->IsA(AMySkillBase::StaticClass())) {
@@ -88,7 +88,9 @@ void AMyIceSkill::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* Ot
                     }
                 }
             }
-        } else if (OtherActor->IsA(AMyEnemyBase::StaticClass())) {
+        } 
+        
+        if (OtherActor->IsA(AMyEnemyBase::StaticClass())) {
             // Skill - Monster Collision
             AMyEnemyBase* ptr = Cast<AMyEnemyBase>(OtherActor);
 
@@ -99,6 +101,19 @@ void AMyIceSkill::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* Ot
                         std::lock_guard<std::mutex> lock(g_s_collision_events_l);
                         g_s_collision_events.push(collision_event);
                     }
+                }
+            }
+        } 
+        
+        if (OtherActor->IsA(APlayerCharacter::StaticClass())) {
+            // Skill - Player Collision
+            APlayerCharacter* ptr = Cast<APlayerCharacter>(OtherActor);
+
+            if (g_c_players[ptr->get_id()]) {
+                {
+                    CollisionEvent collision_event = SkillPlayerEvent(m_id, ptr->get_id());
+                    std::lock_guard<std::mutex> lock(g_s_collision_events_l);
+                    g_s_collision_events.push(collision_event);
                 }
             }
         }

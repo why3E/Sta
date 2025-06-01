@@ -9,6 +9,14 @@ AMyEnemyBase::AMyEnemyBase() {
 	PrimaryActorTick.bCanEverTick = true;
 }
 
+void AMyEnemyBase::start_attack(AttackType attack_type) {
+
+}
+
+void AMyEnemyBase::start_attack(AttackType attack_type, FVector attack_location) {
+
+}
+
 void AMyEnemyBase::StartHeal() {
     if (!GetWorldTimerManager().IsTimerActive(HealTimerHandle)) {
         if (HP < MaxHP) {

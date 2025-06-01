@@ -5,6 +5,7 @@
 #include "ImpactPointInterface.h"
 #include "MidBossEnemyCharacter.h"
 #include "MyStoneSkill.h"
+#include "SESSION.h"
 
 void UMMBossStoneThrowAnimNotify::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, const FAnimNotifyEventReference& EventReference)
 {
@@ -33,11 +34,34 @@ void UMMBossStoneThrowAnimNotify::Notify(USkeletalMeshComponent* MeshComp, UAnim
         SpawnParams.Owner = OwnerActor;
         SpawnParams.Instigator = OwnerActor->GetInstigator();
 
-        AMyStoneSkill* StoneSkill = MeshComp->GetWorld()->SpawnActor<AMyStoneSkill>(
-            BossCharacter->GetStoneSkillClass(), SpawnLocation, FireRotation, SpawnParams);
+        AMyStoneSkill* StoneSkill = MeshComp->GetWorld()->SpawnActor<AMyStoneSkill>(BossCharacter->GetStoneSkillClass(), SpawnLocation, FireRotation, SpawnParams);
 
         if (StoneSkill)
         {
+            unsigned short skill_id = Cast<APlayerCharacter>(OwnerActor)->get_skill_id();
+
+            StoneSkill->SetID(skill_id);
+
+            g_c_skills.emplace(skill_id, StoneSkill);
+
+            if (g_c_skill_collisions.count(skill_id)) {
+                while (!g_c_skill_collisions[skill_id].empty()) {
+                    char skill_type = g_c_skill_collisions[skill_id].front();
+                    g_c_skill_collisions[skill_id].pop();
+
+                    g_c_skills[skill_id]->Overlap(skill_type);
+                }
+            }
+
+            if (g_c_object_collisions.count(skill_id)) {
+                while (!g_c_object_collisions[skill_id].empty()) {
+                    unsigned short object_id = g_c_object_collisions[skill_id].front();
+                    g_c_object_collisions[skill_id].pop();
+
+                    g_c_skills[skill_id]->Overlap(object_id);
+                }
+            }
+
             StoneSkill->Fire(TargetLocation); // 방향 계산은 내부에서 자동 처리
         }
     }

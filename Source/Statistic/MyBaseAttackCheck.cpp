@@ -12,6 +12,7 @@ void UMyBaseAttackCheck::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceB
 	{
 		// 공격 성공 여부 체크
 		IAnimationAttackInterface* AttackPawn = Cast<IAnimationAttackInterface>(MeshComp->GetOwner());
+
 		if (AttackPawn)
 		{
 			AttackPawn->BaseAttackCheck();

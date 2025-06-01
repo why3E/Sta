@@ -3,6 +3,7 @@
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/Actor.h"
 #include "TimerManager.h"
+#include "PlayerCharacter.h"
 
 AMyWindLaser::AMyWindLaser()
 {
@@ -107,11 +108,39 @@ void AMyWindLaser::EndPlay(EEndPlayReason::Type EndPlayReason)
     Super::EndPlay(EndPlayReason);
 }
 
-void AMyWindLaser::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
-    UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
-{
-    if (!bIsFiring) return;
-    if (!OtherActor || OtherActor == this) return;
+void AMyWindLaser::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult) {
+    if (!g_is_host || !bIsFiring || (Owner == OtherActor)) { return; }
 
-    UE_LOG(LogTemp, Warning, TEXT("WindLaser hit: %s"), *OtherActor->GetName());
+    if (OtherActor || OtherActor != this) {
+        if (OtherActor->IsA(AMySkillBase::StaticClass())) {
+            // Skill - Skill Collision
+            AMySkillBase* ptr = Cast<AMySkillBase>(OtherActor);
+
+            if (g_c_skills.count(ptr->m_id)) {
+                if (m_id < ptr->m_id) {
+                    {
+                        CollisionEvent collision_event = SkillSkillEvent(m_id, ptr->GetType());
+                        std::lock_guard<std::mutex> lock(g_s_collision_events_l);
+                        g_s_collision_events.push(collision_event);
+
+                        collision_event = SkillSkillEvent(ptr->GetId(), GetType());
+                        g_s_collision_events.push(collision_event);
+                    }
+                }
+            }
+        } else if (OtherActor->IsA(APlayerCharacter::StaticClass())) {
+            // Skill - Player Collision
+            APlayerCharacter* ptr = Cast<APlayerCharacter>(OtherActor);
+
+            if (g_c_players[ptr->get_id()]) {
+                {
+                    CollisionEvent collision_event = SkillPlayerEvent(m_id, ptr->get_id());
+                    std::lock_guard<std::mutex> lock(g_s_collision_events_l);
+                    g_s_collision_events.push(collision_event);
+                }
+            }
+        }
+
+        UE_LOG(LogTemp, Warning, TEXT("WindLaser hit: %s"), *OtherActor->GetName());
+    }
 }

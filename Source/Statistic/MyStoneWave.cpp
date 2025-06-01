@@ -123,30 +123,49 @@ void AMyStoneWave::OnNiagaraFinished(UNiagaraComponent* PSystem)
 }
 
 void AMyStoneWave::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult) {
-	if (!g_is_host || !OtherActor || OtherActor == this) return;
+	if (!g_is_host || (Owner == OtherActor)) { return; }
 
-	if (OtherActor->IsA(AMySkillBase::StaticClass())) {
-		AMySkillBase* ptr = Cast<AMySkillBase>(OtherActor);
+	if (OtherActor || OtherActor != this) {
+		if (OtherActor->IsA(AMySkillBase::StaticClass())) {
+			// Skill - Skill Collision
+			AMySkillBase* ptr = Cast<AMySkillBase>(OtherActor);
 
-		if (g_c_skills.count(ptr->m_id)) {
-			if (m_id < ptr->m_id) {
-				{
-					CollisionEvent collision_event = SkillSkillEvent(m_id, ptr->GetType());
-					std::lock_guard<std::mutex> lock(g_s_collision_events_l);
-					g_s_collision_events.push(collision_event);
+			if (g_c_skills.count(ptr->m_id)) {
+				if (m_id < ptr->m_id) {
+					{
+						CollisionEvent collision_event = SkillSkillEvent(m_id, ptr->GetType());
+						std::lock_guard<std::mutex> lock(g_s_collision_events_l);
+						g_s_collision_events.push(collision_event);
 
-					collision_event = SkillSkillEvent(ptr->GetId(), GetType());
-					g_s_collision_events.push(collision_event);
+						collision_event = SkillSkillEvent(ptr->GetId(), GetType());
+						g_s_collision_events.push(collision_event);
+					}
 				}
 			}
 		}
-	} else if (OtherActor->IsA(AMyEnemyBase::StaticClass())) {
-		AMyEnemyBase* ptr = Cast<AMyEnemyBase>(OtherActor);
+		
+		if (OtherActor->IsA(AMyEnemyBase::StaticClass())) {
+			// Skill - Monster Collision
+			AMyEnemyBase* ptr = Cast<AMyEnemyBase>(OtherActor);
 
-		if (g_c_monsters.count(ptr->get_id())) {
-			if (ptr->GetHP() > 0.0f) {
+			if (g_c_monsters.count(ptr->get_id())) {
+				if (ptr->GetHP() > 0.0f) {
+					{
+						CollisionEvent collision_event = MonsterSkillEvent(ptr->get_id(), GetType(), GetActorLocation());
+						std::lock_guard<std::mutex> lock(g_s_collision_events_l);
+						g_s_collision_events.push(collision_event);
+					}
+				}
+			}
+		}
+
+		if (OtherActor->IsA(APlayerCharacter::StaticClass())) {
+			// Skill - Player Collision
+			APlayerCharacter* ptr = Cast<APlayerCharacter>(OtherActor);
+
+			if (g_c_players[ptr->get_id()]) {
 				{
-					CollisionEvent collision_event = MonsterSkillEvent(ptr->get_id(), GetType(), GetActorLocation());
+					CollisionEvent collision_event = SkillPlayerEvent(m_id, ptr->get_id());
 					std::lock_guard<std::mutex> lock(g_s_collision_events_l);
 					g_s_collision_events.push(collision_event);
 				}

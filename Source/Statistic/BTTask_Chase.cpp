@@ -6,8 +6,8 @@
 #include "GameFramework/Character.h"
 
 #include "SESSION.h"
+#include "MyEnemyBase.h"
 #include "PlayerCharacter.h"
-#include "EnemyCharacter.h"
 
 UBTTask_Chase::UBTTask_Chase() {
     bNotifyTick = true;
@@ -29,16 +29,8 @@ void UBTTask_Chase::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemor
 
     float dist = to_target.Size2D();
 
-    if (dist < 100.0f) {
-        Cast<AEnemyCharacter>(Pawn)->MeleeAttack();
-
-        OwnerComp.GetBlackboardComponent()->ClearValue(TEXT("TargetLocation"));
-
-        {
-            MonsterEvent monster_event = AttackEvent(Cast<AEnemyCharacter>(Pawn)->get_id());
-            std::lock_guard<std::mutex> lock(g_s_monster_events_l);
-            g_s_monster_events.push(monster_event);
-        }
+    if (dist < Cast<AMyEnemyBase>(Pawn)->get_attack_radius()) {
+        OwnerComp.GetBlackboardComponent()->SetValueAsBool(TEXT("bIsAttacking"), true);
 
         FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded);
         return;
@@ -48,11 +40,11 @@ void UBTTask_Chase::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemor
 
     dist = (current_location - start_location).Size2D();
 
-    if (dist > 2000.0f) {
+    if (dist > Cast<AMyEnemyBase>(Pawn)->m_track_radius) {
         OwnerComp.GetBlackboardComponent()->SetValueAsBool(TEXT("bIsReturning"), true);
 
         {
-            MonsterEvent monster_event = TargetEvent(Cast<AEnemyCharacter>(Pawn)->get_id(), start_location);
+            MonsterEvent monster_event = TargetEvent(Cast<AMyEnemyBase>(Pawn)->get_id(), start_location);
             std::lock_guard<std::mutex> lock(g_s_monster_events_l);
             g_s_monster_events.push(monster_event);
         }
@@ -64,7 +56,7 @@ void UBTTask_Chase::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemor
     FVector direction = to_target.GetSafeNormal();
 
     // Rotate
-    FRotator target_rotation = direction.Rotation();
+    FRotator target_rotation = FRotator(0.0f, direction.Rotation().Yaw, 0.0f);
     FRotator current_rotation = Pawn->GetActorRotation();
 
     FRotator new_rotation = FMath::RInterpTo(current_rotation, target_rotation, GetWorld()->GetDeltaSeconds(), 5.0f);

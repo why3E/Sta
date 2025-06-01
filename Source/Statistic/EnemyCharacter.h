@@ -32,7 +32,8 @@ public:
     UPROPERTY(BlueprintAssignable, Category = "Combat")
     FOnAttackEnded OnAttackEnded;
 
-    void MeleeAttack();
+    virtual void start_attack(AttackType attack_type) override;
+    virtual void start_attack(AttackType attack_type, FVector attack_location) override;
 
     virtual void BaseAttackCheck() override;
 

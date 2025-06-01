@@ -25,6 +25,14 @@
 
 AEnemyCharacter::AEnemyCharacter()
 {
+    MaxHP = 100.0f;
+    HP = MaxHP;
+
+    m_view_radius = 500.0f;
+    m_track_radius = 1000.0f;
+    m_wander_radius = 500.0f;
+    m_attack_radius = 100.0f;
+
     PrimaryActorTick.bCanEverTick = true;
 
     GetCapsuleComponent()->InitCapsuleSize(42.f, 50.f);
@@ -58,24 +66,22 @@ void AEnemyCharacter::Tick(float DeltaTime) {
     Super::Tick(DeltaTime);
 
     if (!g_is_host) {
-        if (!GetIsAttacking()) {
-            if ((m_target_location - GetActorLocation()).Size2D() < 100.0f) {
-                m_target_location = GetActorLocation();
-                return; 
-            }
-
-            FVector Direction = (m_target_location - GetActorLocation()).GetSafeNormal2D();
-
-            // Rotate
-            FRotator TargetRotation = Direction.Rotation();
-            FRotator CurrentRotation = GetActorRotation();
-            FRotator NewRotation = FMath::RInterpTo(CurrentRotation, TargetRotation, DeltaTime, 5.0f);
-
-            SetActorRotation(NewRotation);
-
-            // Move
-            AddMovementInput(Direction, 1.0f);
+        if ((m_target_location - GetActorLocation()).Size2D() < 100.0f) {
+            m_target_location = GetActorLocation();
+            return; 
         }
+
+        FVector Direction = (m_target_location - GetActorLocation()).GetSafeNormal2D();
+
+        // Rotate
+        FRotator TargetRotation = Direction.Rotation();
+        FRotator CurrentRotation = GetActorRotation();
+        FRotator NewRotation = FMath::RInterpTo(CurrentRotation, TargetRotation, DeltaTime, 5.0f);
+
+        SetActorRotation(NewRotation);
+
+        // Move
+        AddMovementInput(Direction, 1.0f);
     }
 }
 
@@ -84,22 +90,25 @@ void AEnemyCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComp
     Super::SetupPlayerInputComponent(PlayerInputComponent);
 }
 
-void AEnemyCharacter::MeleeAttack()
-{
+void AEnemyCharacter::start_attack(AttackType attack_type) {
     if (bIsAttacking || !AttackMontage) return;
 
     UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-    if (AnimInstance)
-    {
+
+    if (AnimInstance) {
         float Duration = AnimInstance->Montage_Play(AttackMontage, 1.0f);
-        if (Duration > 0.f)
-        {
+
+        if (Duration > 0.f) {
             bIsAttacking = true;
             FOnMontageEnded Delegate;
             Delegate.BindUObject(this, &AEnemyCharacter::OnAttackMontageEnded);
             AnimInstance->Montage_SetEndDelegate(Delegate, AttackMontage);
         }
     }
+}
+
+void AEnemyCharacter::start_attack(AttackType attack_type, FVector attack_location) {
+
 }
 
 void AEnemyCharacter::BaseAttackCheck()

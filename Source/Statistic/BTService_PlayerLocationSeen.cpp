@@ -3,7 +3,7 @@
 #include "BTService_PlayerLocationSeen.h"
 #include "SESSION.h"
 #include "AIController.h"
-#include "EnemyCharacter.h"
+#include "MyEnemyBase.h"
 #include "PlayerCharacter.h"
 #include "EnemyAIController.h"
 #include "BehaviorTree/BlackboardComponent.h"
@@ -15,18 +15,23 @@ UBTService_PlayerLocationSeen::UBTService_PlayerLocationSeen() {
 }
 
 void UBTService_PlayerLocationSeen::TickNode(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds) {
+    if (OwnerComp.GetBlackboardComponent()->GetValueAsBool(TEXT("bIsReturning")) || 
+        OwnerComp.GetBlackboardComponent()->GetValueAsBool(TEXT("bIsAttacking"))) { 
+        return; 
+    }
+
     AAIController* AICon = OwnerComp.GetAIOwner();
     APawn* Pawn = AICon ? AICon->GetPawn() : nullptr;
 
     if (!Pawn) { return; }
 
-    AEnemyCharacter* monster = Cast<AEnemyCharacter>(AICon->GetPawn());
+    AMyEnemyBase* monster = Cast<AMyEnemyBase>(AICon->GetPawn());
 
     if (!monster) { return; }
 
     FVector monster_location = monster->GetActorLocation();
 
-    float min_dist = 1000.0f;
+    float min_dist = monster->m_view_radius;
     FVector target_location = FVector::ZeroVector;
     bool found = false;
 
@@ -50,7 +55,7 @@ void UBTService_PlayerLocationSeen::TickNode(UBehaviorTreeComponent& OwnerComp, 
         OwnerComp.GetBlackboardComponent()->SetValueAsVector(TEXT("TargetLocation"), target_location);
 
         if (!OwnerComp.GetBlackboardComponent()->GetValueAsBool(TEXT("bIsReturning"))) {
-            MonsterEvent monster_event = TargetEvent(Cast<AEnemyCharacter>(Pawn)->get_id(), target_location);
+            MonsterEvent monster_event = TargetEvent(Cast<AMyEnemyBase>(Pawn)->get_id(), target_location);
             std::lock_guard<std::mutex> lock(g_s_monster_events_l);
             g_s_monster_events.push(monster_event);
         }

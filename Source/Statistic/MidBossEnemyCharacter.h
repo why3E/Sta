@@ -8,6 +8,7 @@
 #include "MyStoneSkill.h"
 #include "MyWindCutter.h"
 #include "MyWindLaser.h"
+#include "PlayerCharacter.h"
 #include "NiagaraComponent.h"
 #include "NiagaraSystem.h"
 #include "ProceduralMeshComponent.h"
@@ -22,12 +23,10 @@ class STATISTIC_API AMidBossEnemyCharacter : public AMyEnemyBase, public IImpact
 public:
 	AMidBossEnemyCharacter();
 
-protected:
 	virtual void BeginPlay() override;
-
-public:
 	virtual void Tick(float DeltaTime) override;
 
+public:
 	// 부위별 콜리전
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Hit Collision")
 	UCapsuleComponent* HeadCollision;
@@ -63,27 +62,70 @@ public:
 	UCapsuleComponent* RightLegLowerCollision;
 
 public:
+	// Combat
+	FName BaseAttackSocketName;
+	FName LaserAttackSocketName;
+
+	FTimerHandle AttackTimerHandle;
+	
+	TArray<FName> Sections = { TEXT("WindCutter"), TEXT("WindLaser"), TEXT("StoneWave"), TEXT("WindTonado"), TEXT("StoneThrow") };
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
 	UAnimMontage* AttackMontage;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
 	UAnimMontage* HitAttackMontage;
 
-	void Attack();
-	void SkillAttack();
+    DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnAttackEnded);
+    UPROPERTY(BlueprintAssignable, Category = "Combat")
+    FOnAttackEnded OnAttackEnded;
+
+	FVector m_skill_location;
+
+	bool m_is_rotating = false;
+
+	void set_skill_location(FVector skill_location) { m_skill_location = skill_location; }
+
+	void rotate_to_target(float DeltaTime);
+
+	virtual void start_attack(AttackType attack_type);
+	virtual void start_attack(AttackType attack_type, FVector attack_location);
+
+	void Attack(AttackType attack_type);
+	
 	void PlayHitAttackMontage();
 
-	FTimerHandle AttackTimerHandle;
+public:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player")
+	APlayerCharacter* CachedPlayerCharacter = nullptr;
 
-	// IImpactPointInterface 구현
+	void FindPlayerCharacter();
+
+public:
+	UPROPERTY()
+	bool bIsPlayingMontageSection = false;
+
+	UPROPERTY()
+	TMap<FName, UCapsuleComponent*> MontageToHitCapsuleMap;
+
+	UFUNCTION()
+	void OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);
+
+	virtual FVector GetFireLocation() override;
 	virtual FVector GetCurrentImpactPoint() override;
 	virtual FRotator GetCurrentImpactRot() override;
-	virtual FVector GetFireLocation() override;
 
-	FName BaseAttackSocketName;
-	FName LaserAttackSocketName;
+public:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FX")
+	UNiagaraSystem* WeakPointEffect;
 
-protected:
+	UPROPERTY()
+	UNiagaraComponent* ActiveWeakPointEffect;
+
+	void SpawnWeakPointEffectForCurrentSection(FName SectionName);
+	void RemoveWeakPointEffect();
+
+public:
 	UPROPERTY(VisibleAnywhere, Category = "Quiver", meta = (AllowPrivateAccess = "true"))
 	TSubclassOf<AActor> StoneWaveClass;
 
@@ -99,43 +141,17 @@ protected:
 	UPROPERTY(VisibleAnywhere, Category = "Quiver", meta = (AllowPrivateAccess = "true"))
 	TSubclassOf<AActor> WindLaserClass;
 
-public:
-	TSubclassOf<AActor> GetStoneWaveClass() const { return StoneWaveClass; }
-	TSubclassOf<AActor> GetStoneSkillClass() const { return StoneSkillClass; }
-	TSubclassOf<AActor> GetWindCutterClass() const { return WindCutterClass; }
-	TSubclassOf<AActor> GetWindSkillClass() const { return WindSkillClass; }
-	TSubclassOf<AActor> GetWindLaserClass() const { return WindLaserClass; }
-
-	void FindPlayerCharacter();
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player")
-	class APlayerCharacter* CachedPlayerCharacter = nullptr;
-
 	UPROPERTY()
 	AMyWindLaser* CurrentWindLaser = nullptr;
 
 	UFUNCTION(BlueprintCallable, Category = "Skill")
 	TArray<FVector> GenerateWindTonadoLocations(int32 Count, float MinRadius, float MaxRadius, float MinDistance);
 
-	// 섹션 → 콜리전 맵
-	UPROPERTY()
-	TMap<FName, UCapsuleComponent*> MontageToHitCapsuleMap;
-
-	UPROPERTY()
-	bool bIsPlayingMontageSection = false;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FX")
-	UNiagaraSystem* WeakPointEffect;
-
-	UPROPERTY()
-	UNiagaraComponent* ActiveWeakPointEffect;
-
-	void SpawnWeakPointEffectForCurrentSection(FName SectionName);
-	void RemoveWeakPointEffect();   
-
-	// 충돌 처리 함수
-	UFUNCTION()
-	void OnHitCollisionOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+	TSubclassOf<AActor> GetStoneWaveClass() const { return StoneWaveClass; }
+	TSubclassOf<AActor> GetStoneSkillClass() const { return StoneSkillClass; }
+	TSubclassOf<AActor> GetWindCutterClass() const { return WindCutterClass; }
+	TSubclassOf<AActor> GetWindSkillClass() const { return WindSkillClass; }
+	TSubclassOf<AActor> GetWindLaserClass() const { return WindLaserClass; }
 
 public:
 	// Die
@@ -144,42 +160,46 @@ public:
 	virtual void Respawn() override;
 	virtual void Respawn(FVector respawn_location) override;
 
+public:
 	// Collision
+	UFUNCTION()
+	void OnHitCollisionOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+
 	virtual void Overlap(char skill_type, FVector skill_location) override;
 
+private:
+	// ProceduralMesh
+	UPROPERTY(VisibleAnywhere)
+	UProceduralMeshComponent* ProcMeshComponent;
+
+	TArray<FVector> FilteredVerticesArray;
+	TArray<int32> Indices;
+	TArray<FVector> Normals;
+	TArray<FVector2D> UV;
+	TArray<FColor> Colors;
+	TArray<FProcMeshTangent> Tangents;
+	TMap<int32, int32> VertexIndexMap;
+
+	UPROPERTY(EditAnywhere)
+	FName TargetBoneName;
+
+	UPROPERTY(EditAnywhere)
+	FName ProceduralMeshAttachSocketName;
+
+	UPROPERTY(EditAnywhere)
+	FName OtherHalfMeshAttachSocketName;
+
+	UPROPERTY(EditAnywhere)
+	float CreateProceduralMeshDistance = 50.0f;
+
+	UPROPERTY()
+	UProceduralMeshComponent* CachedOtherHalfMesh = nullptr;
+
 public:
-	// 절단용 함수들
     void CopySkeletalMeshToProcedural(int32 LODIndex);
     void SliceMeshAtBone(FVector SliceNormal, bool bCreateOtherHalf);
 
-    // 자를 본 이름 가져오기
     FName GetSecondBoneName() const;
 
-private:
-    // ProceduralMesh용 데이터
-    UPROPERTY(VisibleAnywhere)
-    UProceduralMeshComponent* ProcMeshComponent;
 
-    TArray<FVector> FilteredVerticesArray;
-    TArray<int32> Indices;
-    TArray<FVector> Normals;
-    TArray<FVector2D> UV;
-    TArray<FColor> Colors;
-    TArray<FProcMeshTangent> Tangents;
-    TMap<int32, int32> VertexIndexMap;
-
-    UPROPERTY(EditAnywhere)
-    FName TargetBoneName;
-
-    UPROPERTY(EditAnywhere)
-    FName ProceduralMeshAttachSocketName;
-
-    UPROPERTY(EditAnywhere)
-    FName OtherHalfMeshAttachSocketName;
-
-    UPROPERTY(EditAnywhere)
-    float CreateProceduralMeshDistance = 50.0f;
-
-    UPROPERTY()
-    UProceduralMeshComponent* CachedOtherHalfMesh = nullptr;
 };

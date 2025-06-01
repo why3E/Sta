@@ -21,6 +21,9 @@ std::queue<CollisionEvent> g_s_collision_events;
 std::mutex g_s_events_l;
 std::queue<Event> g_s_events;
 
+std::default_random_engine dre{ std::random_device{}() };
+std::uniform_int_distribution<int> uid{ 0, 100 };
+
 //////////////////////////////////////////////////
 // EXP_OVER
 EXP_OVER::EXP_OVER() {

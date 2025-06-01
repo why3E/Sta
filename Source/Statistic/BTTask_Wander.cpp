@@ -2,7 +2,7 @@
 
 #include "BTTask_Wander.h"
 #include "SESSION.h"
-#include "EnemyCharacter.h"
+#include "MyEnemyBase.h"
 #include "AIController.h"
 #include "NavigationSystem.h"
 #include "BehaviorTree/BlackboardComponent.h"
@@ -26,11 +26,11 @@ EBTNodeResult::Type UBTTask_Wander::ExecuteTask(UBehaviorTreeComponent& OwnerCom
     RandomDirection.Normalize();
 
     // Calculate Destination
-    FVector Destination = Origin + RandomDirection * SearchRadius;
+    FVector Destination = Origin + RandomDirection * Cast<AMyEnemyBase>(Pawn)->m_wander_radius;
     OwnerComp.GetBlackboardComponent()->SetValueAsVector(TEXT("WanderLocation"), Destination);
 
     {
-        MonsterEvent monster_event = TargetEvent(Cast<AEnemyCharacter>(Pawn)->get_id(), Destination);
+        MonsterEvent monster_event = TargetEvent(Cast<AMyEnemyBase>(Pawn)->get_id(), Destination);
         std::lock_guard<std::mutex> lock(g_s_monster_events_l);
         g_s_monster_events.push(monster_event);
     }
@@ -50,7 +50,7 @@ void UBTTask_Wander::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemo
     FVector Direction = (Destination - CurrentLocation).GetSafeNormal2D();
 
     // Rotate
-    FRotator TargetRotation = Direction.Rotation();
+    FRotator TargetRotation = FRotator(0.0f, Direction.Rotation().Yaw, 0.0f);
     FRotator CurrentRotation = Pawn->GetActorRotation();
 
     FRotator NewRotation = FMath::RInterpTo(CurrentRotation, TargetRotation, GetWorld()->GetDeltaSeconds(), 5.0f);

@@ -27,6 +27,9 @@ extern std::queue<CollisionEvent> g_s_collision_events;
 extern std::mutex g_s_events_l;
 extern std::queue<Event> g_s_events;
 
+extern std::default_random_engine dre;
+extern std::uniform_int_distribution<int> uid;
+
 //////////////////////////////////////////////////
 // EXP_OVER
 class EXP_OVER {

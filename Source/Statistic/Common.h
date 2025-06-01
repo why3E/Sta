@@ -9,6 +9,7 @@
 #include <mutex>
 #include <queue>
 #include <unordered_map>
+#include <random>
 
 //////////////////////////////////////////////////
 // Lobby
@@ -25,8 +26,9 @@ constexpr char H2C_PLAYER_LEAVE_PACKET = 3;
 constexpr char H2C_INIT_MONSTER_PACKET = 11;
 constexpr char H2C_MONSTER_MOVE_PACKET = 12;
 constexpr char H2C_MONSTER_ATTACK_PACKET = 13;
-constexpr char H2C_MONSTER_HEAL_PACKET = 14;
-constexpr char H2C_MONSTER_RESPAWN_PACKET = 15;
+constexpr char H2C_MONSTER_SKILL_PACKET = 14;
+constexpr char H2C_MONSTER_HEAL_PACKET = 15;
+constexpr char H2C_MONSTER_RESPAWN_PACKET = 16;
 
 constexpr char H2C_PLAYER_MOVE_PACKET = 21;
 constexpr char H2C_PLAYER_STOP_PACKET = 22;
@@ -88,11 +90,29 @@ constexpr unsigned short INVALID_OBJECT_ID = 65535;
 
 //////////////////////////////////////////////////
 // Monster
+
+enum class MonsterEventType {
+	Target,
+	Attack,
+	Skill,
+	Heal,
+	Respawn
+};
+
 enum class MonsterType {
 	Slime,
 	MidBoss,
 	Boss,
 	Unknown
+};
+
+enum class AttackType {
+	Melee,
+	WindCutter,
+	WindLaser,
+	StoneWave,
+	WindTornado,
+	StoneSkill
 };
 
 struct monster_init_info {
@@ -103,13 +123,6 @@ struct monster_init_info {
 	float target_x; float target_y; float target_z;
 };
 
-enum class MonsterEventType {
-	Target,
-	Attack,
-	Heal,
-	Respawn
-};
-
 struct TargetEvent {
 	unsigned short id;
 	FVector target_location;
@@ -117,6 +130,15 @@ struct TargetEvent {
 
 struct AttackEvent {
 	unsigned short id;
+	FVector location;
+	AttackType attack_type;
+};
+
+struct SkillEvent {
+	unsigned short id;
+	FVector location;
+	AttackType skill_type;
+	FVector skill_location;
 };
 
 struct HealEvent {
@@ -135,6 +157,7 @@ struct MonsterEvent {
 	union Data {
 		TargetEvent target;
 		AttackEvent attack;
+		SkillEvent skill;
 		HealEvent heal;
 		RespawnEvent respawn;
 
@@ -150,6 +173,11 @@ struct MonsterEvent {
 	MonsterEvent(const AttackEvent& e) {
 		monster_event_type = MonsterEventType::Attack;
 		new (&data.attack) AttackEvent(e);
+	}
+
+	MonsterEvent(const SkillEvent& e) {
+		monster_event_type = MonsterEventType::Skill;
+		new (&data.skill) SkillEvent(e);
 	}
 
 	MonsterEvent(const HealEvent& e) {
@@ -170,6 +198,10 @@ struct MonsterEvent {
 
 		case MonsterEventType::Attack:
 			data.attack.~AttackEvent();
+			break;
+
+		case MonsterEventType::Skill:
+			data.skill.~SkillEvent();
 			break;
 
 		case MonsterEventType::Heal:
@@ -385,6 +417,18 @@ struct hc_monster_attack_packet {
 	unsigned char packet_size;
 	char packet_type;
 	unsigned short id;
+	float x; float y; float z;
+	char attack_type;
+};
+
+struct hc_monster_skill_packet {
+	unsigned char packet_size;
+	char packet_type;
+	unsigned short id;
+	float x; float y; float z;
+	unsigned short skill_id;
+	char skill_type;
+	float skill_x; float skill_y; float skill_z;
 };
 
 struct hc_monster_heal_packet {

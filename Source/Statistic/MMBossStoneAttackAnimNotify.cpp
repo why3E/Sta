@@ -4,10 +4,12 @@
 #include "MidBossEnemyCharacter.h"
 #include "MyStoneWave.h"
 #include "Kismet/GameplayStatics.h"
+#include "SESSION.h"
 
 void UMMBossStoneAttackAnimNotify::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, const FAnimNotifyEventReference& EventReference)
 {
     Super::Notify(MeshComp, Animation, EventReference);
+
     if (!MeshComp) return;
 
     AActor* OwnerActor = MeshComp->GetOwner();
@@ -34,11 +36,34 @@ void UMMBossStoneAttackAnimNotify::Notify(USkeletalMeshComponent* MeshComp, UAni
         SpawnParams.Owner = OwnerActor;
         SpawnParams.Instigator = OwnerActor->GetInstigator();
 
-        AMyStoneWave* StoneWave = MeshComp->GetWorld()->SpawnActor<AMyStoneWave>(
-            BossCharacter->GetStoneWaveClass(), SpawnLocation, FireRotation, SpawnParams);
+        AMyStoneWave* StoneWave = MeshComp->GetWorld()->SpawnActor<AMyStoneWave>(BossCharacter->GetStoneWaveClass(), SpawnLocation, FireRotation, SpawnParams);
 
         if (StoneWave)
         {
+            unsigned short skill_id = Cast<APlayerCharacter>(OwnerActor)->get_skill_id();
+
+            StoneWave->SetID(skill_id);
+
+            g_c_skills.emplace(skill_id, StoneWave);
+
+            if (g_c_skill_collisions.count(skill_id)) {
+                while (!g_c_skill_collisions[skill_id].empty()) {
+                    char skill_type = g_c_skill_collisions[skill_id].front();
+                    g_c_skill_collisions[skill_id].pop();
+
+                    g_c_skills[skill_id]->Overlap(skill_type);
+                }
+            }
+
+            if (g_c_object_collisions.count(skill_id)) {
+                while (!g_c_object_collisions[skill_id].empty()) {
+                    unsigned short object_id = g_c_object_collisions[skill_id].front();
+                    g_c_object_collisions[skill_id].pop();
+
+                    g_c_skills[skill_id]->Overlap(object_id);
+                }
+            }
+
             StoneWave->Fire(TargetLocation);
         }
     }

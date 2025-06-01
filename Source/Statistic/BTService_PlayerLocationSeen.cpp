@@ -15,8 +15,9 @@ UBTService_PlayerLocationSeen::UBTService_PlayerLocationSeen() {
 }
 
 void UBTService_PlayerLocationSeen::TickNode(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds) {
-    if (OwnerComp.GetBlackboardComponent()->GetValueAsBool(TEXT("bIsReturning")) || 
-        OwnerComp.GetBlackboardComponent()->GetValueAsBool(TEXT("bIsAttacking"))) { 
+    if (OwnerComp.GetBlackboardComponent()->GetValueAsBool(TEXT("bIsReturning")) ||
+        OwnerComp.GetBlackboardComponent()->GetValueAsBool(TEXT("bIsAttacking")) ||
+        OwnerComp.GetBlackboardComponent()->GetValueAsBool(TEXT("bIsStunned"))) {
         return; 
     }
 

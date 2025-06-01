@@ -7,6 +7,8 @@
 #include "MyStoneWave.h"
 #include "MyStoneSkill.h"
 #include "PlayerCharacter.h"
+#include "AIController.h"
+#include "BehaviorTree/BlackboardComponent.h"
 
 #include "MidBossEnemyCharacter.h"
 #include "ProceduralMeshComponent.h"
@@ -108,6 +110,22 @@ AMidBossEnemyCharacter::AMidBossEnemyCharacter()
 void AMidBossEnemyCharacter::BeginPlay()
 {
 	Super::BeginPlay();
+
+    HeadCollision->OnComponentBeginOverlap.AddDynamic(this, &AMidBossEnemyCharacter::OnHitCollisionOverlap);
+    ChestCollision->OnComponentBeginOverlap.AddDynamic(this, &AMidBossEnemyCharacter::OnHitCollisionOverlap);
+    HipCollision->OnComponentBeginOverlap.AddDynamic(this, &AMidBossEnemyCharacter::OnHitCollisionOverlap);
+
+    LeftArmUpperCollision->OnComponentBeginOverlap.AddDynamic(this, &AMidBossEnemyCharacter::OnHitCollisionOverlap);
+    LeftArmLowerCollision->OnComponentBeginOverlap.AddDynamic(this, &AMidBossEnemyCharacter::OnHitCollisionOverlap);
+
+    RightArmUpperCollision->OnComponentBeginOverlap.AddDynamic(this, &AMidBossEnemyCharacter::OnHitCollisionOverlap);
+    RightArmLowerCollision->OnComponentBeginOverlap.AddDynamic(this, &AMidBossEnemyCharacter::OnHitCollisionOverlap);
+
+    LeftLegUpperCollision->OnComponentBeginOverlap.AddDynamic(this, &AMidBossEnemyCharacter::OnHitCollisionOverlap);
+    LeftLegLowerCollision->OnComponentBeginOverlap.AddDynamic(this, &AMidBossEnemyCharacter::OnHitCollisionOverlap);
+
+    RightLegUpperCollision->OnComponentBeginOverlap.AddDynamic(this, &AMidBossEnemyCharacter::OnHitCollisionOverlap);
+    RightLegLowerCollision->OnComponentBeginOverlap.AddDynamic(this, &AMidBossEnemyCharacter::OnHitCollisionOverlap);
 
 	MontageToHitCapsuleMap.Add(TEXT("WindLaser"), RightArmLowerCollision);
 	MontageToHitCapsuleMap.Add(TEXT("WindCutter"), LeftArmLowerCollision);
@@ -220,14 +238,16 @@ void AMidBossEnemyCharacter::Attack(AttackType attack_type)
     }
 }
 
-void AMidBossEnemyCharacter::PlayHitAttackMontage()
-{
-    if (HitAttackMontage)
-    {
+void AMidBossEnemyCharacter::PlayHitAttackMontage() {
+    if (HitAttackMontage) {
         UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-        if (AnimInstance)
-        {
+
+        if (AnimInstance) {
+            AnimInstance->OnMontageEnded.RemoveDynamic(this, &AMidBossEnemyCharacter::OnStunMontageEnded);
+            AnimInstance->OnMontageEnded.AddDynamic(this, &AMidBossEnemyCharacter::OnStunMontageEnded);
+
             AnimInstance->Montage_Play(HitAttackMontage, 1.0f);
+
             RemoveWeakPointEffect();
         }
     }
@@ -262,6 +282,24 @@ void AMidBossEnemyCharacter::FindPlayerCharacter()
 
 void AMidBossEnemyCharacter::OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted) {
     OnAttackEnded.Broadcast();
+}
+
+void AMidBossEnemyCharacter::OnStunMontageEnded(UAnimMontage* Montage, bool bInterrupted) {
+    if (Montage == HitAttackMontage) {
+        if (AAIController* AICon = Cast<AAIController>(GetController())) {
+            if (UBlackboardComponent* BB = AICon->GetBlackboardComponent()) {
+                BB->SetValueAsBool(TEXT("bIsStunned"), false);
+
+                OnAttackEnded.Broadcast();
+            }
+        }
+
+        UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+
+        if (AnimInstance) {
+            AnimInstance->OnMontageEnded.RemoveDynamic(this, &AMidBossEnemyCharacter::OnStunMontageEnded);
+        }
+    }
 }
 
 FVector AMidBossEnemyCharacter::GetFireLocation() {
@@ -361,24 +399,50 @@ void AMidBossEnemyCharacter::Respawn(FVector respawn_location) {
 }
 
 void AMidBossEnemyCharacter::OnHitCollisionOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult) {
-    UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+    if (g_is_host) {
+        if (OtherActor && (OtherActor->GetOwner() != this)) {
+            UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 
-    if (!AnimInstance || !AnimInstance->Montage_IsPlaying(AttackMontage)) return;
+            if (!AnimInstance || !AnimInstance->Montage_IsPlaying(AttackMontage)) { return; }
 
-    FName CurrentSection = AnimInstance->Montage_GetCurrentSection(AttackMontage);
+            FName CurrentSection = AnimInstance->Montage_GetCurrentSection(AttackMontage);
 
-    if (CurrentSection.IsNone()) return;
+            if (CurrentSection.IsNone()) { return; }
 
-    if (MontageToHitCapsuleMap.Contains(CurrentSection) && MontageToHitCapsuleMap[CurrentSection] == OverlappedComp)
-    {
-        AnimInstance->Montage_Stop(0.1f, AttackMontage);
-        PlayHitAttackMontage();
-        bIsPlayingMontageSection = false; // 몽타주 종료
+            if (MontageToHitCapsuleMap.Contains(CurrentSection) && MontageToHitCapsuleMap[CurrentSection] == OverlappedComp) {
+                {
+                    MonsterEvent monster_event = DamagedEvent(m_id);
+                    std::lock_guard<std::mutex> lock(g_s_monster_events_l);
+                    g_s_monster_events.push(monster_event);
+                }
+
+                PlayStunMontage();
+            }
+        }
     }
 }
 
-void AMidBossEnemyCharacter::Overlap(char skill_type, FVector skill_location) {
+void AMidBossEnemyCharacter::PlayStunMontage() {
+    UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 
+    if (g_is_host) {
+        AAIController* AICon = Cast<AAIController>(GetController());
+
+        if (AICon) {
+            UBlackboardComponent* BB = AICon->GetBlackboardComponent();
+
+            if (BB) {
+                BB->SetValueAsBool(TEXT("bIsStunned"), true);
+            }
+        }
+    }
+
+    AnimInstance->OnMontageEnded.RemoveDynamic(this, &AMidBossEnemyCharacter::OnAttackMontageEnded);
+    AnimInstance->Montage_Stop(0.1f, AttackMontage);
+
+    PlayHitAttackMontage();
+
+    bIsPlayingMontageSection = false; 
 }
 
 void AMidBossEnemyCharacter::CopySkeletalMeshToProcedural(int32 LODIndex)

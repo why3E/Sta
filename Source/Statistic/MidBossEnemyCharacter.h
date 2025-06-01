@@ -80,6 +80,10 @@ public:
     UPROPERTY(BlueprintAssignable, Category = "Combat")
     FOnAttackEnded OnAttackEnded;
 
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnStunEnded);
+	UPROPERTY(BlueprintAssignable, Category = "Combat")
+	FOnStunEnded OnStunEnded;
+
 	FVector m_skill_location;
 
 	bool m_is_rotating = false;
@@ -110,6 +114,9 @@ public:
 
 	UFUNCTION()
 	void OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);
+
+	UFUNCTION()
+	void OnStunMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 
 	virtual FVector GetFireLocation() override;
 	virtual FVector GetCurrentImpactPoint() override;
@@ -165,7 +172,7 @@ public:
 	UFUNCTION()
 	void OnHitCollisionOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
-	virtual void Overlap(char skill_type, FVector skill_location) override;
+	void PlayStunMontage();
 
 private:
 	// ProceduralMesh

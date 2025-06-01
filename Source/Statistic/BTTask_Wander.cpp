@@ -29,6 +29,8 @@ EBTNodeResult::Type UBTTask_Wander::ExecuteTask(UBehaviorTreeComponent& OwnerCom
     FVector Destination = Origin + RandomDirection * Cast<AMyEnemyBase>(Pawn)->m_wander_radius;
     OwnerComp.GetBlackboardComponent()->SetValueAsVector(TEXT("WanderLocation"), Destination);
 
+    Cast<AMyEnemyBase>(Pawn)->set_target_location(Destination);
+
     {
         MonsterEvent monster_event = TargetEvent(Cast<AMyEnemyBase>(Pawn)->get_id(), Destination);
         std::lock_guard<std::mutex> lock(g_s_monster_events_l);

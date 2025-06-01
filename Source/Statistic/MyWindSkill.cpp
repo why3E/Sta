@@ -81,7 +81,8 @@ void AMyWindSkill::Tick(float DeltaTime)
 
             // 이동 방향 조합 (끌림 + 회전 + 상승)
             FVector MoveDir = ToCenter * PullSpeed + RotateVector * SpinSpeed + FVector(0, 0, LiftSpeed);
-            FVector NewLocation = PlayerLocation + MoveDir * DeltaTime;
+            FVector TargetLocation = PlayerLocation + MoveDir * DeltaTime;
+            FVector NewLocation = FMath::VInterpTo(PlayerLocation, TargetLocation, DeltaTime, 5.f);
 
             // 강제로 위치 이동 (또는 Smooth하게 하고 싶으면 InterpTo 사용)
             Player->SetActorLocation(NewLocation, true);
@@ -112,7 +113,7 @@ void AMyWindSkill::PostInitializeComponents()
 }
 
 void AMyWindSkill::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult) {
-    if (!g_is_host || !bIsValid || (Owner == OtherActor)) { return; }
+    if (!g_is_host || !bIsValid) { return; }
 
     if (OtherActor && OtherActor != this) {
         if (OtherActor->IsA(AMySkillBase::StaticClass())) {
@@ -139,12 +140,12 @@ void AMyWindSkill::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* O
         }
 
         if (OtherActor->IsA(AMyEnemyBase::StaticClass())) {
-            // Skill - Monster Collision
-            AMyEnemyBase* ptr = Cast<AMyEnemyBase>(OtherActor);
+            if (Owner != OtherActor) {
+                // Skill - Monster Collision
+                AMyEnemyBase* ptr = Cast<AMyEnemyBase>(OtherActor);
 
-            if (g_c_monsters.count(ptr->get_id())) {
-                if (ptr->GetHP() > 0.0f) {
-                    {
+                if (g_c_monsters.count(ptr->get_id())) {
+                    if (ptr->GetHP() > 0.0f) {
                         CollisionEvent collision_event = MonsterSkillEvent(ptr->get_id(), GetType(), GetActorLocation());
                         std::lock_guard<std::mutex> lock(g_s_collision_events_l);
                         g_s_collision_events.push(collision_event);

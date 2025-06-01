@@ -40,7 +40,7 @@ void UMMBossStoneAttackAnimNotify::Notify(USkeletalMeshComponent* MeshComp, UAni
 
         if (StoneWave)
         {
-            unsigned short skill_id = Cast<APlayerCharacter>(OwnerActor)->get_skill_id();
+            unsigned short skill_id = Cast<AMidBossEnemyCharacter>(OwnerActor)->get_skill_id();
 
             StoneWave->SetID(skill_id);
 

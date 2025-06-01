@@ -53,8 +53,12 @@ void CALLBACK c_send_callback(DWORD err, DWORD num_bytes, LPWSAOVERLAPPED p_over
 // AMyPlayerController
 AMyPlayerController::AMyPlayerController() {
 	static ConstructorHelpers::FClassFinder<AEnemyCharacter> SlimeBP(TEXT("/Game/Slime/BP_Slime.BP_Slime_C"));
-	static ConstructorHelpers::FObjectFinder<UBehaviorTree> BTAsset(TEXT("/Game/Slime/AI/BT_EnemyAI.BT_EnemyAI"));
-	static ConstructorHelpers::FClassFinder<UAnimInstance> AnimBP(TEXT("/Game/Slime/slime/anim/BP_AnimSlime.BP_AnimSlime_C"));
+	static ConstructorHelpers::FObjectFinder<UBehaviorTree> SlimeBT(TEXT("/Game/Slime/AI/BT_EnemyAI.BT_EnemyAI"));
+	static ConstructorHelpers::FClassFinder<UAnimInstance> SlimeAnimBP(TEXT("/Game/Slime/slime/anim/BP_AnimSlime.BP_AnimSlime_C"));
+
+	static ConstructorHelpers::FClassFinder<AMidBossEnemyCharacter> MidBossBP(TEXT("/Game/MidEnemyMonster/BP_MidBossEnemyCharacter.BP_MidBossEnemyCharacter_C"));
+	static ConstructorHelpers::FObjectFinder<UBehaviorTree> MidBossBT(TEXT("/Game/MidEnemyMonster/MidBossBT.MidBossBT"));
+	static ConstructorHelpers::FClassFinder<UAnimInstance> MidBossAnimBP(TEXT("/Game/MidEnemyMonster/Anim/ABP_MidBossEnemyAnimInstance.ABP_MidBossEnemyAnimInstance_C"));
 }
 
 void AMyPlayerController::BeginPlay()
@@ -393,11 +397,21 @@ void process_monster_event() {
 
 		case MonsterEventType::Skill: {
 			hc_monster_skill_packet p;
-			p.packet_size = sizeof(hc_monster_attack_packet);
+			p.packet_size = sizeof(hc_monster_skill_packet);
 			p.packet_type = H2C_MONSTER_SKILL_PACKET;
 			p.id = monster_event.data.skill.id;
 			p.x = monster_event.data.skill.location.X; p.y = monster_event.data.skill.location.Y; p.z = monster_event.data.skill.location.Z;
-			p.skill_id = g_s_skill_id++;
+
+			switch (monster_event.data.skill.skill_type) {
+			case AttackType::WindTornado:
+				p.skill_id = g_s_skill_id.fetch_add(3);
+				break;
+
+			default:
+				p.skill_id = g_s_skill_id++;
+				break;
+			}
+
 			p.skill_type = static_cast<char>(monster_event.data.skill.skill_type);
 			p.skill_x = monster_event.data.skill.skill_location.X; p.skill_y = monster_event.data.skill.skill_location.Y; p.skill_z = monster_event.data.skill.skill_location.Z;
 
@@ -415,6 +429,22 @@ void process_monster_event() {
 			p.packet_type = H2C_MONSTER_HEAL_PACKET;
 			p.id = monster_event.data.heal.id;
 			p.heal_amount = monster_event.data.heal.heal_amount;
+
+			for (char client_id = 0; client_id < MAX_CLIENTS; ++client_id) {
+				if (client_id) {
+					if (g_s_clients[client_id]) {
+						g_s_clients[client_id]->do_send(&p);
+					}
+				}
+			}
+			break;
+		}
+
+		case MonsterEventType::Damaged: {
+			hc_monster_damaged_packet p;
+			p.packet_size = sizeof(hc_monster_damaged_packet);
+			p.packet_type = H2C_MONSTER_DAMAGED_PACKET;
+			p.id = monster_event.data.damaged.id;
 
 			for (char client_id = 0; client_id < MAX_CLIENTS; ++client_id) {
 				if (client_id) {
@@ -466,7 +496,6 @@ void process_collision_event() {
 					g_s_clients[client_id]->do_send(&p);
 				}
 			}
-			UE_LOG(LogTemp, Error, TEXT("Skill %d", p.skill_id));
 			break;
 		}
 
@@ -481,7 +510,6 @@ void process_collision_event() {
 					g_s_clients[client_id]->do_send(&p);
 				}
 			}
-			UE_LOG(LogTemp, Error, TEXT("Skill %d", p.skill_id));
 			break;
 		}
 
@@ -498,7 +526,6 @@ void process_collision_event() {
 					g_s_clients[client_id]->do_send(&p);
 				}
 			}
-			UE_LOG(LogTemp, Error, TEXT("Skill %d", p.skill_id));
 			break;
 		}
 
@@ -513,7 +540,6 @@ void process_collision_event() {
 					g_s_clients[client_id]->do_send(&p);
 				}
 			}
-			UE_LOG(LogTemp, Error, TEXT("Skill %d", p.skill_id));
 			break;
 		}
 
@@ -530,7 +556,6 @@ void process_collision_event() {
 					g_s_clients[client_id]->do_send(&p);
 				}
 			}
-			UE_LOG(LogTemp, Error, TEXT("Monster %d", p.monster_id));
 			break;
 		}
 
@@ -547,7 +572,6 @@ void process_collision_event() {
 					g_s_clients[client_id]->do_send(&p);
 				}
 			}
-			UE_LOG(LogTemp, Error, TEXT("Player %d", p.player_id));
 			break;
 		}
 		}
@@ -987,7 +1011,7 @@ extern void CALLBACK h_send_callback(DWORD err, DWORD num_bytes, LPWSAOVERLAPPED
 void c_process_packet(char* packet) {
 	char packet_type = packet[1];
 	
-	UE_LOG(LogTemp, Warning, TEXT("[Client] Received Packet Type : %d"), packet_type);
+	//UE_LOG(LogTemp, Warning, TEXT("[Client] Received Packet Type : %d"), packet_type);
 
 	switch (packet_type) {
 	case H2C_TIME_OFFSET_PACKET: {
@@ -1472,6 +1496,18 @@ void c_process_packet(char* packet) {
 			if (nullptr == g_c_monsters[p->id]) { break; }
 
 			g_c_monsters[p->id]->Heal(p->heal_amount);
+		}
+
+		break;
+	}
+
+	case H2C_MONSTER_DAMAGED_PACKET: {
+		hc_monster_damaged_packet* p = reinterpret_cast<hc_monster_damaged_packet*>(packet);
+
+		if (g_c_monsters.count(p->id)) {
+			if (nullptr == g_c_monsters[p->id]) { break; }
+
+			Cast<AMidBossEnemyCharacter>(g_c_monsters[p->id])->PlayStunMontage();
 		}
 
 		break;

@@ -23,6 +23,8 @@ void UMMBossTonadoAnimNotify::Notify(USkeletalMeshComponent* MeshComp, UAnimSequ
     {
         TArray<FVector> SpawnLocations = BossCharacter->GenerateWindTonadoLocations(3, 500.f, 1000.f, 300.f);
 
+        unsigned short skill_id = Cast<AMidBossEnemyCharacter>(OwnerActor)->get_skill_id();
+
         for (const FVector& SpawnLoc : SpawnLocations)
         {
             FRotator SpawnRot = FRotator::ZeroRotator;
@@ -34,8 +36,6 @@ void UMMBossTonadoAnimNotify::Notify(USkeletalMeshComponent* MeshComp, UAnimSequ
 
             if (WindSkill)
             {
-                unsigned short skill_id = Cast<APlayerCharacter>(OwnerActor)->get_skill_id();
-
                 WindSkill->SetID(skill_id);
 
                 g_c_skills.emplace(skill_id, WindSkill);
@@ -59,6 +59,8 @@ void UMMBossTonadoAnimNotify::Notify(USkeletalMeshComponent* MeshComp, UAnimSequ
                 }
 
                 WindSkill->SpawnWindTonado(SpawnLoc);
+
+                ++skill_id;
             }
         }
     }

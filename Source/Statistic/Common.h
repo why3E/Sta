@@ -28,7 +28,8 @@ constexpr char H2C_MONSTER_MOVE_PACKET = 12;
 constexpr char H2C_MONSTER_ATTACK_PACKET = 13;
 constexpr char H2C_MONSTER_SKILL_PACKET = 14;
 constexpr char H2C_MONSTER_HEAL_PACKET = 15;
-constexpr char H2C_MONSTER_RESPAWN_PACKET = 16;
+constexpr char H2C_MONSTER_DAMAGED_PACKET = 16;
+constexpr char H2C_MONSTER_RESPAWN_PACKET = 17;
 
 constexpr char H2C_PLAYER_MOVE_PACKET = 21;
 constexpr char H2C_PLAYER_STOP_PACKET = 22;
@@ -96,6 +97,8 @@ enum class MonsterEventType {
 	Attack,
 	Skill,
 	Heal,
+	Damaged,
+	Die,
 	Respawn
 };
 
@@ -146,6 +149,14 @@ struct HealEvent {
 	float heal_amount;
 };
 
+struct DamagedEvent {
+	unsigned short id;
+};
+
+struct DieEvent {
+	unsigned short id;
+};
+
 struct RespawnEvent {
 	unsigned short id;
 	FVector respawn_location;
@@ -159,6 +170,7 @@ struct MonsterEvent {
 		AttackEvent attack;
 		SkillEvent skill;
 		HealEvent heal;
+		DamagedEvent damaged;
 		RespawnEvent respawn;
 
 		Data() {}
@@ -185,6 +197,11 @@ struct MonsterEvent {
 		new (&data.heal) HealEvent(e);
 	}
 
+	MonsterEvent(const DamagedEvent& e) {
+		monster_event_type = MonsterEventType::Damaged;
+		new (&data.damaged) DamagedEvent(e);
+	}
+
 	MonsterEvent(const RespawnEvent& e) {
 		monster_event_type = MonsterEventType::Respawn;
 		new (&data.attack) RespawnEvent(e);
@@ -206,6 +223,10 @@ struct MonsterEvent {
 
 		case MonsterEventType::Heal:
 			data.heal.~HealEvent();
+			break;
+
+		case MonsterEventType::Damaged:
+			data.damaged.~DamagedEvent();
 			break;
 
 		case MonsterEventType::Respawn:
@@ -436,6 +457,12 @@ struct hc_monster_heal_packet {
 	char packet_type;
 	unsigned short id;
 	float heal_amount;
+};
+
+struct hc_monster_damaged_packet {
+	unsigned char packet_size;
+	char packet_type;
+	unsigned short id;
 };
 
 struct hc_monster_respawn_packet {

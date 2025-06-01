@@ -39,7 +39,7 @@ void UMMBossWindCutterAnimNotify::Notify(USkeletalMeshComponent* MeshComp, UAnim
 
         if (WindCutter)
         {
-            unsigned short skill_id = Cast<APlayerCharacter>(OwnerActor)->get_skill_id();
+            unsigned short skill_id = Cast<AMidBossEnemyCharacter>(OwnerActor)->get_skill_id();
 
             WindCutter->SetID(skill_id);
 

@@ -190,17 +190,22 @@ private:
 	UPROPERTY(EditAnywhere)
 	FName TargetBoneName;
 
-	UPROPERTY(EditAnywhere)
-	FName ProceduralMeshAttachSocketName;
+	UPROPERTY(EditAnywhere, Category = "Slice")
+	FName ProceduralMeshAttachSocketName = TEXT("SliceSocket_Upper");
+
+	UPROPERTY(EditAnywhere, Category = "Slice")
+	FName OtherHalfMeshAttachSocketName = TEXT("SliceSocket_Lower");
 
 	UPROPERTY(EditAnywhere)
-	FName OtherHalfMeshAttachSocketName;
-
-	UPROPERTY(EditAnywhere)
-	float CreateProceduralMeshDistance = 50.0f;
+	float CreateProceduralMeshDistance = 250.0f;
 
 	UPROPERTY()
 	UProceduralMeshComponent* CachedOtherHalfMesh = nullptr;
+
+	UPROPERTY()
+	UMaterialInterface* CapMaterial;
+
+	int32 NumVertices;
 
 public:
     void CopySkeletalMeshToProcedural(int32 LODIndex);
@@ -210,32 +215,4 @@ public:
 	FName GetSecondBoneName() const;
 
 	void ApplyVertexAlphaToSkeletalMesh();
-
-    TArray<FVector> FilteredVerticesArray;
-    TArray<int32> Indices;
-    TArray<FVector> Normals;
-    TArray<FVector2D> UV;
-    TArray<FColor> Colors;
-    TArray<FProcMeshTangent> Tangents;
-    TMap<int32, int32> VertexIndexMap;
-
-    UPROPERTY(EditAnywhere)
-    FName TargetBoneName;
-
-    UPROPERTY(EditAnywhere, Category="Slice")
-	FName ProceduralMeshAttachSocketName = TEXT("SliceSocket_Upper");
-
-	UPROPERTY(EditAnywhere, Category="Slice")
-	FName OtherHalfMeshAttachSocketName = TEXT("SliceSocket_Lower");
-
-    UPROPERTY(EditAnywhere)
-    float CreateProceduralMeshDistance = 250.0f;
-
-    UPROPERTY()
-    UProceduralMeshComponent* CachedOtherHalfMesh = nullptr;
-
-	UPROPERTY()
-	UMaterialInterface* CapMaterial;
-
-	int32 NumVertices;
 };

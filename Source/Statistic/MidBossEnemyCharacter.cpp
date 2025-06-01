@@ -634,7 +634,7 @@ void AMidBossEnemyCharacter::SliceMeshAtBone(FVector SliceNormal, bool bCreateOt
         return;
     }
 
-    UMaterialInterface* CapMaterial = LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/Materials/M_CutFace.M_CutFace"));
+    CapMaterial = LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/Materials/M_CutFace.M_CutFace"));
     if (!CapMaterial)
     {
         UE_LOG(LogTemp, Warning, TEXT("SliceMeshAtBone: Failed to load Cap Material."));

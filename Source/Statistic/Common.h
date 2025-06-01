@@ -88,6 +88,13 @@ constexpr unsigned short INVALID_OBJECT_ID = 65535;
 
 //////////////////////////////////////////////////
 // Monster
+enum class MonsterType {
+	Slime,
+	MidBoss,
+	Boss,
+	Unknown
+};
+
 struct monster_init_info {
 	unsigned short id;
 	float hp;

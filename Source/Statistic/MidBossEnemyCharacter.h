@@ -139,7 +139,6 @@ public:
 	                           UPrimitiveComponent* OtherComp, int32 OtherBodyIndex,
 	                           bool bFromSweep, const FHitResult& SweepResult);
 
-
 public:
 	void Die();
     // 절단용 함수들

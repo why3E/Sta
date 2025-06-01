@@ -28,6 +28,10 @@ std::atomic<unsigned short> g_s_monster_id;
 
 std::array<std::unique_ptr<SESSION>, MAX_CLIENTS> g_s_clients;
 
+void spawn_monster(MonsterType type, FVector Location);
+void spawn_monster_from_json();
+MonsterType monster_type_from_string(const FString& type_str);
+
 void server_thread();
 void accept_thread();
 void h_process_packet(char* p);
@@ -174,11 +178,11 @@ void AMyPlayerController::CleanupSocket()
 
 //////////////////////////////////////////////////
 // Server Thread
-void spawn_monster(FVector Location) {
-	AsyncTask(ENamedThreads::GameThread, [Location]() {
+void spawn_monster(MonsterType type, FVector Location) {
+	AsyncTask(ENamedThreads::GameThread, [Location, type]() {
 		UWorld* World = GEngine->GetWorldFromContextObjectChecked(GEngine->GameViewport);
 
-		if (!World) return;
+		if (!World) { return; }
 
 		FVector SpawnLocation(Location.X, Location.Y, Location.Z);
 		FRotator SpawnRotation = FRotator::ZeroRotator;
@@ -186,26 +190,53 @@ void spawn_monster(FVector Location) {
 		FActorSpawnParameters Params;
 		Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
+		FString BPPath;
+		FString BTPath;
+		FString AnimBPPath;
+
+		AEnemyCharacter* NewMonster = nullptr;
+
+		switch (type) {
+		case MonsterType::Slime:
+			BPPath = TEXT("/Game/Slime/BP_Slime.BP_Slime_C");
+			BTPath = TEXT("/Game/Slime/AI/BT_EnemyAI.BT_EnemyAI");
+			AnimBPPath = TEXT("/Game/Slime/slime/anim/BP_AnimSlime.BP_AnimSlime_C");
+			break;
+
+		case MonsterType::MidBoss:
+			BPPath = TEXT("/Game/Wood_Monster/CharacterParts/Character/UE5/BP_wood_monster_02.BP_wood_monster_02_C");
+			AnimBPPath = TEXT("/Game/Wood_Monster/DemoContent/Mannequins/Animations/ABP_Manny.ABP_Manny_C");
+			break;
+
+		default:
+			UE_LOG(LogTemp, Error, TEXT("Unknown MonsterType!"));
+			return;
+		}
+
 		// Load Monster BP Class
-		UClass* MonsterBPClass = LoadClass<AEnemyCharacter>(
-			nullptr,
-			TEXT("/Game/Slime/BP_Slime.BP_Slime_C")
-		);
+		UClass* MonsterBPClass = LoadClass<AEnemyCharacter>(nullptr, *BPPath);
 
-		if (!MonsterBPClass) {
-			UE_LOG(LogTemp, Error, TEXT("Failed to load BP_MonsterCharacter!"));
+		if (!MonsterBPClass) { UE_LOG(LogTemp, Error, TEXT("Failed to load BP_MonsterCharacter!")); }
+
+		switch (type) {
+		case MonsterType::Slime:
+			NewMonster = World->SpawnActor<AEnemyCharacter>(
+				MonsterBPClass,
+				SpawnLocation,
+				SpawnRotation,
+				Params
+			);
+			break;
+
+		case MonsterType::MidBoss:
+			break;
+
+		default:
+			UE_LOG(LogTemp, Error, TEXT("Unknown MonsterType!"));
+			return;
 		}
 
-		AEnemyCharacter* NewMonster = World->SpawnActor<AEnemyCharacter>(
-			MonsterBPClass,
-			SpawnLocation,
-			SpawnRotation,
-			Params
-		);
-
-		if (!NewMonster) {
-			UE_LOG(LogTemp, Error, TEXT("Failed to spawn Monster!"));
-		}
+		if (!NewMonster) { UE_LOG(LogTemp, Error, TEXT("Failed to spawn Monster!")); }
 
 		NewMonster->set_id(g_s_monster_id++);
 
@@ -220,16 +251,12 @@ void spawn_monster(FVector Location) {
 		if (NewAI) {
 			NewAI->Possess(NewMonster);
 			UE_LOG(LogTemp, Warning, TEXT("AEnemyAIController Possessed Monster"));
-		}
-		else {
+		} else {
 			UE_LOG(LogTemp, Error, TEXT("Failed to spawn AEnemyAIController"));
 		}
 
 		// Run BT
-		UBehaviorTree* BTAsset = LoadObject<UBehaviorTree>(
-			nullptr,
-			TEXT("/Game/Slime/AI/BT_EnemyAI.BT_EnemyAI")
-		);
+		UBehaviorTree* BTAsset = LoadObject<UBehaviorTree>(nullptr, *BTPath);
 
 		if (BTAsset) {
 			APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(World, 0);
@@ -244,10 +271,7 @@ void spawn_monster(FVector Location) {
 		}
 
 		// Load Animation Instance
-		UClass* AnimClass = LoadClass<UAnimInstance>(
-			nullptr,
-			TEXT("/Game/Slime/slime/anim/BP_AnimSlime.BP_AnimSlime_C")
-		);
+		UClass* AnimClass = LoadClass<UAnimInstance>(nullptr, *AnimBPPath);
 
 		if (AnimClass) {
 			NewMonster->GetMesh()->SetAnimInstanceClass(AnimClass);
@@ -296,13 +320,23 @@ void spawn_monster_from_json() {
 		const TSharedPtr<FJsonObject>* Obj;
 
 		if (Value->TryGetObject(Obj)) {
+			FString type_str = (*Obj)->GetStringField("type");
+			MonsterType type = monster_type_from_string(type_str);
+
 			float x = (*Obj)->GetNumberField("x");
 			float y = (*Obj)->GetNumberField("y");
 			float z = (*Obj)->GetNumberField("z");
 
-			spawn_monster(FVector(x, y, z));
+			spawn_monster(type, FVector(x, y, z));
 		}
 	}
+}
+
+MonsterType monster_type_from_string(const FString& type_str) {
+	if (type_str.Equals(TEXT("slime"), ESearchCase::IgnoreCase)) { return MonsterType::Slime; }
+	if (type_str.Equals(TEXT("midboss"), ESearchCase::IgnoreCase)) { return MonsterType::MidBoss; }
+	if (type_str.Equals(TEXT("boss"), ESearchCase::IgnoreCase)) { return MonsterType::Boss; }
+	return MonsterType::Unknown;
 }
 
 void process_monster_event() {

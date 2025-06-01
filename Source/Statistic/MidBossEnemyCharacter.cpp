@@ -108,14 +108,6 @@ void AMidBossEnemyCharacter::BeginPlay()
 	MontageToHitCapsuleMap.Add(TEXT("StoneWave"), ChestCollision);
 	MontageToHitCapsuleMap.Add(TEXT("StoneThrow"), HipCollision);
 	MontageToHitCapsuleMap.Add(TEXT("WindTonado"), HipCollision);
-
-	GetWorldTimerManager().SetTimer(
-        AttackTimerHandle, // 헤더에 FTimerHandle AttackTimerHandle; 선언 필요
-        this,
-        &AMidBossEnemyCharacter::Die,
-        3.0f,
-        false
-    );
 }
 
 void AMidBossEnemyCharacter::Tick(float DeltaTime)

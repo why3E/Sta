@@ -58,7 +58,7 @@ void AEnemyCharacter::Tick(float DeltaTime) {
     Super::Tick(DeltaTime);
 
     if (!g_is_host) {
-        if (!get_is_attacking()) {
+        if (!GetIsAttacking()) {
             if ((m_target_location - GetActorLocation()).Size2D() < 100.0f) {
                 m_target_location = GetActorLocation();
                 return; 
@@ -84,15 +84,6 @@ void AEnemyCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComp
     Super::SetupPlayerInputComponent(PlayerInputComponent);
 }
 
-void AEnemyCharacter::OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted)
-{
-    if (Montage == AttackMontage)
-    {
-        bIsAttacking = false;
-        OnAttackEnded.Broadcast();
-    }
-}
-
 void AEnemyCharacter::MeleeAttack()
 {
     if (bIsAttacking || !AttackMontage) return;
@@ -111,6 +102,37 @@ void AEnemyCharacter::MeleeAttack()
     }
 }
 
+void AEnemyCharacter::BaseAttackCheck()
+{
+    TArray<FHitResult> Hits;
+    float Range = 100.f;
+    float Radius = 50.f;
+    FVector Start = GetActorLocation() + (GetActorForwardVector() * GetCapsuleComponent()->GetScaledCapsuleRadius());
+    FVector End = Start + (GetActorForwardVector() * Range);
+
+    FCollisionQueryParams Params(SCENE_QUERY_STAT(Attack), false, this);
+    bool bHit = GetWorld()->SweepMultiByChannel(
+        Hits, Start, End, FQuat::Identity,
+        ECC_GameTraceChannel2, FCollisionShape::MakeSphere(Radius), Params);
+
+    FVector CapsuleCenter = Start + (End - Start) * 0.5f;
+    float HalfHeight = Range * 0.5f;
+    FColor Color = bHit ? FColor::Green : FColor::Red;
+
+    DrawDebugCapsule(GetWorld(), CapsuleCenter, HalfHeight, Radius,
+        FRotationMatrix::MakeFromZ(GetActorForwardVector()).ToQuat(),
+        Color, false, 3.f);
+}
+
+void AEnemyCharacter::OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted)
+{
+    if (Montage == AttackMontage)
+    {
+        bIsAttacking = false;
+        OnAttackEnded.Broadcast();
+    }
+}
+
 void AEnemyCharacter::ReceiveSkillHit(const FSkillInfo& Info, AActor* Causer)
 {
     HP -= Info.Damage;
@@ -119,8 +141,7 @@ void AEnemyCharacter::ReceiveSkillHit(const FSkillInfo& Info, AActor* Causer)
 
     UE_LOG(LogTemp, Warning, TEXT("Damage: %f, HP: %f"), Info.Damage, HP);
 
-    if (HP <= 0.0f)
-    {
+    if (HP <= 0.0f) {
         Die();
     }
 }
@@ -151,9 +172,9 @@ void AEnemyCharacter::Die()
         }
     }
 
-    if (g_is_host) {
-        GetWorldTimerManager().SetTimer(RespawnTimerHandle, this, &AEnemyCharacter::Respawn, 2.5f, false);
-    }
+    //if (g_is_host) {
+    //    GetWorldTimerManager().SetTimer(RespawnTimerHandle, this, &AEnemyCharacter::Respawn, 2.5f, false);
+    //}
 }
 
 void AEnemyCharacter::Reset() {
@@ -206,38 +227,59 @@ void AEnemyCharacter::Respawn(FVector respawn_location) {
     SetActorLocation(respawn_location);
 }
 
-void AEnemyCharacter::BaseAttackCheck()
-{
-    TArray<FHitResult> Hits;
-    float Range = 100.f;
-    float Radius = 50.f;
-    FVector Start = GetActorLocation() + (GetActorForwardVector() * GetCapsuleComponent()->GetScaledCapsuleRadius());
-    FVector End = Start + (GetActorForwardVector() * Range);
+void AEnemyCharacter::Overlap(char skill_type, FVector skill_location) {
+    FSkillInfo Info;
+    Info.Damage = 10.0f;
 
-    FCollisionQueryParams Params(SCENE_QUERY_STAT(Attack), false, this);
-    bool bHit = GetWorld()->SweepMultiByChannel(
-        Hits, Start, End, FQuat::Identity,
-        ECC_GameTraceChannel2, FCollisionShape::MakeSphere(Radius), Params);
+    switch (skill_type) {
+    case SKILL_WIND_CUTTER:
+    case SKILL_WIND_TORNADO:
+        Info.Element = EClassType::CT_Wind;
+        break;
 
-    FVector CapsuleCenter = Start + (End - Start) * 0.5f;
-    float HalfHeight = Range * 0.5f;
-    FColor Color = bHit ? FColor::Green : FColor::Red;
+    case SKILL_FIRE_BALL:
+    case SKILL_FIRE_WALL:
+        Info.Element = EClassType::CT_Fire;
+        break;
 
-    DrawDebugCapsule(GetWorld(), CapsuleCenter, HalfHeight, Radius,
-        FRotationMatrix::MakeFromZ(GetActorForwardVector()).ToQuat(),
-        Color, false, 3.f);
+    case SKILL_STONE_WAVE:
+    case SKILL_STONE_SKILL:
+        Info.Element = EClassType::CT_Stone;
+        break;
+
+    case SKILL_ICE_ARROW:
+    case SKILL_ICE_WALL:
+        Info.Element = EClassType::CT_Ice;
+        break;
+    }
+
+    Info.StunTime = 1.5f;
+    Info.KnockbackDir = (skill_location - GetActorLocation()).GetSafeNormal();
+
+    ReceiveSkillHit(Info, nullptr);
 }
 
-FName AEnemyCharacter::GetSecondBoneName() const
+void AEnemyCharacter::ShowHud(float Damage, EClassType Type)
 {
-    if (!GetMesh()) return NAME_None;
+    if (!DamagePopupActorClass)
+    {
+        return;
+    }
 
-    const int32 NumBones = GetMesh()->GetNumBones();
-    if (NumBones < 2) return NAME_None;
+    FVector spawnLoc = GetActorLocation() + FVector(0.f, 0.f, 140.f);
 
-    FName BoneName = GetMesh()->GetBoneName(1);
-    UE_LOG(LogTemp, Warning, TEXT("Second Bone Name: %s"), *BoneName.ToString());
-    return BoneName;
+    // X, Y에 랜덤 흔들림 추가
+    spawnLoc.X += FMath::RandRange(-80.f, 80.f);
+    spawnLoc.Y += FMath::RandRange(-80.f, 80.f);
+
+    FRotator spawnRot = FRotator::ZeroRotator;
+
+    ADamagePopupActor* popupActor = GetWorld()->SpawnActor<ADamagePopupActor>(DamagePopupActorClass, spawnLoc, spawnRot);
+    if (popupActor)
+    {
+        popupActor->InitDamage(Damage, Type);
+        UE_LOG(LogTemp, Warning, TEXT("Damage Popup Actor Spawned"));
+    }
 }
 
 void AEnemyCharacter::CopySkeletalMeshToProcedural(int32 LODIndex)
@@ -406,85 +448,14 @@ void AEnemyCharacter::SliceProcMesh(FVector PlaneNormal)
     CachedOtherHalfMesh = OtherHalfMesh;
 }
 
-void AEnemyCharacter::StartHeal() {
-    if (!GetWorldTimerManager().IsTimerActive(HealTimerHandle)) {
-        if (HP < MaxHP) {
-            GetWorldTimerManager().SetTimer(HealTimerHandle, this, &AEnemyCharacter::HealTick, 0.1f, true);
-        }
-    }
-}
-
-void AEnemyCharacter::StopHeal() {
-    GetWorldTimerManager().ClearTimer(HealTimerHandle);
-}
-
-void AEnemyCharacter::HealTick() {
-    Heal(10.0f);
-
-    MonsterEvent monster_event = HealEvent(m_id, 10.0f);
-    std::lock_guard<std::mutex> lock(g_s_monster_events_l);
-    g_s_monster_events.push(monster_event);
-}
-
-void AEnemyCharacter::Heal(float HealAmount) {
-    HP += HealAmount;
-
-    if (HP > MaxHP) {
-        HP = MaxHP;
-    }
-}
-
-void AEnemyCharacter::Overlap(char skill_type, FVector skill_location) {
-    FSkillInfo Info;
-    Info.Damage = 10.0f;
-
-    switch (skill_type) {
-    case SKILL_WIND_CUTTER:
-    case SKILL_WIND_TORNADO:
-        Info.Element = EClassType::CT_Wind;
-        break;
-
-    case SKILL_FIRE_BALL:
-    case SKILL_FIRE_WALL:
-        Info.Element = EClassType::CT_Fire;
-        break;
-
-    case SKILL_STONE_WAVE:
-    case SKILL_STONE_SKILL:
-        Info.Element = EClassType::CT_Stone;
-        break;
-
-    case SKILL_ICE_ARROW:
-    case SKILL_ICE_WALL:
-        Info.Element = EClassType::CT_Ice;
-        break;
-    }
-
-    Info.StunTime = 1.5f;
-    Info.KnockbackDir = (skill_location - GetActorLocation()).GetSafeNormal();
-
-    ReceiveSkillHit(Info, nullptr);
-}
-
-void AEnemyCharacter::ShowHud(float Damage, EClassType Type)
+FName AEnemyCharacter::GetSecondBoneName() const
 {
-    if (!DamagePopupActorClass)
-    {
-        return;
-    }
+    if (!GetMesh()) return NAME_None;
 
-    FVector spawnLoc = GetActorLocation() + FVector(0.f, 0.f, 140.f);
+    const int32 NumBones = GetMesh()->GetNumBones();
+    if (NumBones < 2) return NAME_None;
 
-    // X, Y에 랜덤 흔들림 추가
-    spawnLoc.X += FMath::RandRange(-80.f, 80.f);
-    spawnLoc.Y += FMath::RandRange(-80.f, 80.f);
-
-    FRotator spawnRot = FRotator::ZeroRotator;
-
-    ADamagePopupActor* popupActor = GetWorld()->SpawnActor<ADamagePopupActor>(DamagePopupActorClass, spawnLoc, spawnRot);
-    if (popupActor)
-    {
-        popupActor->InitDamage(Damage, Type);
-        UE_LOG(LogTemp, Warning, TEXT("Damage Popup Actor Spawned"));
-    }
+    FName BoneName = GetMesh()->GetBoneName(1);
+    UE_LOG(LogTemp, Warning, TEXT("Second Bone Name: %s"), *BoneName.ToString());
+    return BoneName;
 }

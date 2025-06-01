@@ -1,5 +1,5 @@
 #include "MyBombAttack.h"
-#include "EnemyCharacter.h"
+#include "MyEnemyBase.h"
 #include "PlayerCharacter.h"
 #include "ReceiveDamageInterface.h"
 #include "SESSION.h"
@@ -101,12 +101,12 @@ void AMyBombAttack::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* 
     if (!g_is_host) return;
 
     if (OtherActor && OtherActor != this) {
-        if (OtherActor->IsA(AEnemyCharacter::StaticClass())) {
+        if (OtherActor->IsA(AMyEnemyBase::StaticClass())) {
             // Skill - Monster Collision
-            AEnemyCharacter* ptr = Cast<AEnemyCharacter>(OtherActor);
+            AMyEnemyBase* ptr = Cast<AMyEnemyBase>(OtherActor);
 
             if (g_c_monsters.count(ptr->get_id())) {
-                if (ptr->get_hp() > 0.0f) {
+                if (ptr->GetHP() > 0.0f) {
                     {
                         CollisionEvent collision_event = MonsterSkillEvent(ptr->get_id(), GetType(), GetActorLocation());
                         std::lock_guard<std::mutex> lock(g_s_monster_events_l);

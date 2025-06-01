@@ -1,5 +1,6 @@
 #pragma once
 
+#include "MyEnemyBase.h"
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "ImpactPointInterface.h"
@@ -15,8 +16,7 @@
 class UCapsuleComponent;
 
 UCLASS()
-class STATISTIC_API AMidBossEnemyCharacter : public ACharacter, public IImpactPointInterface
-{
+class STATISTIC_API AMidBossEnemyCharacter : public AMyEnemyBase, public IImpactPointInterface {
 	GENERATED_BODY()
 
 public:
@@ -135,13 +135,20 @@ public:
 
 	// 충돌 처리 함수
 	UFUNCTION()
-	void OnHitCollisionOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
-	                           UPrimitiveComponent* OtherComp, int32 OtherBodyIndex,
-	                           bool bFromSweep, const FHitResult& SweepResult);
+	void OnHitCollisionOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
 public:
-	void Die();
-    // 절단용 함수들
+	// Die
+	virtual void Die() override;
+	virtual void Reset() override;
+	virtual void Respawn() override;
+	virtual void Respawn(FVector respawn_location) override;
+
+	// Collision
+	virtual void Overlap(char skill_type, FVector skill_location) override;
+
+public:
+	// 절단용 함수들
     void CopySkeletalMeshToProcedural(int32 LODIndex);
     void SliceMeshAtBone(FVector SliceNormal, bool bCreateOtherHalf);
 

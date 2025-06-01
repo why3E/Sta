@@ -1,5 +1,5 @@
 #include "MyStoneSkill.h"
-#include "EnemyCharacter.h"
+#include "MyEnemyBase.h"
 #include "PlayerCharacter.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/SphereComponent.h"
@@ -160,12 +160,12 @@ void AMyStoneSkill::OnBeginOverlap(class UPrimitiveComponent* OverlappedComp, cl
                 }
             }
         }
-    } else if (OtherActor->IsA(AEnemyCharacter::StaticClass())) {
+    } else if (OtherActor->IsA(AMyEnemyBase::StaticClass())) {
         // Skill - Monster Collision
-        AEnemyCharacter* ptr = Cast<AEnemyCharacter>(OtherActor);
+        AMyEnemyBase* ptr = Cast<AMyEnemyBase>(OtherActor);
 
         if (g_c_monsters.count(ptr->get_id())) {
-            if (ptr->get_hp() > 0.0f) {
+            if (ptr->GetHP() > 0.0f) {
                 {
                     CollisionEvent collision_event = MonsterSkillEvent(ptr->get_id(), GetType(), GetActorLocation());
                     std::lock_guard<std::mutex> lock(g_s_collision_events_l);

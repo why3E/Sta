@@ -7,7 +7,6 @@
 #include "MyStoneWave.h"
 #include "MyStoneSkill.h"
 
-
 #include "MidBossEnemyCharacter.h"
 #include "ProceduralMeshComponent.h"
 #include "KismetProceduralMeshLibrary.h"
@@ -201,13 +200,13 @@ void AMidBossEnemyCharacter::RemoveWeakPointEffect()
 	}
 }
 
-void AMidBossEnemyCharacter::OnHitCollisionOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
-	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
-{
+void AMidBossEnemyCharacter::OnHitCollisionOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult) {
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+
 	if (!AnimInstance || !AnimInstance->Montage_IsPlaying(AttackMontage)) return;
 
 	FName CurrentSection = AnimInstance->Montage_GetCurrentSection(AttackMontage);
+
 	if (CurrentSection.IsNone()) return;
 
 	if (MontageToHitCapsuleMap.Contains(CurrentSection) && MontageToHitCapsuleMap[CurrentSection] == OverlappedComp)
@@ -291,6 +290,22 @@ void AMidBossEnemyCharacter::Die()
 
     FVector PlaneNormal = FVector(1.f, 0.f, 1.f).GetSafeNormal();
     SliceMeshAtBone(PlaneNormal, true);
+}
+
+void AMidBossEnemyCharacter::Reset() {
+
+}
+
+void AMidBossEnemyCharacter::Respawn() {
+
+}
+
+void AMidBossEnemyCharacter::Respawn(FVector respawn_location) {
+
+}
+
+void AMidBossEnemyCharacter::Overlap(char skill_type, FVector skill_location) {
+
 }
 
 FName AMidBossEnemyCharacter::GetSecondBoneName() const

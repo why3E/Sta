@@ -1,5 +1,5 @@
 #include "MyStoneWave.h"
-#include "EnemyCharacter.h"
+#include "MyEnemyBase.h"
 #include "PlayerCharacter.h"
 #include "Components/BoxComponent.h"
 #include "NiagaraComponent.h"
@@ -140,11 +140,11 @@ void AMyStoneWave::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* O
 				}
 			}
 		}
-	} else if (OtherActor->IsA(AEnemyCharacter::StaticClass())) {
-		AEnemyCharacter* ptr = Cast<AEnemyCharacter>(OtherActor);
+	} else if (OtherActor->IsA(AMyEnemyBase::StaticClass())) {
+		AMyEnemyBase* ptr = Cast<AMyEnemyBase>(OtherActor);
 
 		if (g_c_monsters.count(ptr->get_id())) {
-			if (ptr->get_hp() > 0.0f) {
+			if (ptr->GetHP() > 0.0f) {
 				{
 					CollisionEvent collision_event = MonsterSkillEvent(ptr->get_id(), GetType(), GetActorLocation());
 					std::lock_guard<std::mutex> lock(g_s_collision_events_l);

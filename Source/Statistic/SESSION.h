@@ -4,7 +4,7 @@
 
 class APlayerCharacter;
 class AMySkillBase;
-class ACharacter;
+class AMyEnemyBase;
 
 extern volatile float g_time_offset;
 extern std::atomic<bool> g_is_host;
@@ -14,7 +14,7 @@ extern SOCKET g_c_socket;
 
 extern std::array<APlayerCharacter*, MAX_CLIENTS> g_c_players;
 extern std::unordered_map<unsigned short, AMySkillBase*> g_c_skills;
-extern std::unordered_map<unsigned short, ACharacter*> g_c_monsters;
+extern std::unordered_map<unsigned short, AMyEnemyBase*> g_c_monsters;
 extern std::unordered_map<unsigned short, std::queue<char>> g_c_skill_collisions;
 extern std::unordered_map<unsigned short, std::queue<unsigned short>> g_c_object_collisions;
 

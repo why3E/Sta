@@ -2,7 +2,9 @@
 
 #include "MyPlayerController.h"
 #include "PlayerCharacter.h"
+#include "MyEnemyBase.h"
 #include "EnemyCharacter.h"
+#include "MidBossEnemyCharacter.h"
 #include "MySkillBase.h"
 #include "MyWindCutter.h"
 #include "MyWindSkill.h"
@@ -194,7 +196,7 @@ void spawn_monster(MonsterType type, FVector Location) {
 		FString BTPath;
 		FString AnimBPPath;
 
-		AEnemyCharacter* NewMonster = nullptr;
+		AMyEnemyBase* NewMonster = nullptr;
 
 		switch (type) {
 		case MonsterType::Slime:
@@ -204,8 +206,9 @@ void spawn_monster(MonsterType type, FVector Location) {
 			break;
 
 		case MonsterType::MidBoss:
-			BPPath = TEXT("/Game/Wood_Monster/CharacterParts/Character/UE5/BP_wood_monster_02.BP_wood_monster_02_C");
-			AnimBPPath = TEXT("/Game/Wood_Monster/DemoContent/Mannequins/Animations/ABP_Manny.ABP_Manny_C");
+			BPPath = TEXT("/Game/MidEnemyMonster/BP_MidBossEnemyCharacter.BP_MidBossEnemyCharacter_C");
+			BTPath = TEXT("/Game/MidEnemyMonster/MidBossBT.MidBossBT");
+			AnimBPPath = TEXT("/Game/MidEnemyMonster/Anim/ABP_MidBossEnemyAnimInstance.ABP_MidBossEnemyAnimInstance_C");
 			break;
 
 		default:
@@ -214,7 +217,7 @@ void spawn_monster(MonsterType type, FVector Location) {
 		}
 
 		// Load Monster BP Class
-		UClass* MonsterBPClass = LoadClass<AEnemyCharacter>(nullptr, *BPPath);
+		UClass* MonsterBPClass = LoadClass<AMyEnemyBase>(nullptr, *BPPath);
 
 		if (!MonsterBPClass) { UE_LOG(LogTemp, Error, TEXT("Failed to load BP_MonsterCharacter!")); }
 
@@ -229,6 +232,12 @@ void spawn_monster(MonsterType type, FVector Location) {
 			break;
 
 		case MonsterType::MidBoss:
+			NewMonster = World->SpawnActor<AMidBossEnemyCharacter>(
+				MonsterBPClass,
+				SpawnLocation,
+				SpawnRotation,
+				Params
+			);
 			break;
 
 		default:
@@ -236,7 +245,10 @@ void spawn_monster(MonsterType type, FVector Location) {
 			return;
 		}
 
-		if (!NewMonster) { UE_LOG(LogTemp, Error, TEXT("Failed to spawn Monster!")); }
+		if (!NewMonster) {
+			UE_LOG(LogTemp, Error, TEXT("Failed to spawn monster"));
+			return;
+		}
 
 		NewMonster->set_id(g_s_monster_id++);
 
@@ -262,7 +274,6 @@ void spawn_monster(MonsterType type, FVector Location) {
 			APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(World, 0);
 
 			NewAI->RunBehaviorTree(BTAsset);
-
 			NewAI->GetBlackboardComponent()->SetValueAsVector(TEXT("StartLocation"), NewMonster->GetActorLocation());
 
 			UE_LOG(LogTemp, Warning, TEXT("BehaviorTree Loaded and Running"));
@@ -699,15 +710,21 @@ void accept_thread() {
 						unsigned short i = 0;
 
 						while ((i < monster_count) && (iter != g_c_monsters.end())) {
-							AEnemyCharacter* monster = Cast<AEnemyCharacter>(iter->second);
+							AMyEnemyBase* monster = Cast<AMyEnemyBase>(iter->second);
 
 							FVector Location = monster->GetActorLocation();
 							FVector TargetLocation = monster->get_target_location();
 
 							monster_data[i].id = iter->first;
-							monster_data[i].hp = monster->get_hp();
+							monster_data[i].hp = monster->GetHP();
 							monster_data[i].x = Location.X; monster_data[i].y = Location.Y; monster_data[i].z = Location.Z;
 							monster_data[i].target_x = TargetLocation.X; monster_data[i].target_y = TargetLocation.Y; monster_data[i].target_z = TargetLocation.Z;
+
+							if (monster->IsA(AEnemyCharacter::StaticClass())) {
+								monster_data[i].type = static_cast<char>(MonsterType::Slime);
+							} else if (monster->IsA(AMidBossEnemyCharacter::StaticClass())) {
+								monster_data[i].type = static_cast<char>(MonsterType::MidBoss);
+							}
 
 							++i;
 							++offset;
@@ -1216,7 +1233,7 @@ void c_process_packet(char* packet) {
 		monster_skill_collision_packet* p = reinterpret_cast<monster_skill_collision_packet*>(packet);
 		if (g_c_monsters.count(p->monster_id)) {
 			if (nullptr != g_c_monsters[p->monster_id]) {
-				Cast<AEnemyCharacter>(g_c_monsters[p->monster_id])->Overlap(p->skill_type, FVector(p->skill_x, p->skill_y, p->skill_z));
+				g_c_monsters[p->monster_id]->Overlap(p->skill_type, FVector(p->skill_x, p->skill_y, p->skill_z));
 			}
 		}
 		break;
@@ -1276,6 +1293,7 @@ void c_process_packet(char* packet) {
 
 			AsyncTask(ENamedThreads::GameThread, [info]() {
 				UWorld* World = GEngine->GetWorldFromContextObjectChecked(GEngine->GameViewport);
+
 				if (!World) return;
 
 				FVector SpawnLocation(info.x, info.y, info.z);
@@ -1284,29 +1302,63 @@ void c_process_packet(char* packet) {
 				FActorSpawnParameters Params;
 				Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
-				// Load Monster BP Class
-				UClass* MonsterBPClass = LoadClass<AEnemyCharacter>(
-					nullptr,
-					TEXT("/Game/Slime/BP_Slime.BP_Slime_C")
-				);
+				FString BPPath;
+				FString AnimBPPath;
 
-				if (!MonsterBPClass) {
-					UE_LOG(LogTemp, Error, TEXT("Failed to load BP_MonsterCharacter!"));
+				AMyEnemyBase* NewMonster = nullptr;
+
+				switch (static_cast<MonsterType>(info.type)) {
+				case MonsterType::Slime:
+					BPPath = TEXT("/Game/Slime/BP_Slime.BP_Slime_C");
+					AnimBPPath = TEXT("/Game/Slime/slime/anim/BP_AnimSlime.BP_AnimSlime_C");
+					break;
+
+				case MonsterType::MidBoss:
+					BPPath = TEXT("/Game/MidEnemyMonster/BP_MidBossEnemyCharacter.BP_MidBossEnemyCharacter_C");
+					AnimBPPath = TEXT("/Game/MidEnemyMonster/Anim/ABP_MidBossEnemyAnimInstance.ABP_MidBossEnemyAnimInstance_C");
+					break;
+
+				default:
+					UE_LOG(LogTemp, Error, TEXT("Unknown MonsterType!"));
+					return;
 				}
 
-				AEnemyCharacter* NewMonster = World->SpawnActor<AEnemyCharacter>(
-					MonsterBPClass,
-					SpawnLocation,
-					SpawnRotation,
-					Params
-				);
+				// Load Monster BP Class
+				UClass* MonsterBPClass = LoadClass<AMyEnemyBase>(nullptr, *BPPath);
 
-				if (!NewMonster) {
-					UE_LOG(LogTemp, Error, TEXT("Failed to spawn Monster!"));
+				if (!MonsterBPClass) { UE_LOG(LogTemp, Error, TEXT("Failed to load BP_MonsterCharacter!")); }
+
+				switch (static_cast<MonsterType>(info.type)) {
+				case MonsterType::Slime:
+					NewMonster = World->SpawnActor<AEnemyCharacter>(
+						MonsterBPClass,
+						SpawnLocation,
+						SpawnRotation,
+						Params
+					);
+					break;
+
+				case MonsterType::MidBoss:
+					NewMonster = World->SpawnActor<AMidBossEnemyCharacter>(
+						MonsterBPClass,
+						SpawnLocation,
+						SpawnRotation,
+						Params
+					);
+					break;
+
+				default:
+					UE_LOG(LogTemp, Error, TEXT("Unknown MonsterType!"));
+					return;
+				}
+
+				if (!NewMonster) { 
+					UE_LOG(LogTemp, Error, TEXT("Failed to spawn Monster!")); 
+					return;
 				}
 
 				NewMonster->set_id(info.id);
-				NewMonster->set_hp(info.hp);
+				NewMonster->SetHP(info.hp);
 				NewMonster->SetActorLocation(FVector(info.x, info.y, info.z));
 				NewMonster->set_target_location(FVector(info.target_x, info.target_y, info.target_z));
 
@@ -1327,10 +1379,7 @@ void c_process_packet(char* packet) {
 				}
 
 				// Load Animation Instance
-				UClass* AnimClass = LoadClass<UAnimInstance>(
-					nullptr,
-					TEXT("/Game/Slime/slime/anim/BP_AnimSlime.BP_AnimSlime_C")
-				);
+				UClass* AnimClass = LoadClass<UAnimInstance>(nullptr, *AnimBPPath);
 
 				if (AnimClass) {
 					NewMonster->GetMesh()->SetAnimInstanceClass(AnimClass);
@@ -1340,15 +1389,14 @@ void c_process_packet(char* packet) {
 					NewMonster->GetMesh()->bNoSkeletonUpdate = false;
 
 					UE_LOG(LogTemp, Warning, TEXT("AnimInstance Set: %s"), *AnimClass->GetName());
-				}
-				else {
+				} else {
 					UE_LOG(LogTemp, Error, TEXT("Failed to Load AnimBP"));
 				}
 
 				g_c_monsters[info.id] = NewMonster;
 
 				if (info.hp <= 0.0f) {
-					Cast<AEnemyCharacter>(g_c_monsters[info.id])->Die();
+					g_c_monsters[info.id]->Die();
 				}
 			});
 		}

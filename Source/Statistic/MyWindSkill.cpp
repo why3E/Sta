@@ -3,7 +3,7 @@
 #include "MyFireSkill.h"
 #include "MyIceArrow.h"
 #include "MyIceSkill.h"
-#include "EnemyCharacter.h"
+#include "MyEnemyBase.h"
 #include "PlayerCharacter.h"
 #include "Components/StaticMeshComponent.h"
 #include "NiagaraFunctionLibrary.h"
@@ -138,12 +138,12 @@ void AMyWindSkill::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* O
             }
         }
 
-        if (OtherActor->IsA(AEnemyCharacter::StaticClass())) {
+        if (OtherActor->IsA(AMyEnemyBase::StaticClass())) {
             // Skill - Monster Collision
-            AEnemyCharacter* ptr = Cast<AEnemyCharacter>(OtherActor);
+            AMyEnemyBase* ptr = Cast<AMyEnemyBase>(OtherActor);
 
             if (g_c_monsters.count(ptr->get_id())) {
-                if (ptr->get_hp() > 0.0f) {
+                if (ptr->GetHP() > 0.0f) {
                     {
                         CollisionEvent collision_event = MonsterSkillEvent(ptr->get_id(), GetType(), GetActorLocation());
                         std::lock_guard<std::mutex> lock(g_s_collision_events_l);

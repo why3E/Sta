@@ -96,6 +96,7 @@ enum class MonsterType {
 };
 
 struct monster_init_info {
+	char type;
 	unsigned short id;
 	float hp;
 	float x; float y; float z;

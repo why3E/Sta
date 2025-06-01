@@ -1,7 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 #include "MyIceSkill.h"
 #include "NiagaraFunctionLibrary.h"
-#include "EnemyCharacter.h"
+#include "MyEnemyBase.h"
 #include "PlayerCharacter.h"
 #include "MyFireBall.h" 
 #include "MyFireSkill.h"
@@ -88,12 +88,12 @@ void AMyIceSkill::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* Ot
                     }
                 }
             }
-        } else if (OtherActor->IsA(AEnemyCharacter::StaticClass())) {
+        } else if (OtherActor->IsA(AMyEnemyBase::StaticClass())) {
             // Skill - Monster Collision
-            AEnemyCharacter* ptr = Cast<AEnemyCharacter>(OtherActor);
+            AMyEnemyBase* ptr = Cast<AMyEnemyBase>(OtherActor);
 
             if (g_c_monsters.count(ptr->get_id())) {
-                if (ptr->get_hp() > 0.0f) {
+                if (ptr->GetHP() > 0.0f) {
                     {
                         CollisionEvent collision_event = MonsterSkillEvent(ptr->get_id(), GetType(), GetActorLocation());
                         std::lock_guard<std::mutex> lock(g_s_collision_events_l);

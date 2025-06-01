@@ -52,10 +52,14 @@ protected:
         UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
     UFUNCTION()
+    void OnEndOverlapCollision(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
+    UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
+
+    UFUNCTION()
     void OnSelectorClosed();
 
 public:
-    void Interact(APlayerCharacter* InteractingPlayer);
+    virtual void Interact(APlayerCharacter* InteractingPlayer) override;
     void StartTeleportWithFade();
 
 protected:

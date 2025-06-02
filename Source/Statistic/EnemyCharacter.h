@@ -9,6 +9,7 @@
 #include "DamageWidget.h" // UDamageWidget 헤더 추가
 #include "Enums.h"
 #include "MonsterHPBarWidget.h"
+#include "MyItemDropActor.h"
 #include "EnemyCharacter.generated.h"
 
 UCLASS()
@@ -82,10 +83,10 @@ public:
     FName TargetBoneName;
 
     UPROPERTY(EditAnywhere)
-    FName ProceduralMeshAttachSocketName;
+    FName ProceduralMeshAttachSocketName = "Bonesocket";
 
     UPROPERTY(EditAnywhere)
-    FName OtherHalfMeshAttachSocketName;
+    FName OtherHalfMeshAttachSocketName = "Bone_002socket";
 
     UPROPERTY(EditAnywhere)
     float CreateProceduralMeshDistance = 50.0f;
@@ -102,4 +103,9 @@ public:
     class UWidgetComponent* hpFloatingWidget;
 
     class UMonsterHPBarWidget* MonsterHpBarWidget;
+
+protected:
+    // 드랍된 아이템 액터를 저장할 변수
+    UPROPERTY(EditAnywhere, BlueprintReadWrite)
+    TSubclassOf<class AMyItemDropActor> DroppedItemActorClass;
 };

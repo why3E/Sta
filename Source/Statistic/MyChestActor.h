@@ -92,5 +92,7 @@ protected:
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     TSubclassOf<class AMyItemDropActor> DroppedItemActorClass;
 
-
+    bool bIsShrinking = false;
+    float ShrinkElapsed = 0.f;
+    float ShrinkDuration = 1.0f; // 1초 동안 축소
 };

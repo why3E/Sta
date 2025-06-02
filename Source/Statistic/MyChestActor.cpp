@@ -63,6 +63,19 @@ void AMyChestActor::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+    if (bIsShrinking)
+    {
+        ShrinkElapsed += DeltaTime;
+        float Alpha = FMath::Clamp(ShrinkElapsed / ShrinkDuration, 0.f, 1.f);
+        float Scale = FMath::Lerp(1.f, 0.f, Alpha);
+        SetActorScale3D(FVector(Scale));
+
+        if (Alpha >= 1.f)
+        {
+            bIsShrinking = false;
+            Destroy();
+        }
+    }
 }
 
 void AMyChestActor::OnBeginOverlapCollision(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
@@ -167,5 +180,6 @@ void AMyChestActor::OnEndOverlapCollision(UPrimitiveComponent* OverlappedCompone
 
 void AMyChestActor::OnItemEffectFinished(UNiagaraComponent* PSystem)
 {
-    Destroy();
+    bIsShrinking = true;
+    ShrinkElapsed = 0.f;
 }

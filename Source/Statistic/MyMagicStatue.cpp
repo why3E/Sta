@@ -96,6 +96,8 @@ void AMyMagicStatue::OnBeginOverlapCollision(UPrimitiveComponent* OverlappedComp
 void AMyMagicStatue::OnEndOverlapCollision(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
     UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
+    if(cachedPlayer || cachedController ) return;
+    
     APlayerCharacter* Player = Cast<APlayerCharacter>(OtherActor);
 
     if (!Player || !Player->get_is_player()) return;

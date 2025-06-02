@@ -92,7 +92,7 @@ void AEnemyCharacter::Tick(float DeltaTime) {
     if(MonsterHpBarWidget) {
         MonsterHpBarWidget->updateHpBar(HP, MaxHP);
         // 체력이 100이 아닐 때만 HP바 보이기
-        if (HP < MaxHP) {
+        if (HP < MaxHP && HP > 0.0f) {
             hpFloatingWidget->SetVisibility(true);
         } else {
             hpFloatingWidget->SetVisibility(false);
@@ -166,14 +166,26 @@ void AEnemyCharacter::ReceiveSkillHit(const FSkillInfo& Info, AActor* Causer)
     UE_LOG(LogTemp, Warning, TEXT("Damage: %f, HP: %f"), Info.Damage, HP);
 
     if (HP <= 0.0f) {
+        if (DroppedItemActorClass)
+        {
+            for (int32 i = 0; i < 5; ++i)
+            {
+                FVector SpawnLocation = GetActorLocation() + FVector(0.f, 0.f, 200.f);
+                FRotator SpawnRotation = FRotator::ZeroRotator;
+                AMyItemDropActor* SpawnedItem = GetWorld()->SpawnActor<AMyItemDropActor>(DroppedItemActorClass, SpawnLocation, SpawnRotation);
+                if (SpawnedItem)
+                {
+                    SpawnedItem->SpawnItem(SpawnLocation);
+                }
+            }
+        }
         Die();
     }
 }
 
 void AEnemyCharacter::Die()
 {
-    // Remove Collision
-    
+
     CopySkeletalMeshToProcedural(0);
 
     GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
@@ -416,7 +428,7 @@ void AEnemyCharacter::SliceProcMesh(FVector PlaneNormal)
 
     // 절단면 머티리얼 로드
     UMaterialInterface* CapMaterial = LoadObject<UMaterialInterface>(
-        nullptr, TEXT("/Game/Materials/M_CutFace.M_CutFace")); // 경로는 본인 머티리얼에 맞게 수정
+        nullptr, TEXT("/Game/Slime/M_CutFace.M_CutFace")); // 경로는 본인 머티리얼에 맞게 수정
 
     UProceduralMeshComponent* OtherHalfMesh = nullptr;
 

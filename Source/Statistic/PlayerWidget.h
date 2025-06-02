@@ -73,4 +73,24 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void SetSkillIconInternal(UImage* Image,UImage* Image2, EClassType Type);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="SkillIcon")
+    UTexture2D* FireSkillIcon;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="SkillIcon")
+    UTexture2D* FireAttackIcon;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="SkillIcon")
+    UTexture2D* IceSkillIcon;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="SkillIcon")
+    UTexture2D* IceAttackIcon;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="SkillIcon")
+    UTexture2D* WindSkillIcon;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="SkillIcon")
+    UTexture2D* WindAttackIcon;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="SkillIcon")
+    UTexture2D* StoneSkillIcon;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="SkillIcon")
+    UTexture2D* StoneAttackIcon;
 };

@@ -52,6 +52,12 @@ AEnemyCharacter::AEnemyCharacter()
     ProcMeshComponent->SetupAttachment(RootComponent);
     ProcMeshComponent->SetVisibility(false);
     ProcMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+    hpFloatingWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("floatingWidget"));
+    hpFloatingWidget->SetupAttachment(RootComponent);
+    hpFloatingWidget->SetRelativeLocation(FVector(0, 0, 125));
+    hpFloatingWidget->SetWorldScale3D(FVector(1.0, 0.23, 0.03));
+    hpFloatingWidget->SetWidgetSpace(EWidgetSpace::Screen);
 }
 
 void AEnemyCharacter::BeginPlay()

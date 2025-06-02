@@ -96,4 +96,7 @@ public:
     void SliceProcMesh(FVector PlaneNormal);
 
     FName GetSecondBoneName() const;
+
+    UPROPERTY(EditAnywhere, Category = "MySettings")
+    class UWidgetComponent* hpFloatingWidget;
 };

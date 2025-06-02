@@ -108,6 +108,7 @@ void AMyMagicStatue::OnEndOverlapCollision(UPrimitiveComponent* OverlappedCompon
     {
         interactionWidgetInstance->RemoveFromParent();
         interactionWidgetInstance = nullptr;
+        
         Player->bIsInteraction = false;
         Player->CurrentInteractTarget = nullptr;
     }

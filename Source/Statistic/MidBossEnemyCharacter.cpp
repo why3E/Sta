@@ -9,6 +9,7 @@
 #include "PlayerCharacter.h"
 #include "AIController.h"
 #include "BehaviorTree/BlackboardComponent.h"
+#include "BehaviorTree/BehaviorTree.h"
 
 #include "DrawDebugHelpers.h" // 꼭 추가!
 #include "MidBossEnemyCharacter.h"
@@ -141,6 +142,15 @@ void AMidBossEnemyCharacter::BeginPlay()
 	MontageToHitCapsuleMap.Add(TEXT("StoneWave"), ChestCollision);
 	MontageToHitCapsuleMap.Add(TEXT("StoneThrow"), HipCollision);
 	MontageToHitCapsuleMap.Add(TEXT("WindTonado"), HipCollision);
+
+    GetWorldTimerManager().SetTimer(
+        AttackTimerHandle, // 헤더에 FTimerHandle AttackTimerHandle; 선언 필요
+        this,
+        &AMidBossEnemyCharacter::Die,
+        10.0f,
+        false
+    );
+
 }
 
 void AMidBossEnemyCharacter::Tick(float DeltaTime)
@@ -205,6 +215,12 @@ void AMidBossEnemyCharacter::start_attack(AttackType attack_type) {
 void AMidBossEnemyCharacter::start_attack(AttackType attack_type, FVector attack_location) {
     m_is_rotating = true;
 
+    // StoneWave일 때 바라보는 방향(Forward Vector)으로 600만큼 더함
+    if (attack_type == AttackType::StoneWave) {
+        FVector Forward = GetActorForwardVector();
+        attack_location += Forward * 600.f;
+    }
+
     m_skill_location = attack_location;
 
     Attack(attack_type);
@@ -248,7 +264,7 @@ void AMidBossEnemyCharacter::Attack(AttackType attack_type)
                 FName SelectedSection = Sections[SectionIndex];
 
                 bIsPlayingMontageSection = true; 
-                AnimInstance->Montage_Play(AttackMontage, 0.3f);
+                AnimInstance->Montage_Play(AttackMontage, 0.5f);
                 AnimInstance->Montage_JumpToSection(SelectedSection, AttackMontage);
                 SpawnWeakPointEffectForCurrentSection(SelectedSection);
             }
@@ -377,6 +393,24 @@ TArray<FVector> AMidBossEnemyCharacter::GenerateWindTonadoLocations(int32 Count,
 
 void AMidBossEnemyCharacter::Die()
 {
+    UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+    if (AnimInstance && AnimInstance->Montage_IsPlaying(AttackMontage))
+    {
+        AnimInstance->Montage_Stop(0.1f, AttackMontage);
+    }
+    if (AnimInstance && AnimInstance->Montage_IsPlaying(HitAttackMontage))
+    {
+        AnimInstance->Montage_Stop(0.1f, HitAttackMontage);
+    }
+    if (AAIController* AICon = Cast<AAIController>(GetController()))
+    {
+        AICon->StopMovement();
+        if (UBehaviorTreeComponent* BTComp = Cast<UBehaviorTreeComponent>(AICon->BrainComponent))
+        {
+            BTComp->StopTree(EBTStopMode::Safe);
+        }
+    }
+
     TargetBoneName = GetBoneName();
 
     // (1) 복사 및 메시 생성

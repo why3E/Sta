@@ -134,56 +134,44 @@ void UPlayerWidget::SetQSkillIcon(EClassType QSkillType)
 
 void UPlayerWidget::SetESkillIcon(EClassType ESkillType)
 {
-    SetSkillIconInternal(Eskill,EAttack, ESkillType);
+    SetSkillIconInternal(Eskill, EAttack, ESkillType);
 }
 
 void UPlayerWidget::SetSkillIconInternal(UImage* Image, UImage* Image2, EClassType Type)
 {
-    if (!Image) return;
-    if (!Image2) return;
+    if (!Image || !Image2) return;
     
-    FString Path;
-    FString Path2;
+    UTexture2D* SkillTexture = nullptr;
+    UTexture2D* AttackTexture = nullptr;
 
     switch (Type)
     {
     case EClassType::CT_Fire:
-        Path = TEXT("/Game/HUD/Fire_Skill.Fire_Skill");
-        Path2 = TEXT("/Game/HUD/Fire_Attack.Fire_Attack");
+        SkillTexture = FireSkillIcon;
+        AttackTexture = FireAttackIcon;
         break;
     case EClassType::CT_Ice:
-        Path = TEXT("/Game/HUD/Ice_Skill.Ice_Skill");
-        Path2 = TEXT("/Game/HUD/Ice_Attack.Ice_Attack");
+        SkillTexture = IceSkillIcon;
+        AttackTexture = IceAttackIcon;
         break;
     case EClassType::CT_Wind:
-        Path = TEXT("/Game/HUD/Wind_Skill.Wind_Skill");
-        Path2 = TEXT("/Game/HUD/Wind_Attack.Wind_Attack");
+        SkillTexture = WindSkillIcon;
+        AttackTexture = WindAttackIcon;
         break;
     case EClassType::CT_Stone:
-        Path = TEXT("/Game/HUD/Stone_Skill.Stone_Skill");
-        Path2 = TEXT("/Game/HUD/Stone_Attack.Stone_Attack");
+        SkillTexture = StoneSkillIcon;
+        AttackTexture = StoneAttackIcon;
         break;
     default:
-        Path = TEXT("");
-        Path2 = TEXT("");
         break;
     }
     
-    UE_LOG(LogTemp, Warning, TEXT("Setting skill icon from path: %s"), *Path);
-    if (!Path.IsEmpty())
+    if (SkillTexture)
     {
-        UTexture2D* Texture = LoadObject<UTexture2D>(nullptr, *Path);
-        if (Texture)
-        {
-            Image->SetBrushFromTexture(Texture);
-        }
+        Image->SetBrushFromTexture(SkillTexture);
     }
-    if (!Path2.IsEmpty())
+    if (AttackTexture)
     {
-        UTexture2D* Texture2 = LoadObject<UTexture2D>(nullptr, *Path2);
-        if (Texture2)
-        {
-            Image2->SetBrushFromTexture(Texture2);
-        }
+        Image2->SetBrushFromTexture(AttackTexture);
     }
 }

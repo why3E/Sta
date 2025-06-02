@@ -29,7 +29,7 @@ void UMMBossStoneAttackAnimNotify::Notify(USkeletalMeshComponent* MeshComp, UAni
         FVector MyLocation = OwnerActor->GetActorLocation();
 
         FVector FireDirection = (TargetLocation - MyLocation).GetSafeNormal();
-        FVector SpawnLocation = MyLocation + FireDirection * 300.f;
+        FVector SpawnLocation = MyLocation + FireDirection * 600.f;
         FRotator FireRotation = FireDirection.Rotation();
 
         FActorSpawnParameters SpawnParams;

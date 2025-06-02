@@ -52,13 +52,19 @@ AEnemyCharacter::AEnemyCharacter()
     ProcMeshComponent->SetupAttachment(RootComponent);
     ProcMeshComponent->SetVisibility(false);
     ProcMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+    hpFloatingWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("floatingWidget"));
+    hpFloatingWidget->SetupAttachment(RootComponent);
+    hpFloatingWidget->SetRelativeLocation(FVector(0, 0, 125));
+    hpFloatingWidget->SetWorldScale3D(FVector(1.0, 0.23, 0.03));
+    hpFloatingWidget->SetWidgetSpace(EWidgetSpace::Screen);
 }
 
 void AEnemyCharacter::BeginPlay()
 {
     Super::BeginPlay();
     bIsAttacking = false;
-
+    MonsterHpBarWidget = Cast<UMonsterHPBarWidget>(hpFloatingWidget->GetUserWidgetObject());
     UE_LOG(LogTemp, Warning, TEXT("Slime Position: %s"), *GetActorLocation().ToString());
 }
 
@@ -82,6 +88,15 @@ void AEnemyCharacter::Tick(float DeltaTime) {
 
         // Move
         AddMovementInput(Direction, 1.0f);
+    }
+    if(MonsterHpBarWidget) {
+        MonsterHpBarWidget->updateHpBar(HP, MaxHP);
+        // 체력이 100이 아닐 때만 HP바 보이기
+        if (HP < MaxHP) {
+            hpFloatingWidget->SetVisibility(true);
+        } else {
+            hpFloatingWidget->SetVisibility(false);
+        }
     }
 }
 

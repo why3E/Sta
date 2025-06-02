@@ -134,7 +134,7 @@ void UPlayerWidget::SetQSkillIcon(EClassType QSkillType)
 
 void UPlayerWidget::SetESkillIcon(EClassType ESkillType)
 {
-    SetSkillIconInternal(Eskill,EAttack, ESkillType);
+    SetSkillIconInternal(Eskill, EAttack, ESkillType);
 }
 
 void UPlayerWidget::SetSkillIconInternal(UImage* Image, UImage* Image2, EClassType Type)

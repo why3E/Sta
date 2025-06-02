@@ -8,6 +8,7 @@
 #include "ProceduralMeshComponent.h"
 #include "DamageWidget.h" // UDamageWidget 헤더 추가
 #include "Enums.h"
+#include "MonsterHPBarWidget.h"
 #include "EnemyCharacter.generated.h"
 
 UCLASS()
@@ -99,4 +100,6 @@ public:
 
     UPROPERTY(EditAnywhere, Category = "MySettings")
     class UWidgetComponent* hpFloatingWidget;
+
+    class UMonsterHPBarWidget* MonsterHpBarWidget;
 };

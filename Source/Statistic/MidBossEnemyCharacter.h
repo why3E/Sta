@@ -12,12 +12,14 @@
 #include "NiagaraComponent.h"
 #include "NiagaraSystem.h"
 #include "ProceduralMeshComponent.h"
+#include "MonsterHPBarWidget.h"
+#include "Components/WidgetComponent.h" 
 #include "MidBossEnemyCharacter.generated.h"
 
 class UCapsuleComponent;
 
 UCLASS()
-class STATISTIC_API AMidBossEnemyCharacter : public AMyEnemyBase, public IImpactPointInterface {
+class STATISTIC_API AMidBossEnemyCharacter : public AMyEnemyBase, public IImpactPointInterface, public IReceiveDamageInterface{
 	GENERATED_BODY()
 
 public:
@@ -214,5 +216,17 @@ public:
 	FName GetBoneName() const;
 	FName GetSecondBoneName() const;
 
-	void ApplyVertexAlphaToSkeletalMesh();
+	UPROPERTY(EditAnywhere, Category = "MySettings")
+    class UWidgetComponent* hpFloatingWidget;
+
+    class UMonsterHPBarWidget* MonsterHpBarWidget;
+
+	UFUNCTION(BlueprintCallable, Category = "Hud")
+    void ShowHud(float Damage, EClassType Type);
+	
+	virtual void ReceiveSkillHit(const FSkillInfo& Info, AActor* Causer) override;
+public:
+    // Hud
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Hud")
+    TSubclassOf<class ADamagePopupActor> DamagePopupActorClass;
 };

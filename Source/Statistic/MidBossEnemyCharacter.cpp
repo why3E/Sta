@@ -20,7 +20,9 @@
 #include "Materials/MaterialInterface.h"
 #include "Rendering/SkeletalMeshRenderData.h"
 #include "Rendering/SkeletalMeshLODRenderData.h"
-
+#include "Components/WidgetComponent.h" 
+#include "Enums.h"
+#include "DamagePopupActor.h"
 #include "UObject/ConstructorHelpers.h"
 #include "NiagaraFunctionLibrary.h"
 
@@ -105,11 +107,18 @@ AMidBossEnemyCharacter::AMidBossEnemyCharacter()
 	if (WindSkillRef.Succeeded()) WindSkillClass = WindSkillRef.Class;
 	static ConstructorHelpers::FClassFinder<AActor> WindLaserRef(TEXT("/Game/Weapon/MyWindLaser.MyWindLaser_C"));
 	if (WindLaserRef.Succeeded()) WindLaserClass = WindLaserRef.Class;
+
+    hpFloatingWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("floatingWidget"));
+    hpFloatingWidget->SetupAttachment(RootComponent);
+    hpFloatingWidget->SetRelativeLocation(FVector(0, 0, 125));
+    hpFloatingWidget->SetWorldScale3D(FVector(1.0, 0.23, 0.03));
+    hpFloatingWidget->SetWidgetSpace(EWidgetSpace::Screen);
 }
 
 void AMidBossEnemyCharacter::BeginPlay()
 {
 	Super::BeginPlay();
+    MonsterHpBarWidget = Cast<UMonsterHPBarWidget>(hpFloatingWidget->GetUserWidgetObject());
 
     HeadCollision->OnComponentBeginOverlap.AddDynamic(this, &AMidBossEnemyCharacter::OnHitCollisionOverlap);
     ChestCollision->OnComponentBeginOverlap.AddDynamic(this, &AMidBossEnemyCharacter::OnHitCollisionOverlap);
@@ -159,6 +168,16 @@ void AMidBossEnemyCharacter::Tick(float DeltaTime)
 
         // Move
         AddMovementInput(Direction, 1.0f);
+    }
+
+    if(MonsterHpBarWidget) {
+        MonsterHpBarWidget->updateHpBar(HP, MaxHP);
+        // 체력이 100이 아닐 때만 HP바 보이기
+        if (HP < MaxHP) {
+            hpFloatingWidget->SetVisibility(true);
+        } else {
+            hpFloatingWidget->SetVisibility(false);
+        }
     }
 }
 
@@ -417,16 +436,21 @@ void AMidBossEnemyCharacter::Respawn(FVector respawn_location) {
 
 }
 
+bool bIsProcessingHit = false;
+
 void AMidBossEnemyCharacter::OnHitCollisionOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult) {
+    if (bIsProcessingHit) return; // 재진입 방지
+    bIsProcessingHit = true;
+
     if (g_is_host) {
         if (OtherActor && (OtherActor->GetOwner() != this)) {
             UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 
-            if (!AnimInstance || !AnimInstance->Montage_IsPlaying(AttackMontage)) { return; }
+            if (!AnimInstance || !AnimInstance->Montage_IsPlaying(AttackMontage)) { bIsProcessingHit = false; return; }
 
             FName CurrentSection = AnimInstance->Montage_GetCurrentSection(AttackMontage);
 
-            if (CurrentSection.IsNone()) { return; }
+            if (CurrentSection.IsNone()) { bIsProcessingHit = false; return; }
 
             if (MontageToHitCapsuleMap.Contains(CurrentSection) && MontageToHitCapsuleMap[CurrentSection] == OverlappedComp) {
                 {
@@ -434,12 +458,17 @@ void AMidBossEnemyCharacter::OnHitCollisionOverlap(UPrimitiveComponent* Overlapp
                     std::lock_guard<std::mutex> lock(g_s_monster_events_l);
                     g_s_monster_events.push(monster_event);
                 }
-
+                HP -= 10;
+                ShowHud(10, EClassType::CT_Wind);
                 PlayStunMontage();
             }
         }
     }
+
+    bIsProcessingHit = false;
 }
+    
+
 
 void AMidBossEnemyCharacter::PlayStunMontage() {
     UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
@@ -685,4 +714,40 @@ FName AMidBossEnemyCharacter::GetBoneName() const
 FName AMidBossEnemyCharacter::GetSecondBoneName() const
 {
     return TEXT("spine_04");
+}
+
+void AMidBossEnemyCharacter::ShowHud(float Damage, EClassType Type)
+{
+    if (!DamagePopupActorClass)
+    {
+        return;
+    }
+
+    FVector spawnLoc = GetActorLocation() + FVector(0.f, 0.f, 1000.f);
+
+    // X, Y에 랜덤 흔들림 추가
+    spawnLoc.X += FMath::RandRange(-80.f, 80.f);
+    spawnLoc.Y += FMath::RandRange(-80.f, 80.f);
+
+    FRotator spawnRot = FRotator::ZeroRotator;
+
+    ADamagePopupActor* popupActor = GetWorld()->SpawnActor<ADamagePopupActor>(DamagePopupActorClass, spawnLoc, spawnRot);
+    if (popupActor)
+    {
+        popupActor->InitDamage(Damage, Type);
+        UE_LOG(LogTemp, Warning, TEXT("Damage Popup Actor Spawned"));
+    }
+}
+
+void AMidBossEnemyCharacter::ReceiveSkillHit(const FSkillInfo& Info, AActor* Causer)
+{
+    HP -= Info.Damage;
+
+    ShowHud(Info.Damage, Info.Element);
+
+    UE_LOG(LogTemp, Warning, TEXT("Damage: %f, HP: %f"), Info.Damage, HP);
+
+    if (HP <= 0.0f) {
+        Die();
+    }
 }

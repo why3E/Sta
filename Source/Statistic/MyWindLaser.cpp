@@ -7,6 +7,9 @@
 
 AMyWindLaser::AMyWindLaser()
 {
+    SetElement(EClassType::CT_Wind);
+    SetType(SKILL_WIND_LASER);
+
     PrimaryActorTick.bCanEverTick = true;
 
     RootScene = CreateDefaultSubobject<USceneComponent>(TEXT("RootScene"));
@@ -128,7 +131,9 @@ void AMyWindLaser::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* O
                     }
                 }
             }
-        } else if (OtherActor->IsA(APlayerCharacter::StaticClass())) {
+        } 
+        
+        if (OtherActor->IsA(APlayerCharacter::StaticClass())) {
             // Skill - Player Collision
             APlayerCharacter* ptr = Cast<APlayerCharacter>(OtherActor);
 
@@ -136,6 +141,9 @@ void AMyWindLaser::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* O
                 {
                     CollisionEvent collision_event = SkillPlayerEvent(m_id, ptr->get_id());
                     std::lock_guard<std::mutex> lock(g_s_collision_events_l);
+                    g_s_collision_events.push(collision_event);
+
+                    collision_event = PlayerSkillEvent(ptr->get_id(), GetType());
                     g_s_collision_events.push(collision_event);
                 }
             }

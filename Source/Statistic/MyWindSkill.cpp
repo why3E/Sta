@@ -228,6 +228,10 @@ void AMyWindSkill::Overlap(unsigned short object_id, bool collision_start) {
             if (collision_start) {
                 if (!OverlappingCharacters.Contains(ptr)) {
                     OverlappingCharacters.Add(ptr);
+
+                    if (ptr != Owner) {
+                        ptr->playerCurrentHp -= 10.0f;
+                    }
                 }
             } else {
                 if (OverlappingCharacters.Contains(ptr)) {

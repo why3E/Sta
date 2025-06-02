@@ -225,7 +225,7 @@ void APlayerCharacter::BeginPlay()
         } 
     }
 
-	change_element(static_cast<char>(EClassType::CT_Ice), true);
+	change_element(static_cast<char>(EClassType::CT_Wind), true);
 	change_element(static_cast<char>(EClassType::CT_Ice), false);
 
     playerCurrentHp = playerMaxHp;
@@ -1414,30 +1414,30 @@ void APlayerCharacter::change_element() {
 	p.packet_size = sizeof(player_change_element_packet);
 	p.packet_type = C2H_PLAYER_CHANGE_ELEMENT_PACKET;
 	p.id = m_id;
-	p.is_left = true;
+	p.is_left = false;
 
 	switch (LeftClassType) {
 	case EClassType::CT_Wind:
 		UE_LOG(LogTemp, Warning, TEXT("Class changed to Fire"));
-		change_element(static_cast<char>(EClassType::CT_Fire), true);
+		change_element(static_cast<char>(EClassType::CT_Fire), false);
 		p.element = static_cast<char>(EClassType::CT_Fire);
 		break;
 
 	case EClassType::CT_Fire:
 		UE_LOG(LogTemp, Warning, TEXT("Class changed to Stone"));
-		change_element(static_cast<char>(EClassType::CT_Stone), true);
+		change_element(static_cast<char>(EClassType::CT_Stone), false);
 		p.element = static_cast<char>(EClassType::CT_Stone);
 		break;
 
 	case EClassType::CT_Stone:
 		UE_LOG(LogTemp, Warning, TEXT("Class changed to Ice"));
-		change_element(static_cast<char>(EClassType::CT_Ice), true);
+		change_element(static_cast<char>(EClassType::CT_Ice), false);
 		p.element = static_cast<char>(EClassType::CT_Ice);
 		break;
 
 	case EClassType::CT_Ice:
 		UE_LOG(LogTemp, Warning, TEXT("Class changed to Wind"));
-		change_element(static_cast<char>(EClassType::CT_Wind), true);
+		change_element(static_cast<char>(EClassType::CT_Wind), false);
 		p.element = static_cast<char>(EClassType::CT_Wind);
 		break;
 
@@ -1467,6 +1467,13 @@ void APlayerCharacter::rotate(float yaw) {
 
 void APlayerCharacter::Overlap(char skill_type, bool collision_start) {
 	switch (skill_type) {
+	case SKILL_WIND_CUTTER:
+	case SKILL_WIND_LASER:
+	case SKILL_STONE_WAVE:
+	case SKILL_STONE_SKILL:
+		playerCurrentHp -= 10.0f;
+		break;
+
 	case SKILL_WIND_TORNADO:
 		if (collision_start) {
 			m_was_moving = false;

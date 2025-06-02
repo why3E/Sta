@@ -492,8 +492,7 @@ void AMidBossEnemyCharacter::OnHitCollisionOverlap(UPrimitiveComponent* Overlapp
                     std::lock_guard<std::mutex> lock(g_s_monster_events_l);
                     g_s_monster_events.push(monster_event);
                 }
-                HP -= 10;
-                ShowHud(10, EClassType::CT_Wind);
+
                 PlayStunMontage();
             }
         }
@@ -503,6 +502,32 @@ void AMidBossEnemyCharacter::OnHitCollisionOverlap(UPrimitiveComponent* Overlapp
 }
     
 
+
+void AMidBossEnemyCharacter::Overlap(char skill_type, FVector skill_location) {
+    HP -= 10.0f;
+
+    switch (skill_type) {
+    case SKILL_WIND_CUTTER:
+    case SKILL_WIND_TORNADO:
+        ShowHud(10, EClassType::CT_Wind);
+        break;
+
+    case SKILL_FIRE_BALL:
+    case SKILL_FIRE_WALL:
+        ShowHud(10, EClassType::CT_Fire);
+        break;
+
+    case SKILL_STONE_WAVE:
+    case SKILL_STONE_SKILL:
+        ShowHud(10, EClassType::CT_Stone);
+        break;
+
+    case SKILL_ICE_ARROW:
+    case SKILL_ICE_WALL:
+        ShowHud(10, EClassType::CT_Ice);
+        break;
+    }
+}
 
 void AMidBossEnemyCharacter::PlayStunMontage() {
     UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();

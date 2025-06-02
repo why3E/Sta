@@ -174,6 +174,9 @@ public:
 	UFUNCTION()
 	void OnHitCollisionOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
+	// Collision
+	virtual void Overlap(char skill_type, FVector skill_location) override;
+
 	void PlayStunMontage();
 
 private:

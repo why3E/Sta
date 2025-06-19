@@ -163,7 +163,7 @@ void AMyFireBall::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* Ot
 
 void AMyFireBall::Overlap(char skill_type) {
     if (FireBallHitShootSound) {
-        UGameplayStatics::PlaySoundAtLocation(this, FireBallHitShootSound, GetActorLocation(),5.0f);
+        UGameplayStatics::PlaySoundAtLocation(this, FireBallHitShootSound, GetActorLocation(),1.0f);
     }   
 
     // 나이아가라 파티클 시스템 비활성화

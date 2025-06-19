@@ -1416,7 +1416,7 @@ void APlayerCharacter::change_element() {
 	p.id = m_id;
 	p.is_left = false;
 
-	switch (LeftClassType) {
+	switch (RightClassType) {
 	case EClassType::CT_Wind:
 		UE_LOG(LogTemp, Warning, TEXT("Class changed to Fire"));
 		change_element(static_cast<char>(EClassType::CT_Fire), false);

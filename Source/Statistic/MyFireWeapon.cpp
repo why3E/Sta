@@ -88,7 +88,7 @@ void AMyFireWeapon::ShootFireBall()
 	{// 효과음 재생
         if (FireBallShootSound)
         {
-            UGameplayStatics::PlaySoundAtLocation(this, FireBallShootSound, GetActorLocation());
+            UGameplayStatics::PlaySoundAtLocation(this, FireBallShootSound, GetActorLocation(),0.7f);
         }
 		// 부모 액터로부터 부착 해제
 		TempFireBall->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);

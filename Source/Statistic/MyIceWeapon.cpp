@@ -50,7 +50,7 @@ void AMyIceWeapon::SetAiming()
     if (bIsAiming) { return; }
 
     bIsAiming = true;
-    WeaponMesh->SetVisibility(true);
+    WeaponMesh->SetVisibility(false);
     TempIceArrow = Cast<AMyIceArrow>(GetWorld()->SpawnActor(IceArrowClass));
     UE_LOG(LogTemp, Error, TEXT("Ice Arrow %d Spawning"), Cast<APlayerCharacter>(OwnerCharacter)->get_skill_id());
 

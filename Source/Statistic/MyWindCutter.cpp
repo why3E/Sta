@@ -171,7 +171,7 @@ void AMyWindCutter::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* 
 
 void AMyWindCutter::Overlap(char skill_type) {
     if (WindCutterHitSound) {
-        UGameplayStatics::PlaySoundAtLocation(this, WindCutterHitSound, GetActorLocation(),2.0f);
+        UGameplayStatics::PlaySoundAtLocation(this, WindCutterHitSound, GetActorLocation(),1.0f);
     }
 
     // 나이아가라 파티클 시스템 비활성화

@@ -29,7 +29,7 @@
 
 AMidBossEnemyCharacter::AMidBossEnemyCharacter()
 {
-    MaxHP = 1000.0f;
+    MaxHP = 100.0f;
     HP = MaxHP;
 
     m_view_radius = 2000.0f;
@@ -143,13 +143,7 @@ void AMidBossEnemyCharacter::BeginPlay()
 	MontageToHitCapsuleMap.Add(TEXT("StoneThrow"), HipCollision);
 	MontageToHitCapsuleMap.Add(TEXT("WindTonado"), HipCollision);
 
-    GetWorldTimerManager().SetTimer(
-        AttackTimerHandle, // 헤더에 FTimerHandle AttackTimerHandle; 선언 필요
-        this,
-        &AMidBossEnemyCharacter::Die,
-        10.0f,
-        false
-    );
+
 
 }
 

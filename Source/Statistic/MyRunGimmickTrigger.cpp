@@ -160,6 +160,16 @@ void AMyRunGimmickTrigger::EndTriggerFailed()
         TimerWidgetInstance = nullptr;
     }
 
+    // 생성된 런포인트 액터들 삭제
+    for (AActor* RunActor : SpawnedRunPoints)
+    {
+        if (RunActor && !RunActor->IsActorBeingDestroyed())
+        {
+            RunActor->Destroy();
+        }
+    }
+    SpawnedRunPoints.Empty();
+
     if (cachedPlayer)
     {
         cachedPlayer->bIsInteractionEnd = false;

@@ -354,5 +354,6 @@ public:
 	UPROPERTY()
 	AActor* CurrentInteractTarget = nullptr;
 	bool bIsInteraction = false; // 상호작용 여부
+	bool bIsInteractionEnd = false; // 상호작용 종료 여부
 
 };

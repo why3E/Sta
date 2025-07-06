@@ -16,6 +16,8 @@ class UUserWidget;
 class UNiagaraComponent;
 class UNiagaraSystem;
 class AMyItemDropActor;
+class APlayerCharacter;
+class APlayerController;
 
 UCLASS()
 class STATISTIC_API AMyChestActor : public AActor, public IInteractableInterface
@@ -95,4 +97,8 @@ protected:
     bool bIsShrinking = false;
     float ShrinkElapsed = 0.f;
     float ShrinkDuration = 1.0f; // 1초 동안 축소
+
+private:
+    APlayerCharacter* cachedPlayer = nullptr;
+    APlayerController* cachedController = nullptr;
 };

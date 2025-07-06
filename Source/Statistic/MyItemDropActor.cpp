@@ -76,7 +76,7 @@ void AMyItemDropActor::SpawnItem(const FVector& StartLocation)
         ItemMesh->SetVisibility(true);
         ItemMesh->SetWorldLocation(SpawnLocation);
         ItemMesh->SetWorldRotation(GetActorRotation());
-        FVector UpwardImpulse = FVector(0.f, 0.f, 1000.f);
+        FVector UpwardImpulse = FVector(FMath::FRandRange(-400.f, 400.f), FMath::FRandRange(-400.f, 400.f), 500.f);
         ItemMesh->AddImpulse(UpwardImpulse, NAME_None, true);
     }
 

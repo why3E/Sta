@@ -72,14 +72,19 @@ void AMyMagicStatue::OnBeginOverlapCollision(UPrimitiveComponent* OverlappedComp
     if (!OtherActor) return;
 
     APlayerCharacter* Player = Cast<APlayerCharacter>(OtherActor);
-
     if (!Player || !Player->get_is_player()) return;
 
+    // 1. 다른 플레이어가 상호작용 중이면 무시
+    if (cachedPlayer && cachedPlayer != Player && cachedPlayer->bIsInteraction) return;
+
+    if (Player->bIsInteractionEnd) return;
+
+    // 3. 캐시
     cachedPlayer = Player;
     cachedController = Cast<APlayerController>(Player->GetController());
-
     if (!cachedController || !interactionWidgetClass) return;
 
+    // 4. UI 위젯 생성
     if (!interactionWidgetInstance)
     {
         interactionWidgetInstance = CreateWidget<UUserWidget>(cachedController, interactionWidgetClass);
@@ -89,6 +94,7 @@ void AMyMagicStatue::OnBeginOverlapCollision(UPrimitiveComponent* OverlappedComp
         }
     }
 
+    // 5. 플레이어에게 상호작용 정보 설정
     Player->bIsInteraction = true;
     Player->CurrentInteractTarget = this;
 }
@@ -96,7 +102,7 @@ void AMyMagicStatue::OnBeginOverlapCollision(UPrimitiveComponent* OverlappedComp
 void AMyMagicStatue::OnEndOverlapCollision(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
     UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
-    if(cachedPlayer || cachedController ) return;
+    if(!cachedPlayer || !cachedController ) return;
     
     APlayerCharacter* Player = Cast<APlayerCharacter>(OtherActor);
 

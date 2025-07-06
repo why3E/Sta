@@ -7,6 +7,7 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "Blueprint/UserWidget.h"
 #include "PlayerCharacter.h"
+#include "GameFramework/PlayerController.h"
 #include "NiagaraComponent.h"
 #include "MyItemDropActor.h"
 #include "Kismet/GameplayStatics.h"
@@ -81,17 +82,22 @@ void AMyChestActor::Tick(float DeltaTime)
 void AMyChestActor::OnBeginOverlapCollision(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
     UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	APlayerCharacter* Player = Cast<APlayerCharacter>(OtherActor);
-    if (!Player) return;
+    APlayerCharacter* Player = Cast<APlayerCharacter>(OtherActor);
+    if (!Player || !Player->get_is_player()) return;
 
-    APlayerController* cachedController = Cast<APlayerController>(Player->GetController());
-    if (!cachedController) return;
-    
-	if (!Player || !cachedController) return;
+    // 이미 다른 플레이어가 상호작용 중이라면 무시
+    if (cachedPlayer != nullptr && cachedPlayer != Player) return;
 
-    if (!interactionWidgetInstance)
+    APlayerController* Controller = Cast<APlayerController>(Player->GetController());
+    if (!Controller) return;
+
+    // 처음 접근한 플레이어 저장
+    cachedPlayer = Player;
+    cachedController = Controller;
+
+    if (!interactionWidgetInstance && interactionWidgetClass)
     {
-        interactionWidgetInstance = CreateWidget<UUserWidget>(cachedController, interactionWidgetClass);
+        interactionWidgetInstance = CreateWidget<UUserWidget>(Controller, interactionWidgetClass);
         if (interactionWidgetInstance)
         {
             interactionWidgetInstance->AddToViewport();
@@ -102,34 +108,40 @@ void AMyChestActor::OnBeginOverlapCollision(UPrimitiveComponent* OverlappedCompo
     Player->CurrentInteractTarget = this;
 }
 
+
 // ...existing code...
 
 void AMyChestActor::Interact(APlayerCharacter* InteractingPlayer)
 {
+    if (InteractingPlayer != cachedPlayer) return; // 내가 지정한 플레이어가 아닐 경우 무시
+
     if (interactionWidgetInstance)
     {
         interactionWidgetInstance->RemoveFromParent();
         interactionWidgetInstance = nullptr;
     }
 
-    if (OpenEffectComponent)
+    if (OpenEffectComponent && OpenEffectSystem)
     {
-        if (OpenEffectSystem)
-        {
-            OpenEffectComponent->SetAsset(OpenEffectSystem);
-        }
-        OpenEffectComponent->Activate(true);  // 오픈 이펙트 실행
+        OpenEffectComponent->SetAsset(OpenEffectSystem);
+        OpenEffectComponent->Activate(true);
     }
+
     GetWorld()->GetTimerManager().SetTimer(
         ItemEffectTimerHandle, this, &AMyChestActor::PlayItemEffect, 2.0f, false
     );
-    if (OpenAnimSequence){
+
+    if (OpenAnimSequence)
+    {
         ChestMesh->PlayAnimation(OpenAnimSequence, false);
     }
 
     InteractingPlayer->bIsInteraction = false;
     InteractingPlayer->CurrentInteractTarget = nullptr;
 
+    // 플레이어 캐시 해제
+    cachedPlayer = nullptr;
+    cachedController = nullptr;
 }
 
 // 아이템 이펙트 실행 함수 추가
@@ -162,21 +174,25 @@ void AMyChestActor::OnEndOverlapCollision(UPrimitiveComponent* OverlappedCompone
     UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
     APlayerCharacter* Player = Cast<APlayerCharacter>(OtherActor);
-    if (!Player) return;
+    if (!Player || Player != cachedPlayer) return;
 
-    APlayerController* cachedController = Cast<APlayerController>(Player->GetController());
-    if (!cachedController) return;
-    
-	if (!Player || !cachedController) return;
+    APlayerController* Controller = Cast<APlayerController>(Player->GetController());
+    if (!Controller || Controller != cachedController) return;
 
     if (interactionWidgetInstance)
     {
         interactionWidgetInstance->RemoveFromParent();
         interactionWidgetInstance = nullptr;
-        Player->bIsInteraction = false;
-        Player->CurrentInteractTarget = nullptr;
     }
+
+    Player->bIsInteraction = false;
+    Player->CurrentInteractTarget = nullptr;
+
+    // 해제
+    cachedPlayer = nullptr;
+    cachedController = nullptr;
 }
+
 
 void AMyChestActor::OnItemEffectFinished(UNiagaraComponent* PSystem)
 {

@@ -74,7 +74,6 @@ void AMyMagicStatue::OnBeginOverlapCollision(UPrimitiveComponent* OverlappedComp
     APlayerCharacter* Player = Cast<APlayerCharacter>(OtherActor);
     if (!Player || !Player->get_is_player()) return;
 
-    // 1. 다른 플레이어가 상호작용 중이면 무시
     if (cachedPlayer && cachedPlayer != Player && cachedPlayer->bIsInteraction) return;
 
     if (Player->bIsInteractionEnd) return;
@@ -144,8 +143,8 @@ void AMyMagicStatue::Interact(APlayerCharacter* InteractingPlayer)
     if (selectorWidgetInstance)
     {
         selectorWidgetInstance->AddToViewport();
-        selectorWidgetInstance->StatueActor = this;
 
+        selectorWidgetInstance->OnSelectorMove.AddDynamic(this, &AMyMagicStatue::OnSelectorMove);
         selectorWidgetInstance->OnSelectorClosed.AddDynamic(this, &AMyMagicStatue::OnSelectorClosed);
 
         cachedController->bShowMouseCursor = true;
@@ -250,6 +249,11 @@ void AMyMagicStatue::OnSelectorClosed()
     cachedController = nullptr;
 }
 
+void AMyMagicStatue::OnSelectorMove()
+{
+    StartTeleportWithFade();
+}
+
 void AMyMagicStatue::PerformTeleport()
 {
     if (!cachedPlayer || !NextStatue) return;
@@ -284,3 +288,4 @@ void AMyMagicStatue::PerformTeleport()
 
     UE_LOG(LogTemp, Warning, TEXT("Player teleported."));
 }
+

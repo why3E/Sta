@@ -26,12 +26,8 @@ void UMyUserSelectorUI::NativeDestruct()
 
 void UMyUserSelectorUI::YesButtonClick()
 {
-    if (StatueActor)
-    {
-        StatueActor->StartTeleportWithFade();
-    }
-
     RemoveFromParent();
+    OnSelectorMove.Broadcast();
 }
 
 void UMyUserSelectorUI::NoButtonClick()
@@ -40,4 +36,5 @@ void UMyUserSelectorUI::NoButtonClick()
 
     // NO 눌렀을 때만 이벤트 방송
     OnSelectorClosed.Broadcast();
+    
 }

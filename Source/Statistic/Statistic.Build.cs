@@ -19,7 +19,8 @@ public class Statistic : ModuleRules
 			"UMG",
 			"ProceduralMeshComponent",
 			"Json", "JsonUtilities",
-			"SlateCore", "Paper2D"
+			"SlateCore", "Paper2D",
+			"CinematicCamera" // Cinematic Camera 모듈 추가
 		});
 	}
 }

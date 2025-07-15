@@ -308,7 +308,7 @@ public:
 	TSubclassOf<UUserWidget> PlayerWidgetClass;
 private:
 	// PlayerWidget 생성
-	void UpdateUI();
+	
 
 	bool bCanUseSkillQ = true;
 	float SkillQCoolTime = 5.0f;
@@ -332,6 +332,11 @@ protected:
     int32 CurrentFootstepIndex = 0;
 
 public:
+	void UpdateUI();
+	//UI숨기기
+	void HideUI();
+	//UI보이기
+	void ShowUI();
     // 발자국 효과음을 재생하는 함수
     void PlayFootstepSound();
 	void StartIceAim();
@@ -355,5 +360,6 @@ public:
 	AActor* CurrentInteractTarget = nullptr;
 	bool bIsInteraction = false; // 상호작용 여부
 	bool bIsInteractionEnd = false; // 상호작용 종료 여부
+	bool bIsInteractionWidgetOpen = false; // 상호작용 위젯 열림 여부
 
 };

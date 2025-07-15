@@ -57,6 +57,9 @@ protected:
 
     UFUNCTION()
     void OnSelectorClosed();
+    
+    UFUNCTION()
+    void OnSelectorMove();
 
 public:
     virtual void Interact(APlayerCharacter* InteractingPlayer) override;

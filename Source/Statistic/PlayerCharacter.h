@@ -332,6 +332,8 @@ protected:
     int32 CurrentFootstepIndex = 0;
 
 public:
+	//UI숨기기
+	void HideUI();
     // 발자국 효과음을 재생하는 함수
     void PlayFootstepSound();
 	void StartIceAim();

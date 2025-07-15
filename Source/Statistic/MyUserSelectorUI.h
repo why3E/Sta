@@ -33,9 +33,9 @@ public:
 
     // UI 닫힐 때 방송용 이벤트 (NO 눌렀을 때만)
     UPROPERTY(BlueprintAssignable, Category = "Events")
+    FOnSelectorClosed OnSelectorMove;
+
+    UPROPERTY(BlueprintAssignable, Category = "Events")
     FOnSelectorClosed OnSelectorClosed;
 
-    // 석상 액터 포인터 (호출용)
-    UPROPERTY(BlueprintReadWrite, Category = "References")
-    AMyMagicStatue* StatueActor = nullptr;
 };

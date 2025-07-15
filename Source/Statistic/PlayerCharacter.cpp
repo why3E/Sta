@@ -447,6 +447,8 @@ void APlayerCharacter::DashEnd()
 
 void APlayerCharacter::LeftClick()
 {
+	if(bIsInteraction) return;
+
     bIsLeft = true;
 
     // 왼쪽 무기가 얼음 타입인지 확인
@@ -469,6 +471,8 @@ void APlayerCharacter::LeftClick()
 
 void APlayerCharacter::RightClick()
 {
+	if(bIsInteraction) return;
+
 	bIsLeft = false;
 
 	if (RightClassType == EClassType::CT_Ice)
@@ -1503,6 +1507,7 @@ void APlayerCharacter::do_send(void* buff) {
 
 void APlayerCharacter::UpdateUI()
 {
+	
     if (CharacterWidget)
     {
         CharacterWidget->UpdateHpBar(playerCurrentHp, playerMaxHp);
@@ -1533,5 +1538,13 @@ void APlayerCharacter::Interaction()
     if (Interface)
     {
         Interface->Interact(this);
+    }
+}
+
+void APlayerCharacter::HideUI()
+{
+    if (CharacterWidget)
+    {
+        CharacterWidget->SetVisibility(ESlateVisibility::Hidden);
     }
 }

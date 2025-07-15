@@ -6,9 +6,6 @@
 #include "MySkillBase.h"
 #include "MyStoneSkill.generated.h"
 
-/**
- * 
- */
 UCLASS()
 class STATISTIC_API AMyStoneSkill : public AMySkillBase
 {

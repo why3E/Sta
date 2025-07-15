@@ -8,6 +8,7 @@
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "EngineUtils.h"
+#include "MyNPCInteractionWidget.h"
 #include "CineCameraActor.h"
 
 AMyNPC::AMyNPC()
@@ -51,7 +52,6 @@ void AMyNPC::Tick(float DeltaTime)
 
 void AMyNPC::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-
     APlayerCharacter* Player = Cast<APlayerCharacter>(OtherActor);
     if (!Player || !Player->get_is_player()) return;
 
@@ -63,8 +63,8 @@ void AMyNPC::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherAc
 
     if (Player && PlayerController)
     {
-            // 상호작용 위젯 표시
-            WidgetInteractionComponent->SetVisibility(true);
+        // 상호작용 위젯 표시
+        WidgetInteractionComponent->SetVisibility(true);
     }
 
     Player->bIsInteraction = true;
@@ -90,15 +90,29 @@ void AMyNPC::StartInteractionCamera()
 {
     if (npcInteractionCamera)
     {
-        UE_LOG(LogTemp, Warning, TEXT("NPC Interaction Camera Found: %s, Tags: %s"), 
-            *npcInteractionCamera->GetName(), 
-            *FString::JoinBy(npcInteractionCamera->Tags, TEXT(", "), [](const FName& Tag){ return Tag.ToString(); })
-        );
         cachedPlayer->GetCharacterMovement()->DisableMovement();
         cachedPlayer->GetMesh()->SetVisibility(false, true);
         cachedController->SetViewTargetWithBlend(npcInteractionCamera, 0.5f);
         cachedPlayer->HideUI();
+        WidgetInteractionComponent->SetVisibility(false);
+    }
 
+    if (interactionWidgetClass)
+    {
+        if (!interactionWidgetInstance)
+        {
+            interactionWidgetInstance = CreateWidget<UMyNPCInteractionWidget>(cachedController, interactionWidgetClass);
+         
+            if (interactionWidgetInstance)
+            {   
+                interactionWidgetInstance->OutButtonClickEvent.AddDynamic(this, &AMyNPC::OutButtonClick);
+                interactionWidgetInstance->AddToViewport();
+            }
+        }
+        else
+        {
+            interactionWidgetInstance->SetVisibility(ESlateVisibility::Visible);
+        }
     }
 }
 
@@ -106,8 +120,44 @@ void AMyNPC::Interact(APlayerCharacter* InteractingPlayer)
 {
     cachedPlayer = InteractingPlayer;
     cachedController = Cast<APlayerController>(InteractingPlayer->GetController());
-    StartInteractionCamera();
+
+    // 플레이어를 카메라 위치로 이동
+    if (npcInteractionCamera && cachedPlayer)
+    {
+        FVector CamLocation = npcInteractionCamera->GetActorLocation();
+        FRotator CamRotation = npcInteractionCamera->GetActorRotation();
+
+        // NPC 위치를 바라보는 방향 계산
+        FVector NPCDirection = GetActorLocation() - CamLocation;
+        NPCDirection.Z = 0; // 평면상에서만 회전
+        FRotator LookAtNPC = NPCDirection.Rotation();
+
+        cachedPlayer->SetActorLocation(CamLocation);
+        cachedPlayer->SetActorRotation(LookAtNPC);
+    }
 
     cachedController->bShowMouseCursor = true;
+    cachedPlayer->bIsInteractionWidgetOpen = true;
 
+    StartInteractionCamera();
+}
+
+void AMyNPC::OutButtonClick()
+{
+    if (cachedPlayer)
+    {
+        cachedPlayer->GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Walking);
+        cachedPlayer->GetMesh()->SetVisibility(true, true);
+        cachedController->SetViewTargetWithBlend(cachedPlayer, 0.5f);
+        cachedPlayer->ShowUI();
+        cachedController->bShowMouseCursor = false;
+        FInputModeGameOnly InputMode;
+        cachedController->SetInputMode(InputMode);
+    }
+
+    if (interactionWidgetInstance)
+    {
+        interactionWidgetInstance->SetVisibility(ESlateVisibility::Hidden);
+    }
+    cachedPlayer->bIsInteractionWidgetOpen = false;
 }

@@ -383,6 +383,7 @@ void APlayerCharacter::BasicMove(const FInputActionValue& Value)
 
 void APlayerCharacter::BasicLook(const FInputActionValue& Value)
 {
+	if (bIsInteractionWidgetOpen) return;
     // 입력받은 Value로부터 LookVector 가져오기
     FVector2D LookVector = Value.Get<FVector2D>();
     
@@ -447,7 +448,7 @@ void APlayerCharacter::DashEnd()
 
 void APlayerCharacter::LeftClick()
 {
-	if(bIsInteraction) return;
+	if (bIsInteractionWidgetOpen) return;
 
     bIsLeft = true;
 
@@ -471,7 +472,7 @@ void APlayerCharacter::LeftClick()
 
 void APlayerCharacter::RightClick()
 {
-	if(bIsInteraction) return;
+	if (bIsInteractionWidgetOpen) return;
 
 	bIsLeft = false;
 
@@ -1546,5 +1547,13 @@ void APlayerCharacter::HideUI()
     if (CharacterWidget)
     {
         CharacterWidget->SetVisibility(ESlateVisibility::Hidden);
+    }
+}
+
+void APlayerCharacter::ShowUI()
+{
+    if (CharacterWidget)
+    {
+        CharacterWidget->SetVisibility(ESlateVisibility::Visible);
     }
 }

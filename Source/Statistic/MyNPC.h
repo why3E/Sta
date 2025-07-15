@@ -12,6 +12,7 @@ class UWidgetComponent;
 class APlayerController;
 class APlayerCharacter;
 class ACineCameraActor;
+class UMyNPCInteractionWidget;
 
 UCLASS()
 class STATISTIC_API AMyNPC : public AMyCharacterBase, public IInteractableInterface
@@ -45,7 +46,15 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Sequence")
 	FName npcCameraTagName;
 
+	UFUNCTION()
+    void OutButtonClick();
 private:
     APlayerCharacter* cachedPlayer = nullptr;
     APlayerController* cachedController = nullptr;
+
+	UPROPERTY(EditAnywhere, Category = "UI")
+	TSubclassOf<UMyNPCInteractionWidget> interactionWidgetClass;
+
+	UPROPERTY()
+	UMyNPCInteractionWidget* interactionWidgetInstance = nullptr;
 };

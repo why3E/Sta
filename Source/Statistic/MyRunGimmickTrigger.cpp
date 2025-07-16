@@ -22,8 +22,10 @@ void AMyRunGimmickTrigger::Tick(float DeltaTime)
 
 void AMyRunGimmickTrigger::Interact(APlayerCharacter* InteractingPlayer)
 {
-    Super::Interact(InteractingPlayer);
+    if (bIsInteraction) return;
 
+    Super::Interact(InteractingPlayer);
+    
     if (interactionWidgetInstance)
     {
         interactionWidgetInstance->RemoveFromParent();
@@ -39,6 +41,7 @@ void AMyRunGimmickTrigger::Interact(APlayerCharacter* InteractingPlayer)
     cachedController = Cast<APlayerController>(InteractingPlayer->GetController());
 
     bIsTriggerEnded = false;
+
     TotalPoints = RunPoints.Num();
     PassedPoints = 0;
     SecondsRemaining = CountdownTime;
@@ -122,6 +125,7 @@ void AMyRunGimmickTrigger::EndTriggerSuccess()
 {
     if (bIsTriggerEnded) return;
     bIsTriggerEnded = true;
+    bIsInteraction = false;
 
     GetWorld()->GetTimerManager().ClearTimer(CountdownTimerHandle);
 
@@ -151,7 +155,7 @@ void AMyRunGimmickTrigger::EndTriggerFailed()
 {
     if (bIsTriggerEnded) return;
     bIsTriggerEnded = true;
-
+    bIsInteraction = false;
     GetWorld()->GetTimerManager().ClearTimer(CountdownTimerHandle);
 
     if (TimerWidgetInstance)

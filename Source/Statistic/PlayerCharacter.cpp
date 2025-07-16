@@ -384,18 +384,22 @@ void APlayerCharacter::BasicMove(const FInputActionValue& Value)
 void APlayerCharacter::BasicLook(const FInputActionValue& Value)
 {
 	if (bIsInteractionWidgetOpen) return;
-    // 입력받은 Value로부터 LookVector 가져오기
-    FVector2D LookVector = Value.Get<FVector2D>();
-    
-    // Controller에 값 전달
-    AddControllerYawInput(LookVector.X);
-    AddControllerPitchInput(LookVector.Y);
+	if (bIsAttacking) return;
 
-    // 카메라 회전에 따라 캐릭터가 회전하도록 설정
-    bUseControllerRotationYaw = true;
-    GetCharacterMovement()->bOrientRotationToMovement = false;
+	FVector2D LookVector = Value.Get<FVector2D>();
+	FRotator CurrentRot = GetControlRotation();
+	FRotator TargetRot = CurrentRot;
 
-	// Send Player Direction Packet 
+	TargetRot.Yaw += LookVector.X;
+	TargetRot.Pitch += LookVector.Y;
+	TargetRot.Pitch = FMath::Clamp(TargetRot.Pitch, -80.f, 80.f); 
+
+	FRotator NewRot = FMath::RInterpTo(CurrentRot, TargetRot, GetWorld()->GetDeltaSeconds(), 0.1f);
+	Controller->SetControlRotation(NewRot);
+
+	bUseControllerRotationYaw = true;
+	GetCharacterMovement()->bOrientRotationToMovement = false;
+
 	float CurrentYaw = GetControlRotation().Yaw;
 	float YawDiff = FMath::Abs(CurrentYaw - m_yaw);
 
@@ -426,6 +430,8 @@ void APlayerCharacter::StartJump()
 
 		do_send(&p);
 	}
+
+	
 }
 
 void APlayerCharacter::StopJump()
@@ -466,7 +472,6 @@ void APlayerCharacter::LeftClick()
 			return;
 		}
     }
-
     BasicAttack();
 }
 
@@ -489,8 +494,9 @@ void APlayerCharacter::RightClick()
 			return;
 		}
     }
-
+	bIsAttacking = true;
 	BasicAttack();
+
 }
 
 void APlayerCharacter::StartIceAim()

@@ -48,6 +48,7 @@ protected:
     APlayerCharacter* cachedPlayer = nullptr;
     APlayerController* cachedController = nullptr;
 	
+	bool bIsInteraction = false;
 protected:
     UFUNCTION()
     void OnBeginOverlapCollision(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,

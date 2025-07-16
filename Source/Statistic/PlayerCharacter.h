@@ -361,5 +361,6 @@ public:
 	bool bIsInteraction = false; // 상호작용 여부
 	bool bIsInteractionEnd = false; // 상호작용 종료 여부
 	bool bIsInteractionWidgetOpen = false; // 상호작용 위젯 열림 여부
+	bool bIsAttacking = false;
 
 };

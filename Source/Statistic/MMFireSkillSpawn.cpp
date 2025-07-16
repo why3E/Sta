@@ -6,6 +6,7 @@
 #include "MyFireWeapon.h"
 #include "MyFireBall.h"
 #include "MyFireSkill.h"
+#include "PlayerCharacter.h"
 #include "ImpactPointInterface.h"
 
 void UMMFireSkillSpawn::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, const FAnimNotifyEventReference& EventReference)
@@ -16,6 +17,7 @@ void UMMFireSkillSpawn::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBa
     {
         // MeshComp의 소유자를 ImpactPointInterface로 캐스팅
         IImpactPointInterface* ImpactPointOwner = Cast<IImpactPointInterface>(MeshComp->GetOwner());
+        APlayerCharacter* PlayerCh = Cast<APlayerCharacter>(MeshComp->GetOwner());
         if (ImpactPointOwner)
         {
             // GetCurrentImpactPoint 호출하여 위치 가져오기
@@ -32,6 +34,7 @@ void UMMFireSkillSpawn::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBa
                 if (Weapon)
                 {
                     Weapon->SpawnFireSkill(ImpactPoint,ImpactRot); // 에너지볼 스폰 함수 호출 (위치 전달)
+                    PlayerCh->bIsAttacking = false; // 공격 상태 해제
                 }
             }
         }

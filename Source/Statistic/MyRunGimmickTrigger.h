@@ -52,6 +52,7 @@ private:
     TArray<AActor*> SpawnedRunPoints;
 
     bool bIsTriggerEnded = false;
+    
 
     void UpdateCountdown();
     void EndTriggerSuccess();

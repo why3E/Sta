@@ -41,7 +41,7 @@ void AMyGimmickTrigger::Tick(float DeltaTime)
 void AMyGimmickTrigger::Interact(APlayerCharacter* InteractingPlayer)
 {
 	cachedPlayer->bIsInteractionEnd = true;
-
+    bIsInteraction = true;
 }
 
 

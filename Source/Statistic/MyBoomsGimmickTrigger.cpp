@@ -22,6 +22,7 @@ void AMyBoomsGimmickTrigger::Tick(float DeltaTime)
 
 void AMyBoomsGimmickTrigger::Interact(APlayerCharacter* InteractingPlayer)
 {
+    if(bIsInteraction) return;
     Super::Interact(InteractingPlayer);
 
     if (interactionWidgetInstance)
@@ -119,6 +120,7 @@ void AMyBoomsGimmickTrigger::EndTriggerSuccess()
 {
     if (bIsTriggerEnded) return;
     bIsTriggerEnded = true;
+    bIsInteraction = false;
 
     GetWorld()->GetTimerManager().ClearTimer(CountdownTimerHandle);
 
@@ -157,6 +159,7 @@ void AMyBoomsGimmickTrigger::EndTriggerFailed()
 {
     if (bIsTriggerEnded) return;
     bIsTriggerEnded = true;
+    bIsInteraction = false;
 
     GetWorld()->GetTimerManager().ClearTimer(CountdownTimerHandle);
 

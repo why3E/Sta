@@ -13,6 +13,8 @@ AMyRunGimmickTrigger::AMyRunGimmickTrigger()
 void AMyRunGimmickTrigger::BeginPlay()
 {
     Super::BeginPlay();
+
+    g_c_objects[ID] = this;
 }
 
 void AMyRunGimmickTrigger::Tick(float DeltaTime)
@@ -25,20 +27,34 @@ void AMyRunGimmickTrigger::Interact(APlayerCharacter* InteractingPlayer)
     if (bIsInteraction) return;
 
     Super::Interact(InteractingPlayer);
-    
+
+    gimmick_start_packet p;
+    p.packet_size = sizeof(gimmick_start_packet);
+    p.packet_type = C2H_GIMMICK_START_PACKET;
+    p.object_id = ID;
+    InteractingPlayer->do_send(&p);
+}
+
+void AMyRunGimmickTrigger::Active() {
     if (interactionWidgetInstance)
     {
         interactionWidgetInstance->RemoveFromParent();
         interactionWidgetInstance = nullptr;
     }
 
-    if (!RunPointClass || RunPoints.Num() == 0 || !InteractingPlayer) return;
+    if (!RunPointClass || RunPoints.Num() == 0) return;
 
     UWorld* World = GetWorld();
+
     if (!World) return;
 
-    cachedPlayer = InteractingPlayer;
-    cachedController = Cast<APlayerController>(InteractingPlayer->GetController());
+    for (const auto& player : g_c_players) {
+        if (player->get_is_player()) {
+            cachedPlayer = player;
+            cachedController = Cast<APlayerController>(player->GetController());
+            break;
+        }
+    }
 
     bIsTriggerEnded = false;
 
@@ -62,6 +78,9 @@ void AMyRunGimmickTrigger::Interact(APlayerCharacter* InteractingPlayer)
             if (RunPoint)
             {
                 RunPoint->SetTriggerOwner(this);
+
+                RunPoint->set_id(g_c_object_id++);
+                g_c_objects[RunPoint->get_id()] = RunPoint;
             }
         }
     }
@@ -90,6 +109,14 @@ void AMyRunGimmickTrigger::Interact(APlayerCharacter* InteractingPlayer)
     World->GetTimerManager().SetTimer(CountdownTimerHandle, this, &AMyRunGimmickTrigger::UpdateCountdown, 1.0f, true);
 }
 
+void AMyRunGimmickTrigger::End(bool succeed) {
+    if (succeed) {
+        EndTriggerSuccess();
+    } else {
+        EndTriggerFailed();
+    }
+}
+
 void AMyRunGimmickTrigger::UpdateCountdown()
 {
     SecondsRemaining--;
@@ -103,21 +130,33 @@ void AMyRunGimmickTrigger::UpdateCountdown()
         }
     }
 
-    if (SecondsRemaining <= 0)
-    {
-        EndTriggerFailed();
+    if (g_is_host) {
+        if (SecondsRemaining <= 0) {
+            gimmick_end_packet p;
+            p.packet_size = sizeof(gimmick_end_packet);
+            p.packet_type = C2H_GIMMICK_END_PACKET;
+            p.object_id = ID;
+            p.succeed = false;
+            cachedPlayer->do_send(&p);
+        }
     }
 }
 
 void AMyRunGimmickTrigger::NotifyPointPassed()
 {
-    if (bIsTriggerEnded) return;
+    if (g_is_host) {
+        if (bIsTriggerEnded) { return; }
 
-    PassedPoints++;
+        PassedPoints++;
 
-    if (PassedPoints >= TotalPoints)
-    {
-        EndTriggerSuccess();
+        if (PassedPoints >= TotalPoints) {
+            gimmick_end_packet p;
+            p.packet_size = sizeof(gimmick_end_packet);
+            p.packet_type = C2H_GIMMICK_END_PACKET;
+            p.object_id = ID;
+            p.succeed = true;
+            cachedPlayer->do_send(&p);
+        }
     }
 }
 

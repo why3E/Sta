@@ -9,6 +9,8 @@ SOCKET g_c_socket;
 std::array<APlayerCharacter*, MAX_CLIENTS> g_c_players;
 std::unordered_map<unsigned short, AMySkillBase*> g_c_skills; 
 std::unordered_map<unsigned short, AMyEnemyBase*> g_c_monsters;
+std::atomic<unsigned short> g_c_object_id = 0;
+std::unordered_map<unsigned short, AActor*> g_c_objects;
 std::unordered_map<unsigned short, std::queue<char>> g_c_skill_collisions;
 std::unordered_map<unsigned short, std::queue<unsigned short>> g_c_object_collisions;
 

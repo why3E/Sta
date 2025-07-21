@@ -1,5 +1,6 @@
 #pragma once
 
+#include "SESSION.h"
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "MyAltarTorch.generated.h"
@@ -21,15 +22,20 @@ public:
 protected:
     virtual void BeginPlay() override;
 
+    unsigned short m_id = INVALID_OBJECT_ID;
+
 public:
     virtual void Tick(float DeltaTime) override;
 
     UFUNCTION()
-    void OnTorchBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
-        UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+    void OnTorchBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+    void Overlap();
 
     UFUNCTION()
 	void SetMainAltar(AMyAltarMain* InAltar);
+
+    void set_id(unsigned short id) { m_id = id; }
+    unsigned short get_id() { return m_id; }
 
 protected:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
@@ -45,4 +51,7 @@ protected:
     AMyAltarMain* AltarOwner;
 
     bool bIsActivated = false;
+
+public:
+    bool GetbIsActivated() { return bIsActivated; }
 };

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "SESSION.h"
 #include "CoreMinimal.h"
 #include "MyGimmickTrigger.h"
 #include "MyRunGimmickTrigger.generated.h"
@@ -22,6 +23,8 @@ protected:
 public:
     virtual void Tick(float DeltaTime) override;
     virtual void Interact(APlayerCharacter* InteractingPlayer) override;
+    virtual void Active() override;
+    virtual void End(bool succeed) override;
 
     UPROPERTY(EditInstanceOnly, Category = "Run")
     TArray<AActor*> RunPoints;
@@ -37,6 +40,9 @@ public:
 
     UPROPERTY(EditAnywhere, Category = "Run")
     int32 CountdownTime = 60;
+
+    UPROPERTY(EditAnywhere, Category = "Run")
+    int32 ID;
 
 private:
     int32 TotalPoints = 0;

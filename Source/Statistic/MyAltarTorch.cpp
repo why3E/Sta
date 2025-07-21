@@ -34,33 +34,35 @@ void AMyAltarTorch::Tick(float DeltaTime)
     Super::Tick(DeltaTime);
 }
 
-void AMyAltarTorch::OnTorchBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
-    UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+void AMyAltarTorch::OnTorchBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-    UE_LOG(LogTemp, Warning, TEXT("Torch Overlap with: %s"), *OtherActor->GetName());
+    if (!g_is_host || bIsActivated) { return; }
 
-    if (bIsActivated) return;
+    if (OtherActor->IsA(AMyFireBall::StaticClass()) || 
+        OtherActor->IsA(AMyFireSkill::StaticClass())) {
+        CollisionEvent collision_event = ObjectSkillEvent(m_id);
+        std::lock_guard<std::mutex> lock(g_s_collision_events_l);
+        g_s_collision_events.push(collision_event);
+    }
+}
 
-    if (OtherActor &&
-        (OtherActor->IsA(AMyFireSkill::StaticClass()) || OtherActor->IsA(AMyFireBall::StaticClass())))
+void AMyAltarTorch::Overlap() {
+    UE_LOG(LogTemp, Warning, TEXT("Torch Activated"));
+
+    if (TorchEffect)
     {
-        UE_LOG(LogTemp, Warning, TEXT("Torch activated by fire skill or fire ball."));
+        TorchEffect->Activate(true);
+    }
 
-        if (TorchEffect)
-        {
-            TorchEffect->Activate(true);
-        }
+    bIsActivated = true;
 
-        bIsActivated = true;
-
-        if (AltarOwner)
-		{
-			AltarOwner->NotifyTorchActivated();
-		}
-		else
-		{
-			UE_LOG(LogTemp, Error, TEXT("[%s] AltarOwner is nullptr!"), *GetName());
-		}
+    if (AltarOwner)
+    {
+        AltarOwner->NotifyTorchActivated();
+    }
+    else
+    {
+        UE_LOG(LogTemp, Error, TEXT("[%s] AltarOwner is nullptr!"), *GetName());
     }
 }
 

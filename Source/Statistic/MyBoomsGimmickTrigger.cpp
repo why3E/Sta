@@ -13,6 +13,8 @@ AMyBoomsGimmickTrigger::AMyBoomsGimmickTrigger()
 void AMyBoomsGimmickTrigger::BeginPlay()
 {
     Super::BeginPlay();
+
+    g_c_objects[ID] = this;
 }
 
 void AMyBoomsGimmickTrigger::Tick(float DeltaTime)
@@ -22,9 +24,18 @@ void AMyBoomsGimmickTrigger::Tick(float DeltaTime)
 
 void AMyBoomsGimmickTrigger::Interact(APlayerCharacter* InteractingPlayer)
 {
-    if(bIsInteraction) return;
+    if (bIsInteraction) return;
+
     Super::Interact(InteractingPlayer);
 
+    gimmick_start_packet p;
+    p.packet_size = sizeof(gimmick_start_packet);
+    p.packet_type = C2H_GIMMICK_START_PACKET;
+    p.object_id = ID;
+    InteractingPlayer->do_send(&p);
+}
+
+void AMyBoomsGimmickTrigger::Active() {
     if (interactionWidgetInstance)
     {
         interactionWidgetInstance->RemoveFromParent();
@@ -34,10 +45,16 @@ void AMyBoomsGimmickTrigger::Interact(APlayerCharacter* InteractingPlayer)
     if (!BombClass || BombSpawnTargets.Num() == 0) return;
 
     UWorld* World = GetWorld();
+
     if (!World) return;
 
-    cachedPlayer = InteractingPlayer;
-    cachedController = Cast<APlayerController>(InteractingPlayer->GetController());
+    for (const auto& player : g_c_players) {
+        if (player->get_is_player()) {
+            cachedPlayer = player;
+            cachedController = Cast<APlayerController>(player->GetController());
+            break;
+        }
+    }
 
     bIsTriggerEnded = false;
     TotalBombs = BombSpawnTargets.Num();
@@ -61,6 +78,9 @@ void AMyBoomsGimmickTrigger::Interact(APlayerCharacter* InteractingPlayer)
             if (Bomb)
             {
                 Bomb->SetTriggerOwner(this);
+
+                Bomb->set_id(g_c_object_id++);
+                g_c_objects[Bomb->get_id()] = Bomb;
             }
         }
     }
@@ -85,6 +105,14 @@ void AMyBoomsGimmickTrigger::Interact(APlayerCharacter* InteractingPlayer)
     World->GetTimerManager().SetTimer(CountdownTimerHandle, this, &AMyBoomsGimmickTrigger::UpdateCountdown, 1.0f, true);
 }
 
+void AMyBoomsGimmickTrigger::End(bool succeed) {
+    if (succeed) {
+        EndTriggerSuccess();
+    } else {
+        EndTriggerFailed();
+    }
+}
+
 void AMyBoomsGimmickTrigger::UpdateCountdown()
 {
     SecondsRemaining--;
@@ -98,21 +126,33 @@ void AMyBoomsGimmickTrigger::UpdateCountdown()
         }
     }
 
-    if (SecondsRemaining <= 0)
-    {
-        EndTriggerFailed();
+    if (g_is_host) {
+        if (SecondsRemaining <= 0) {
+            gimmick_end_packet p;
+            p.packet_size = sizeof(gimmick_end_packet);
+            p.packet_type = C2H_GIMMICK_END_PACKET;
+            p.object_id = ID;
+            p.succeed = false;
+            cachedPlayer->do_send(&p);
+        }
     }
 }
 
 void AMyBoomsGimmickTrigger::NotifyBombDestroyed()
 {
-    if (bIsTriggerEnded) return;
+    if (g_is_host) {
+        if (bIsTriggerEnded) { return; }
 
-    DestroyedBombs++;
+        DestroyedBombs++;
 
-    if (DestroyedBombs >= TotalBombs)
-    {
-        EndTriggerSuccess();
+        if (DestroyedBombs >= TotalBombs) {
+            gimmick_end_packet p;
+            p.packet_size = sizeof(gimmick_end_packet);
+            p.packet_type = C2H_GIMMICK_END_PACKET;
+            p.object_id = ID;
+            p.succeed = true;
+            cachedPlayer->do_send(&p);
+        }
     }
 }
 

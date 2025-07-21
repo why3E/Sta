@@ -1,5 +1,6 @@
 #pragma once
 
+#include "SESSION.h"
 #include "CoreMinimal.h"
 #include "MyGimmickTrigger.h"
 #include "MyBoomsGimmickTrigger.generated.h"
@@ -20,6 +21,8 @@ protected:
 public:
     virtual void Tick(float DeltaTime) override;
     virtual void Interact(APlayerCharacter* InteractingPlayer) override;
+    virtual void Active() override;
+    virtual void End(bool succeed) override;
 
     UPROPERTY(EditInstanceOnly, Category = "Boom")
     TArray<AActor*> BombSpawnTargets;
@@ -35,6 +38,9 @@ public:
 
     UPROPERTY(EditAnywhere, Category = "Boom")
     int32 CountdownTime = 60;
+
+    UPROPERTY(EditAnywhere, Category = "Boom")
+    int32 ID;
 
 private:
     int32 TotalBombs = 0;

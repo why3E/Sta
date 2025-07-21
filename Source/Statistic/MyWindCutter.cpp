@@ -4,6 +4,7 @@
 #include "MyFireBall.h"
 #include "MyIceArrow.h"
 #include "MyMagicStatue.h"
+#include "MyBombActor.h"
 #include "MyEnemyBase.h"
 #include "PlayerCharacter.h"
 #include "Kismet/GameplayStatics.h"
@@ -157,9 +158,10 @@ void AMyWindCutter::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* 
                 g_s_collision_events.push(collision_event);
             }
         }
-    } else if (OtherActor->IsA(AMyMagicStatue::StaticClass())) {
+    } else if (OtherActor->IsA(AMyBombActor::StaticClass())) {
         // Skill - Object Collision
         bIsHit = true;
+        UE_LOG(LogTemp, Warning, TEXT("FireBall overlapped with Actor: %s"), *OtherActor->GetName());
 
         {
             CollisionEvent collision_event = SkillObjectEvent(m_id);

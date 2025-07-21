@@ -1,6 +1,7 @@
 #include "MyIceArrow.h"
 #include "MyMagicStatue.h"
 #include "MyEnemyBase.h"
+#include "MyBombActor.h"
 #include "PlayerCharacter.h"
 #include "Components/SphereComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
@@ -138,9 +139,10 @@ void AMyIceArrow::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* Ot
                 g_s_collision_events.push(collision_event);
             }
         }
-    } else if (OtherActor->IsA(AMyMagicStatue::StaticClass())) {
+    } else if (OtherActor->IsA(AMyBombActor::StaticClass())) {
         // Skill - Object Collision
         bIsHit = true;
+        UE_LOG(LogTemp, Warning, TEXT("FireBall overlapped with Actor: %s"), *OtherActor->GetName());
 
         {
             CollisionEvent collision_event = SkillObjectEvent(m_id);

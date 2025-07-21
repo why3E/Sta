@@ -40,6 +40,8 @@ constexpr char H2C_PLAYER_READY_SKILL_PACKET = 26;
 constexpr char H2C_PLAYER_CHANGE_ELEMENT_PACKET = 27;
 constexpr char H2C_SKILL_VECTOR_PACKET = 29;
 constexpr char H2C_SKILL_ROTATOR_PACKET = 30;
+constexpr char H2C_GIMMICK_START_PACKET = 31;
+constexpr char H2C_GIMMICK_END_PACKET = 32;
 
 constexpr char H2C_SKILL_SKILL_COLLISION_PACKET = 60;
 constexpr char H2C_SKILL_MONSTER_COLLISION_PACKET = 61;
@@ -47,6 +49,7 @@ constexpr char H2C_SKILL_PLAYER_COLLISION_PACKET = 62;
 constexpr char H2C_SKILL_OBJECT_COLLISION_PACKET = 63;
 constexpr char H2C_MONSTER_SKILL_COLLISION_PACKET = 64;
 constexpr char H2C_PLAYER_SKILL_COLLISION_PACKET = 65;
+constexpr char H2C_OBJECT_SKILL_COLLISION_PACKET = 66;
 
 constexpr char H2C_SKILL_CREATE_PACKET = 70;
 
@@ -59,6 +62,8 @@ constexpr char C2H_PLAYER_READY_SKILL_PACKET = 46;
 constexpr char C2H_PLAYER_CHANGE_ELEMENT_PACKET = 47;
 constexpr char C2H_SKILL_VECTOR_PACKET = 49;
 constexpr char C2H_SKILL_ROTATOR_PACKET = 50;
+constexpr char C2H_GIMMICK_START_PACKET = 51;
+constexpr char C2H_GIMMICK_END_PACKET = 52;
 
 
 
@@ -245,7 +250,8 @@ enum class CollisionType {
 	SkillPlayer,
 	SkillObject,
 	MonsterSkill,
-	PlayerSkill
+	PlayerSkill,
+	ObjectSkill
 };
 
 struct SkillSkillEvent {
@@ -276,6 +282,10 @@ struct PlayerSkillEvent {
 	char skill_type;
 };
 
+struct ObjectSkillEvent {
+	unsigned short object_id;
+};
+
 struct CollisionEvent {
 	CollisionType collision_type;
 	bool collision_start = true;
@@ -287,6 +297,7 @@ struct CollisionEvent {
 		SkillObjectEvent skill_object;
 		MonsterSkillEvent monster_skill;
 		PlayerSkillEvent player_skill;
+		ObjectSkillEvent object_skill;
 
 		Data() {}
 		~Data() {}
@@ -322,6 +333,11 @@ struct CollisionEvent {
 		new (&data.player_skill) PlayerSkillEvent(e);
 	}
 
+	CollisionEvent(const ObjectSkillEvent& e) {
+		collision_type = CollisionType::ObjectSkill;
+		new (&data.object_skill) ObjectSkillEvent(e);
+	}
+
 	~CollisionEvent() {
 		switch (collision_type) {
 		case CollisionType::SkillSkill:
@@ -342,6 +358,10 @@ struct CollisionEvent {
 
 		case CollisionType::PlayerSkill:
 			data.player_skill.~PlayerSkillEvent();
+			break;
+
+		case CollisionType::ObjectSkill:
+			data.object_skill.~ObjectSkillEvent();
 			break;
 		}
 	}
@@ -581,6 +601,12 @@ struct player_skill_collision_packet {
 	bool collision_start;
 };
 
+struct object_skill_collision_packet {
+	unsigned char packet_size;
+	char packet_type;
+	char object_id;
+};
+
 struct skill_create_packet {
 	unsigned char packet_size;
 	char packet_type;
@@ -588,6 +614,19 @@ struct skill_create_packet {
 	unsigned char old_skill_id;
 	unsigned char new_skill_id;
 	float new_skill_x, new_skill_y, new_skill_z;
+};
+
+struct gimmick_start_packet {
+	unsigned char packet_size;
+	char packet_type;
+	unsigned short object_id;
+};
+
+struct gimmick_end_packet {
+	unsigned char packet_size;
+	char packet_type;
+	unsigned short object_id;
+	bool succeed;
 };
 
 #pragma pack(pop)

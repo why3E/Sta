@@ -32,6 +32,14 @@ void AMyRunPointActor::Tick(float DeltaTime)
     Super::Tick(DeltaTime);
 }
 
+void AMyRunPointActor::Overlap() {
+    if (g_c_objects.count(m_id)) {
+        g_c_objects.erase(m_id);
+    }
+
+    Destroy();
+}
+
 void AMyRunPointActor::SetTriggerOwner(AMyRunGimmickTrigger* Trigger)
 {
     TriggerOwner = Trigger;
@@ -47,12 +55,14 @@ void AMyRunPointActor::Destroyed()
     }
 }
 
-void AMyRunPointActor::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
-    UPrimitiveComponent* OtherComp, int32 OtherBodyIndex,
-    bool bFromSweep, const FHitResult& SweepResult)
+void AMyRunPointActor::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-    if (OtherActor && OtherActor->IsA(APlayerCharacter::StaticClass()))
+    if (!g_is_host) { return; }
+
+    if (OtherActor->IsA(APlayerCharacter::StaticClass()))
     {
-        Destroy();
+        CollisionEvent collision_event = ObjectSkillEvent(m_id);
+        std::lock_guard<std::mutex> lock(g_s_collision_events_l);
+        g_s_collision_events.push(collision_event);
     }
 }

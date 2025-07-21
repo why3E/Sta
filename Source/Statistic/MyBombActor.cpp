@@ -31,9 +31,7 @@ void AMyBombActor::BeginPlay()
 void AMyBombActor::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
 }
-
 
 void AMyBombActor::SetTriggerOwner(AMyBoomsGimmickTrigger* Trigger)
 {
@@ -50,12 +48,23 @@ void AMyBombActor::Destroyed()
     }
 }
 
-void AMyBombActor::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
-	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex,
-	bool bFromSweep, const FHitResult& SweepResult)
+void AMyBombActor::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	if (OtherActor && OtherActor->IsA(AMySkillBase::StaticClass()))
+    if (!g_is_host) { return; }
+
+	if (OtherActor->IsA(AMySkillBase::StaticClass()))
 	{
-		Destroy();
+        CollisionEvent collision_event = ObjectSkillEvent(m_id);
+        std::lock_guard<std::mutex> lock(g_s_collision_events_l);
+        g_s_collision_events.push(collision_event);
 	}
+}
+
+void AMyBombActor::Overlap()
+{
+    if (g_c_objects.count(m_id)) {
+        g_c_objects.erase(m_id);
+    }
+
+    Destroy();
 }

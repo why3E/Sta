@@ -11,7 +11,7 @@
 #include "Enums.h"
 #include "ReceiveDamageInterface.h"
 #include "MixTonadoInterface.h"
-
+#include "MyAltarTorch.h"
 #include "SESSION.h"
 
 AMyFireSkill::AMyFireSkill()
@@ -136,7 +136,7 @@ void AMyFireSkill::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* O
                     g_s_collision_events.push(collision_event);
                 }
             }
-        }
+        } 
 
         UE_LOG(LogTemp, Warning, TEXT("Fire Wall hit actor: %s"), *OtherActor->GetName());
     }

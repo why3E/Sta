@@ -3,6 +3,8 @@
 #include "MyMagicStatue.h"
 #include "MyEnemyBase.h"
 #include "PlayerCharacter.h"
+#include "MyAltarTorch.h"
+#include "MyBombActor.h"
 #include "Components/SphereComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "NiagaraComponent.h"
@@ -95,10 +97,6 @@ void AMyFireBall::Fire(FVector TargetLocation)
 void AMyFireBall::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
     if (!g_is_host || bIsHit || (Owner == OtherActor)) { return; }
-
-    // TODO: 데미지 전달 로직 추가
-    UE_LOG(LogTemp, Warning, TEXT("Hit Actor: %s"), *OtherActor->GetName());
-    UE_LOG(LogTemp, Warning, TEXT("Hit Component: %s"), *OverlappedComp->GetName());
     
     if (OtherActor->IsA(AMySkillBase::StaticClass())) {
         // Skill - Skill Collision
@@ -149,9 +147,11 @@ void AMyFireBall::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* Ot
                 g_s_collision_events.push(collision_event);
             }
         }
-    } else if (OtherActor->IsA(AMyMagicStatue::StaticClass())) {
+    } else if (OtherActor->IsA(AMyAltarTorch::StaticClass()) || 
+        OtherActor->IsA(AMyBombActor::StaticClass())) {
         // Skill - Object Collision
         bIsHit = true;
+        UE_LOG(LogTemp, Warning, TEXT("FireBall overlapped with Actor: %s"), *OtherActor->GetName());
 
         {
             CollisionEvent collision_event = SkillObjectEvent(m_id);

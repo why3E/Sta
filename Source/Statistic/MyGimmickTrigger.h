@@ -40,6 +40,8 @@ public:
     TSubclassOf<UUserWidget> interactionWidgetClass;
 	
 	virtual void Interact(APlayerCharacter* InteractingPlayer) override;
+	virtual void Active();
+	virtual void End(bool succeed);
 
 protected:
 	UPROPERTY()
@@ -49,6 +51,7 @@ protected:
     APlayerController* cachedController = nullptr;
 	
 	bool bIsInteraction = false;
+
 protected:
     UFUNCTION()
     void OnBeginOverlapCollision(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,

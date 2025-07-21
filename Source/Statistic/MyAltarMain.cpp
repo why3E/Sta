@@ -1,5 +1,6 @@
 #include "MyAltarMain.h"
 #include "MyAltarTorch.h"
+#include "SESSION.h"
 #include "Components/StaticMeshComponent.h"
 #include "Kismet/GameplayStatics.h"
 
@@ -64,12 +65,14 @@ void AMyAltarMain::BeginPlay()
         FActorSpawnParameters SpawnParams;
         SpawnParams.Owner = this;
 
-        AMyAltarTorch* SpawnedTorch = GetWorld()->SpawnActor<AMyAltarTorch>(
-            TorchClass, SpawnLocation, SpawnRotation, SpawnParams);
+        AMyAltarTorch* SpawnedTorch = GetWorld()->SpawnActor<AMyAltarTorch>(TorchClass, SpawnLocation, SpawnRotation, SpawnParams);
 
         if (SpawnedTorch)
         {   // 필요 시 MainAltar 설정
             SpawnedTorch->SetMainAltar(this);
+
+            SpawnedTorch->set_id(g_c_object_id++);
+            g_c_objects[SpawnedTorch->get_id()] = SpawnedTorch;
         }
     }
 }

@@ -13,6 +13,11 @@
 #include "MyWindCutter.h"
 #include "MyWindSkill.h"
 
+#include "MyAltarTorch.h"
+#include "MyBombActor.h"
+#include "MyRunPointActor.h"
+#include "MyGimmickTrigger.h"
+
 #include "Blueprint/UserWidget.h"
 #include "Kismet/GameplayStatics.h"
 #include "BehaviorTree/BehaviorTree.h"
@@ -562,6 +567,19 @@ void process_collision_event() {
 				}
 			}
 			break; }
+
+		case CollisionType::ObjectSkill: {
+			object_skill_collision_packet p;
+			p.packet_size = sizeof(object_skill_collision_packet);
+			p.packet_type = H2C_OBJECT_SKILL_COLLISION_PACKET;
+			p.object_id = collision_event.data.object_skill.object_id;
+
+			for (char client_id = 0; client_id < MAX_CLIENTS; ++client_id) {
+				if (g_s_clients[client_id]) {
+					g_s_clients[client_id]->do_send(&p);
+				}
+			}
+			break; }
 		}
 	}
 }
@@ -916,6 +934,28 @@ void h_process_packet(char* packet) {
 			}
 		}
 		break; }
+
+	case C2H_GIMMICK_START_PACKET: {
+		gimmick_start_packet* p = reinterpret_cast<gimmick_start_packet*>(packet);
+		p->packet_type = H2C_GIMMICK_START_PACKET;
+
+		for (char other_id = 0; other_id < MAX_CLIENTS; ++other_id) {
+			if (g_s_clients[other_id]) {
+				g_s_clients[other_id]->do_send(p);
+			}
+		}
+		break; }
+
+	case C2H_GIMMICK_END_PACKET: {
+		gimmick_end_packet* p = reinterpret_cast<gimmick_end_packet*>(packet);
+		p->packet_type = H2C_GIMMICK_END_PACKET;
+
+		for (char other_id = 0; other_id < MAX_CLIENTS; ++other_id) {
+			if (g_s_clients[other_id]) {
+				g_s_clients[other_id]->do_send(p);
+			}
+		}
+		break; }
 	}
 }
 
@@ -1245,6 +1285,19 @@ void c_process_packet(char* packet) {
 		}
 		break; }
 
+	case H2C_OBJECT_SKILL_COLLISION_PACKET: {
+		object_skill_collision_packet* p = reinterpret_cast<object_skill_collision_packet*>(packet);
+		if (nullptr != g_c_objects[p->object_id]) {
+			if (g_c_objects[p->object_id]->IsA(AMyAltarTorch::StaticClass())) { 
+				Cast<AMyAltarTorch>(g_c_objects[p->object_id])->Overlap(); 
+			} else if (g_c_objects[p->object_id]->IsA(AMyBombActor::StaticClass())) {
+				Cast<AMyBombActor>(g_c_objects[p->object_id])->Overlap();
+			} else if (g_c_objects[p->object_id]->IsA(AMyRunPointActor::StaticClass())) {
+				Cast<AMyRunPointActor>(g_c_objects[p->object_id])->Overlap();
+			}
+		}
+		break; }
+
 	case H2C_SKILL_CREATE_PACKET: {
 		skill_create_packet* p = reinterpret_cast<skill_create_packet*>(packet);
 		switch (p->skill_type) {
@@ -1431,7 +1484,6 @@ void c_process_packet(char* packet) {
 			g_c_monsters[p->id]->SetActorLocation(FVector(p->x, p->y, p->z));
 			g_c_monsters[p->id]->start_attack(static_cast<AttackType>(p->skill_type), FVector(p->skill_x, p->skill_y, p->skill_z));
 		}
-
 		break; }
 
 	case H2C_MONSTER_HEAL_PACKET: {
@@ -1442,7 +1494,6 @@ void c_process_packet(char* packet) {
 
 			g_c_monsters[p->id]->Heal(p->heal_amount);
 		}
-
 		break; }
 
 	case H2C_MONSTER_DAMAGED_PACKET: {
@@ -1453,7 +1504,6 @@ void c_process_packet(char* packet) {
 
 			Cast<AMidBossEnemyCharacter>(g_c_monsters[p->id])->PlayStunMontage();
 		}
-
 		break; }
 
 	case H2C_MONSTER_RESPAWN_PACKET: {
@@ -1464,7 +1514,22 @@ void c_process_packet(char* packet) {
 
 			g_c_monsters[p->id]->Respawn(FVector(p->respawn_x, p->respawn_y, p->respawn_z));
 		}
+		break; }
 
+	case H2C_GIMMICK_START_PACKET: {
+		gimmick_start_packet* p = reinterpret_cast<gimmick_start_packet*>(packet);
+
+		if (nullptr != g_c_objects[p->object_id]) {
+			Cast<AMyGimmickTrigger>(g_c_objects[p->object_id])->Active();
+		}
+		break; }
+
+	case H2C_GIMMICK_END_PACKET: {
+		gimmick_end_packet* p = reinterpret_cast<gimmick_end_packet*>(packet);
+
+		if (nullptr != g_c_objects[p->object_id]) {
+			Cast<AMyGimmickTrigger>(g_c_objects[p->object_id])->End(p->succeed);
+		}
 		break; }
 	}
 }

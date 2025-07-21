@@ -21,8 +21,7 @@
 #include "MyIceWeapon.h"
 #include "Kismet/GameplayStatics.h"
 
-APlayerCharacter::APlayerCharacter()
-{
+APlayerCharacter::APlayerCharacter() {
 	// Initialize
 	m_id = -1;
 	m_yaw = 0.0f;
@@ -31,7 +30,7 @@ APlayerCharacter::APlayerCharacter()
 	m_current_element[0] = ELEMENT_WIND;
 	m_current_element[1] = ELEMENT_FIRE;
 
-	m_skill_id = 0;
+	m_skill_id = INVALID_SKILL_ID;
 
 	m_is_player = false;
 
@@ -211,8 +210,7 @@ APlayerCharacter::APlayerCharacter()
 
 }
 
-void APlayerCharacter::BeginPlay()
-{
+void APlayerCharacter::BeginPlay() {
     Super::BeginPlay();
 
     APlayerController* PlayerController = Cast<APlayerController>(GetController());
@@ -274,7 +272,6 @@ void APlayerCharacter::BeginPlay()
     }
 }
 
-
 void APlayerCharacter::EndPlay(const EEndPlayReason::Type EndPlayReason) {
 	Super::EndPlay(EndPlayReason);
 
@@ -287,8 +284,7 @@ void APlayerCharacter::EndPlay(const EEndPlayReason::Type EndPlayReason) {
 	}
 }
 
-void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
-{
+void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
 	// 향상된 입력 컴포넌트로 형변환
@@ -319,8 +315,7 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 	EnhancedInputComponent->BindAction(IA_Interaction, ETriggerEvent::Triggered, this, &APlayerCharacter::Interaction);
 }
 
-void APlayerCharacter::BasicMove(const FInputActionValue& Value)
-{
+void APlayerCharacter::BasicMove(const FInputActionValue& Value) {
 	if (!(GetCharacterMovement()->IsFalling())) {
 		// 입력받은 Value로부터 MovementVector 가져오기
 		MovementVector = Value.Get<FVector2D>();
@@ -358,7 +353,7 @@ void APlayerCharacter::BasicMove(const FInputActionValue& Value)
 		AddMovementInput(ForwardDirection, MovementVector.X);
 		AddMovementInput(RightDirection, MovementVector.Y);
 	
-		// Send Player Vector Packet 
+		// Send Player Move Packet 
 		FVector Velocity = GetCharacterMovement()->Velocity;
 
 		float DistanceDiff = FVector::Dist(Velocity, m_velocity);
@@ -381,8 +376,7 @@ void APlayerCharacter::BasicMove(const FInputActionValue& Value)
 	}
 }
 
-void APlayerCharacter::BasicLook(const FInputActionValue& Value)
-{
+void APlayerCharacter::BasicLook(const FInputActionValue& Value) {
 	if (bIsInteractionWidgetOpen) return;
 	if (bIsAttacking) return;
 
@@ -400,10 +394,11 @@ void APlayerCharacter::BasicLook(const FInputActionValue& Value)
 	bUseControllerRotationYaw = true;
 	GetCharacterMovement()->bOrientRotationToMovement = false;
 
+	// Send Player Rotate Packet 
 	float CurrentYaw = GetControlRotation().Yaw;
 	float YawDiff = FMath::Abs(CurrentYaw - m_yaw);
 
-	if (YawDiff > 30.0f) { 
+	if (YawDiff > 10.0f) { 
 		m_yaw = CurrentYaw;
 
 		player_rotate_packet p;
@@ -416,10 +411,10 @@ void APlayerCharacter::BasicLook(const FInputActionValue& Value)
 	}
 }
 
-void APlayerCharacter::StartJump()
-{
+void APlayerCharacter::StartJump() {
 	bPressedJump = true;
 
+	// Send Player Jump Packet 
 	if (!(GetCharacterMovement()->IsFalling())) {
 		m_was_moving = true;
 
@@ -430,39 +425,30 @@ void APlayerCharacter::StartJump()
 
 		do_send(&p);
 	}
-
-	
 }
 
-void APlayerCharacter::StopJump()
-{
+void APlayerCharacter::StopJump() {
 	bPressedJump = false;
 }
 
-void APlayerCharacter::DashStart()
-{
-	if(!CheckBackMove)
-	{
+void APlayerCharacter::DashStart() {
+	if (!CheckBackMove)	{
 		bIsDash = true;
 	}
 }
 
-void APlayerCharacter::DashEnd()
-{
+void APlayerCharacter::DashEnd() {
 	bIsDash = false;
 }	
 
-void APlayerCharacter::LeftClick()
-{
+void APlayerCharacter::LeftClick() {
 	if (bIsInteractionWidgetOpen) return;
 
     bIsLeft = true;
 
     // 왼쪽 무기가 얼음 타입인지 확인
-    if (LeftClassType == EClassType::CT_Ice)
-    {
-		if (!bIsQDrawing)
-		{
+    if (LeftClassType == EClassType::CT_Ice) {
+		if (!bIsQDrawing) {
 			player_ready_skill_packet p;
 			p.packet_size = sizeof(player_ready_skill_packet);
 			p.packet_type = C2H_PLAYER_READY_SKILL_PACKET;
@@ -472,19 +458,17 @@ void APlayerCharacter::LeftClick()
 			return;
 		}
     }
+
     BasicAttack();
 }
 
-void APlayerCharacter::RightClick()
-{
+void APlayerCharacter::RightClick() {
 	if (bIsInteractionWidgetOpen) return;
 
 	bIsLeft = false;
 
-	if (RightClassType == EClassType::CT_Ice)
-    {
-		if (!bisEDrawing)
-		{
+	if (RightClassType == EClassType::CT_Ice) {
+		if (!bisEDrawing) {
 			player_ready_skill_packet p;
 			p.packet_size = sizeof(player_ready_skill_packet);
 			p.packet_type = C2H_PLAYER_READY_SKILL_PACKET;
@@ -494,13 +478,12 @@ void APlayerCharacter::RightClick()
 			return;
 		}
     }
-	bIsAttacking = true;
+
 	BasicAttack();
 
 }
 
-void APlayerCharacter::StartIceAim()
-{
+void APlayerCharacter::StartIceAim() {
 	this->CurrentMontage = bIsLeft ? CurrentLeftMontage : CurrentRightMontage;
     this->CurrentComboData = bIsLeft ? CurrentLeftComboData : CurrentRightComboData;
     this->CurrentMontageSectionName = bIsLeft ? CurrentLeftMontageSectionName : CurrentRightMontageSectionName;
@@ -510,6 +493,7 @@ void APlayerCharacter::StartIceAim()
     bIsIceAiming = true;
 
     UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+
     if (AnimInstance && CurrentMontage)
     {
         if (!AnimInstance->Montage_IsPlaying(CurrentMontage))
@@ -520,8 +504,7 @@ void APlayerCharacter::StartIceAim()
     }
 }
 
-void APlayerCharacter::ClickRelease()
-{
+void APlayerCharacter::ClickRelease() {
 	if (bIsHold || bIsIceAiming) {
 		if (bIsLeft) {
 			if (LeftClassType == EClassType::CT_Ice) {
@@ -553,13 +536,13 @@ void APlayerCharacter::ClickRelease()
 	}
 }
 
-void APlayerCharacter::ShootIceArrow() 
-{
+void APlayerCharacter::ShootIceArrow()  {
 	bIsHold = false;
 	bIsIceAiming = false;
 
 	// 발사 처리
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+
 	if (AnimInstance && CurrentMontage)
 	{
 		// 이미 재생 중이면 IceShoot 섹션으로 이동
@@ -575,7 +558,7 @@ void APlayerCharacter::ShootIceArrow()
 	}
 }
 
-//---------------------------------------------------------------------------------------------------------------------
+//////////////////////////////////////////////////
 void APlayerCharacter::BasicAttack()
 {
 	UE_LOG(LogTemp, Error, TEXT("Basic Attack"));
@@ -587,12 +570,12 @@ void APlayerCharacter::BasicAttack()
 
 	if (bIsQDrawing)
 	{
-		if(!bIsLeft) return;
+		if (!bIsLeft) return;
 	}
 
 	if (bisEDrawing)
 	{
-		if(bIsLeft) return;
+		if (bIsLeft) return;
 	}
 
 	if (bIsQDrawing || bisEDrawing)
@@ -601,7 +584,7 @@ void APlayerCharacter::BasicAttack()
 		//UE_LOG(LogTemp, Error, TEXT("CurrentImpactRot: %s"), *CurrentImpactRot.ToString());
 
 		// Send Skill Packet 
-		if (get_is_player()) {
+		if (m_is_player) {
 			switch (ClassType) {
 			case EClassType::CT_Wind: {
 				skill_vector_packet p;
@@ -613,8 +596,7 @@ void APlayerCharacter::BasicAttack()
 				p.is_left = bIsLeft;
 
 				do_send(&p);
-				break;
-			}
+				break; }
 
 			case EClassType::CT_Fire: {
 				skill_rotator_packet p;
@@ -627,8 +609,7 @@ void APlayerCharacter::BasicAttack()
 				p.is_left = bIsLeft;
 
 				do_send(&p);
-				break;
-			}
+				break; }
 
 			case EClassType::CT_Stone: {
 				skill_vector_packet p;
@@ -640,8 +621,7 @@ void APlayerCharacter::BasicAttack()
 				p.is_left = bIsLeft;
 
 				do_send(&p);
-				break;
-			}
+				break; }
 
 			case EClassType::CT_Ice: {
 				skill_rotator_packet p;
@@ -654,8 +634,7 @@ void APlayerCharacter::BasicAttack()
 				p.is_left = bIsLeft;
 
 				do_send(&p);
-				break;
-			}
+				break; }
 			}
 		}
         return;
@@ -678,18 +657,15 @@ void APlayerCharacter::BasicAttack()
 			switch (ClassType) {
 			case EClassType::CT_Wind: {
 				p.skill_type = SKILL_WIND_CUTTER;
-				break;
-			}
+				break; }
 
 			case EClassType::CT_Fire: {
 				p.skill_type = SKILL_FIRE_BALL;
-				break;
-			}
+				break; }
 
 			case EClassType::CT_Stone: {
 				p.skill_type = SKILL_STONE_WAVE;
-				break;
-			}
+				break; }
 			}
 
 			do_send(&p);
@@ -709,8 +685,7 @@ void APlayerCharacter::BasicAttack()
 	}
 }
 
-void APlayerCharacter::SkillAttack()
-{
+void APlayerCharacter::SkillAttack() {
 	if (bIsLeft)
     {
         if (!bCanUseSkillQ) return;
@@ -779,7 +754,6 @@ void APlayerCharacter::SkillAttack()
     }
 }
 
-
 void APlayerCharacter::ComboStart()
 {
 	this->CurrentMontage = bIsLeft ? CurrentLeftMontage : CurrentRightMontage;
@@ -820,8 +794,7 @@ void APlayerCharacter::ComboStart()
     }
 }
 
-void APlayerCharacter::ComboEnd(UAnimMontage* Montage, bool IsEnded)
-{
+void APlayerCharacter::ComboEnd(UAnimMontage* Montage, bool IsEnded) {
 	UE_LOG(LogTemp, Warning, TEXT("ComboEnd"));
 
 	// 콤보 수 초기화
@@ -831,8 +804,7 @@ void APlayerCharacter::ComboEnd(UAnimMontage* Montage, bool IsEnded)
 	bHasComboInput = false;
 }
 
-void APlayerCharacter::ComboCheck()
-{
+void APlayerCharacter::ComboCheck() {
 	ComboTimerHandle.Invalidate();
 
 	if (bHasComboInput)
@@ -858,8 +830,7 @@ void APlayerCharacter::ComboCheck()
 	}
 }
 
-void APlayerCharacter::ChangeClass(EClassType NewClassType, bool bIsLeftType)
-{
+void APlayerCharacter::ChangeClass(EClassType NewClassType, bool bIsLeftType) {
 	EClassType& TargetClassType = bIsLeftType ? LeftClassType : RightClassType;
 
     if (TargetClassType != NewClassType)
@@ -870,8 +841,7 @@ void APlayerCharacter::ChangeClass(EClassType NewClassType, bool bIsLeftType)
     }
 }
 
-void APlayerCharacter::UpdateCachedData(bool bIsLeftType)
-{
+void APlayerCharacter::UpdateCachedData(bool bIsLeftType) {
     if (bIsLeftType)
     {
         if (CurrentLeftWeapon)
@@ -967,8 +937,7 @@ void APlayerCharacter::UpdateCachedData(bool bIsLeftType)
 	}
 }
 
-void APlayerCharacter::SetComboTimer()
-{
+void APlayerCharacter::SetComboTimer() {
     if (!CurrentComboData)
     {
         UE_LOG(LogTemp, Error, TEXT("ComboData is missing for the current class type!"));
@@ -993,8 +962,7 @@ void APlayerCharacter::SetComboTimer()
     }
 }
 
-void APlayerCharacter::EquipWeapon(AMyWeapon* Weapon, bool bIsLeftType)
-{
+void APlayerCharacter::EquipWeapon(AMyWeapon* Weapon, bool bIsLeftType) {
 	Weapon->EquipWeapon(this, bIsLeftType);
 }
 
@@ -1097,11 +1065,9 @@ void APlayerCharacter::Tick(float DeltaTime) {
 		// 복귀: 원래 거리로 돌아감
 		SpringArm->TargetArmLength = FMath::FInterpTo(SpringArm->TargetArmLength, DefaultArmLength, DeltaTime, InterpSpeed);
 	}
-
 }
 
-void APlayerCharacter::QSkill()
-{
+void APlayerCharacter::QSkill() {
     if (bIsQDrawing)
     {
         // QSkill 취소
@@ -1151,8 +1117,7 @@ void APlayerCharacter::QSkill()
     }
 }
 
-void APlayerCharacter::ESkill()
-{
+void APlayerCharacter::ESkill() {
     if (bisEDrawing)
     {
         // ESkill 취소
@@ -1202,8 +1167,7 @@ void APlayerCharacter::ESkill()
     }
 }
 
-void APlayerCharacter::UpdateCircle()
-{
+void APlayerCharacter::UpdateCircle() {
     if (bIsQDrawing)
     {
         // 카메라 위치와 방향 가져오기
@@ -1235,8 +1199,7 @@ void APlayerCharacter::UpdateCircle()
     }
 }
 
-void APlayerCharacter::UpdateRectangle()
-{
+void APlayerCharacter::UpdateRectangle() {
     if (bisEDrawing)
     {
         // 카메라 위치와 방향 가져오기
@@ -1298,8 +1261,7 @@ void APlayerCharacter::UpdateRectangle()
     }
 }
 
-void APlayerCharacter::GetFireTargetLocation()
-{
+void APlayerCharacter::GetFireTargetLocation() {
 	// 카메라가 유효한지 확인 (Camera로 수정)
 	if (!Camera)
 	{
@@ -1391,7 +1353,7 @@ void APlayerCharacter::InternalUseSkill_Vector(uint16 skill_id, uint8 skill_type
 		CurrentImpactPoint = v;
 		bIsLeft = is_left;
 		SkillAttack();
-		bIsQDrawing = false;
+		bIsLeft ? bIsQDrawing = false : bisEDrawing = false;
 		GetWorld()->GetTimerManager().ClearTimer(CircleUpdateTimerHandle);
 		break;
 
@@ -1414,7 +1376,7 @@ void APlayerCharacter::InternalUseSkill_Rotator(uint16 skill_id, uint8 skill_typ
 		CurrentImpactRot = r;
 		bIsLeft = is_left;
 		SkillAttack();
-		bIsQDrawing = false;
+		bIsLeft ? bIsQDrawing = false : bisEDrawing = false;
 		GetWorld()->GetTimerManager().ClearTimer(CircleUpdateTimerHandle);
 		break;
 	}
@@ -1477,23 +1439,8 @@ void APlayerCharacter::rotate(float yaw) {
 }
 
 void APlayerCharacter::Overlap(char skill_type, bool collision_start) {
-	switch (skill_type) {
-	case SKILL_WIND_CUTTER:
-	case SKILL_WIND_LASER:
-	case SKILL_STONE_WAVE:
-	case SKILL_STONE_SKILL:
-		playerCurrentHp -= 10.0f;
-		break;
-
-	case SKILL_WIND_TORNADO:
-		if (collision_start) {
-			m_was_moving = false;
-			m_is_stopping = false;
-		} else {
-			m_was_moving = true;
-		}
-		break;
-	}
+	//switch (skill_type) {
+	//}
 }
 
 void APlayerCharacter::do_send(void* buff) {
@@ -1512,9 +1459,7 @@ void APlayerCharacter::do_send(void* buff) {
 	}
 }
 
-void APlayerCharacter::UpdateUI()
-{
-	
+void APlayerCharacter::UpdateUI() {
     if (CharacterWidget)
     {
         CharacterWidget->UpdateHpBar(playerCurrentHp, playerMaxHp);
@@ -1522,8 +1467,7 @@ void APlayerCharacter::UpdateUI()
     }
 }
 
-void APlayerCharacter::PlayFootstepSound()
-{
+void APlayerCharacter::PlayFootstepSound() {
     if (FootstepSounds.Num() > 0)
     {
         // 현재 인덱스의 효과음을 재생
@@ -1537,27 +1481,25 @@ void APlayerCharacter::PlayFootstepSound()
     }
 }
 
-void APlayerCharacter::Interaction()
-{
+void APlayerCharacter::Interaction() {
     if (!bIsInteraction || !CurrentInteractTarget) return;
 
     IInteractableInterface* Interface = Cast<IInteractableInterface>(CurrentInteractTarget);
+
     if (Interface)
     {
         Interface->Interact(this);
     }
 }
 
-void APlayerCharacter::HideUI()
-{
+void APlayerCharacter::HideUI() {
     if (CharacterWidget)
     {
         CharacterWidget->SetVisibility(ESlateVisibility::Hidden);
     }
 }
 
-void APlayerCharacter::ShowUI()
-{
+void APlayerCharacter::ShowUI() {
     if (CharacterWidget)
     {
         CharacterWidget->SetVisibility(ESlateVisibility::Visible);

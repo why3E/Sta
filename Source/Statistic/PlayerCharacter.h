@@ -265,10 +265,7 @@ public:
 	void set_yaw(float yaw) { m_yaw = yaw; }
 	void set_velocity(float x, float y, float z) { m_velocity.X = x; m_velocity.Y = y; m_velocity.Z = z; }
 	void set_hp(char hp) { m_hp = hp; }
-	void set_current_element(char current_element, bool is_left) { 
-		if (is_left) m_current_element[0] = current_element; 
-		else m_current_element[1] = current_element; 
-	}
+	void set_current_element(char current_element, bool is_left) { is_left ? m_current_element[0] = current_element : m_current_element[1] = current_element; }
 	void set_is_player(bool is_player) { m_is_player = is_player; }
 	void set_stop_location(FVector stop_location) { m_stop_location = stop_location; }
 	void set_is_stopping(bool is_stopping) { m_is_stopping = is_stopping; }

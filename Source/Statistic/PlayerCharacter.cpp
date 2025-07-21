@@ -384,24 +384,35 @@ void APlayerCharacter::BasicMove(const FInputActionValue& Value)
 void APlayerCharacter::BasicLook(const FInputActionValue& Value)
 {
 	if (bIsInteractionWidgetOpen) return;
-	if (bIsAttacking) return;
+	//if (bIsAttacking) return;
 
 	FVector2D LookVector = Value.Get<FVector2D>();
+
 	FRotator CurrentRot = GetControlRotation();
 	FRotator TargetRot = CurrentRot;
-
 	TargetRot.Yaw += LookVector.X;
-	TargetRot.Pitch += LookVector.Y;
-	TargetRot.Pitch = FMath::Clamp(TargetRot.Pitch, -80.f, 80.f); 
+	TargetRot.Pitch -= LookVector.Y; // ← Y값을 빼서 방향을 맞춤
+	TargetRot.Pitch = FMath::Clamp(TargetRot.Pitch, -80.f, 80.f);
 
-	FRotator NewRot = FMath::RInterpTo(CurrentRot, TargetRot, GetWorld()->GetDeltaSeconds(), 0.1f);
+	FRotator NewRot;
+	if (bIsAttacking)
+	{
+		NewRot = FMath::RInterpTo(CurrentRot, TargetRot, GetWorld()->GetDeltaSeconds(), 5.0f);
+	}
+	else
+	{
+		NewRot = TargetRot;
+	}
+
 	Controller->SetControlRotation(NewRot);
 
 	bUseControllerRotationYaw = true;
 	GetCharacterMovement()->bOrientRotationToMovement = false;
 
+	// Send Player Direction Packet 
 	float CurrentYaw = GetControlRotation().Yaw;
 	float YawDiff = FMath::Abs(CurrentYaw - m_yaw);
+
 
 	if (YawDiff > 30.0f) { 
 		m_yaw = CurrentYaw;
@@ -472,6 +483,7 @@ void APlayerCharacter::LeftClick()
 			return;
 		}
     }
+	bIsAttacking = true;
     BasicAttack();
 }
 
@@ -764,7 +776,7 @@ void APlayerCharacter::SkillAttack()
         // 섹션 이름 설정
         FName SectionName = FName(*CurrentMontageSectionName);
 
-		float AttackSpeedRate = 4.0f;
+		float AttackSpeedRate = 2.0f;
 		if (CurrentWeapon && CurrentWeapon->IsA(AMyIceWeapon::StaticClass()))
 		{
 			AttackSpeedRate = 1.0f;
@@ -788,10 +800,10 @@ void APlayerCharacter::ComboStart()
 	this->CurrentWeapon = bIsLeft ? CurrentLeftWeapon : CurrentRightWeapon;
 
     CurrentComboCount = 1;
-    float AttackSpeedRate = 4.0f;
+    float AttackSpeedRate = 2.0f;
     if (CurrentWeapon && CurrentWeapon->IsA(AMyStoneWeapon::StaticClass()))
     {
-        AttackSpeedRate = 2.0f;
+        AttackSpeedRate = 1.0f;
     }
 	
     UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
@@ -980,7 +992,7 @@ void APlayerCharacter::SetComboTimer()
     // 인덱스가 유효한지 체크
     if (CurrentComboData->ComboFrame.IsValidIndex(ComboIndex))
     {
-        const float AttackSpeedRate = 2.0f;
+        const float AttackSpeedRate = 1.0f;
 
         // 실제 콤보가 입력될 수 있는 시간 구하기
         float ComboAvailableTime = (CurrentComboData->ComboFrame[ComboIndex] / CurrentComboData->FrameRate) / AttackSpeedRate;

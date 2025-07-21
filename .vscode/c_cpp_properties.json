@@ -7,7 +7,7 @@
             "cppStandard": "c++20",
             "intelliSenseMode": "msvc-x64",
             "compileCommands": [
-                "C:\\Users\\jkkks\\Desktop\\Sta\\.vscode\\compileCommands_Statistic.json"
+                "C:\\Users\\jkkks\\Desktop\\sta\\Sta\\.vscode\\compileCommands_Statistic.json"
             ]
         },
         {
@@ -17,7 +17,7 @@
             "cppStandard": "c++20",
             "intelliSenseMode": "msvc-x64",
             "compileCommands": [
-                "C:\\Users\\jkkks\\Desktop\\Sta\\.vscode\\compileCommands_Default.json"
+                "C:\\Users\\jkkks\\Desktop\\sta\\Sta\\.vscode\\compileCommands_Default.json"
             ]
         }
     ],

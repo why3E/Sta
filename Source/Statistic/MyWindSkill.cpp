@@ -159,7 +159,7 @@ void AMyWindSkill::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* O
             APlayerCharacter* ptr = Cast<APlayerCharacter>(OtherActor);
 
             {
-                CollisionEvent collision_event = SkillPlayerEvent(m_id, ptr->get_id());
+                CollisionEvent collision_event = SkillPlayerEvent(m_id);
                 std::lock_guard<std::mutex> lock(g_s_collision_events_l);
                 g_s_collision_events.push(collision_event);
 
@@ -177,7 +177,7 @@ void AMyWindSkill::OnEndOverlap(UPrimitiveComponent* OverlappedComp, AActor* Oth
         APlayerCharacter* ptr = Cast<APlayerCharacter>(OtherActor);
 
         {
-            CollisionEvent collision_event = SkillPlayerEvent(m_id, ptr->get_id());
+            CollisionEvent collision_event = SkillPlayerEvent(m_id);
             collision_event.collision_start = false;
             std::lock_guard<std::mutex> lock(g_s_collision_events_l);
             g_s_collision_events.push(collision_event);

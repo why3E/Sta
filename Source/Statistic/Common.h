@@ -259,7 +259,6 @@ struct SkillMonsterEvent {
 
 struct SkillPlayerEvent {
 	unsigned short skill_id;
-	char player_id;
 };
 
 struct SkillObjectEvent {
@@ -279,7 +278,7 @@ struct PlayerSkillEvent {
 
 struct CollisionEvent {
 	CollisionType collision_type;
-	bool collision_start;
+	bool collision_start = true;
 
 	union Data {
 		SkillSkillEvent skill_skill;
@@ -295,37 +294,31 @@ struct CollisionEvent {
 
 	CollisionEvent(const SkillSkillEvent& e) {
 		collision_type = CollisionType::SkillSkill;
-		collision_start = true;
 		new (&data.skill_skill) SkillSkillEvent(e);
 	}
 
 	CollisionEvent(const SkillMonsterEvent& e) {
 		collision_type = CollisionType::SkillMonster;
-		collision_start = true;
 		new (&data.skill_monster) SkillMonsterEvent(e);
 	}
 
 	CollisionEvent(const SkillPlayerEvent& e) {
 		collision_type = CollisionType::SkillPlayer;
-		collision_start = true;
 		new (&data.skill_player) SkillPlayerEvent(e);
 	}
 
 	CollisionEvent(const SkillObjectEvent& e) {
 		collision_type = CollisionType::SkillObject;
-		collision_start = true;
 		new (&data.skill_object) SkillObjectEvent(e);
 	}
 
 	CollisionEvent(const MonsterSkillEvent& e) {
 		collision_type = CollisionType::MonsterSkill;
-		collision_start = true;
 		new (&data.monster_skill) MonsterSkillEvent(e);
 	}
 
 	CollisionEvent(const PlayerSkillEvent& e) {
 		collision_type = CollisionType::PlayerSkill;
-		collision_start = true;
 		new (&data.player_skill) PlayerSkillEvent(e);
 	}
 
@@ -563,7 +556,6 @@ struct skill_player_collision_packet {
 	unsigned char packet_size;
 	char packet_type;
 	unsigned short skill_id;
-	char player_id;
 	bool collision_start;
 };
 

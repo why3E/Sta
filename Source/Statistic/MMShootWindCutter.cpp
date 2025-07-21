@@ -4,6 +4,7 @@
 #include "MMShootWindCutter.h"
 #include "AnimationWeaponInterface.h"
 #include "MyWindWeapon.h"
+#include "PlayerCharacter.h"
 #include "MyWindCutter.h"
 
 void UMMShootWindCutter::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, const FAnimNotifyEventReference& EventReference)
@@ -13,11 +14,13 @@ void UMMShootWindCutter::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceB
     if(MeshComp)
     {
         IAnimationWeaponInterface* WeaponPawn = Cast<IAnimationWeaponInterface>(MeshComp->GetOwner());
+        APlayerCharacter* PlayerCh = Cast<APlayerCharacter>(MeshComp->GetOwner());
         if (WeaponPawn)
         {
             AMyWindWeapon* Weapon = Cast<AMyWindWeapon>(WeaponPawn->GetWeapon());
             if (Weapon)
             {
+                PlayerCh->bIsAttacking = false;
                 Weapon->ShootWindCutter(); // 에너지볼 스폰 함수 호출
             }
         }

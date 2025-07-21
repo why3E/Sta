@@ -143,8 +143,6 @@ void AMidBossEnemyCharacter::BeginPlay()
 	MontageToHitCapsuleMap.Add(TEXT("StoneThrow"), HipCollision);
 	MontageToHitCapsuleMap.Add(TEXT("WindTonado"), HipCollision);
 
-
-
 }
 
 void AMidBossEnemyCharacter::Tick(float DeltaTime)
@@ -435,19 +433,46 @@ void AMidBossEnemyCharacter::Die()
         if (Mat) ProcMeshComponent->SetMaterial(i, Mat);
     }
 
-    // 버텍스 파란 점 찍기
-    for (int32 i = 0; i < FMath::Min(FilteredVerticesArray.Num(), 100); i++)
-    {
-        FVector WorldPos = ProcMeshComponent->GetComponentTransform().TransformPosition(FilteredVerticesArray[i]);
-        DrawDebugPoint(GetWorld(), WorldPos, 20.f, FColor::Blue, false, 10.f);
-    }
-
     // (3) SkeletalMesh 숨기기
     GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
     GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
     GetCapsuleComponent()->SetCanEverAffectNavigation(false);
     GetMesh()->SetVisibility(false, true);
     GetMesh()->SetHiddenInGame(true, true);
+
+    FVector BoneLocation = GetMesh()->GetBoneLocation(GetBoneName());
+    FVector SliceNormal = FVector(0, 0, 1); // X축 절단
+
+    UProceduralMeshComponent* DummyOtherHalf = nullptr;
+
+    UKismetProceduralMeshLibrary::SliceProceduralMesh(
+        ProcMeshComponent,
+        BoneLocation,
+        SliceNormal,
+        true, // OtherHalf 생성
+        DummyOtherHalf,
+        EProcMeshSliceCapOption::CreateNewSectionForCap,
+        CapMaterial
+    );
+
+    // 절단 후 시각적으로 구분되게 위치 이동
+    if (ProcMeshComponent)
+    {
+        FVector NewLocation = ProcMeshComponent->GetComponentLocation();
+        NewLocation.Z += 100.0f; // 위로 이동
+        ProcMeshComponent->SetWorldLocation(NewLocation);
+    }
+
+    if (DummyOtherHalf)
+    {
+        DummyOtherHalf->RegisterComponent(); // 생성된 메시 활성화
+        DummyOtherHalf->AttachToComponent(RootComponent, FAttachmentTransformRules::KeepWorldTransform);
+
+        FVector NewLocation = DummyOtherHalf->GetComponentLocation();
+        NewLocation.Z -= 100.0f; // 아래로 이동
+        DummyOtherHalf->SetWorldLocation(NewLocation);
+    }
+
 
 
 }
@@ -716,7 +741,7 @@ void AMidBossEnemyCharacter::SliceMeshAtBone(FVector SliceNormal, bool bCreateOt
         return;
     }
 
-    CapMaterial = LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/Materials/M_CutFace.M_CutFace"));
+    CapMaterial = LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/Slime/M_CutFace1.M_CutFace1"));
     if (!CapMaterial)
     {
         UE_LOG(LogTemp, Warning, TEXT("SliceMeshAtBone: Failed to load Cap Material."));

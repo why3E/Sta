@@ -58,14 +58,29 @@ AEnemyCharacter::AEnemyCharacter()
     hpFloatingWidget->SetRelativeLocation(FVector(0, 0, 125));
     hpFloatingWidget->SetWorldScale3D(FVector(1.0, 0.23, 0.03));
     hpFloatingWidget->SetWidgetSpace(EWidgetSpace::Screen);
+
+    //만약 슬라임이면 - 윈드, 선인장은 파이어, swarm은 아이스
+    static ConstructorHelpers::FClassFinder<AActor> WindCutterRef(TEXT("/Game/Weapon/MyWindCutter.MyWindCutter_C"));
+	if (WindCutterRef.Succeeded()) WindCutterClass = WindCutterRef.Class;
+	static ConstructorHelpers::FClassFinder<AActor> FireBallRef(TEXT("/Game/Weapon/MyFireBall.MyFireBall_C"));
+	if (FireBallRef.Succeeded()) FireBallClass = FireBallRef.Class;
+	static ConstructorHelpers::FClassFinder<AActor> IceArrowRef(TEXT("/Game/Weapon/MyIceArrow.MyIceArrow_C"));
+	if (IceArrowRef.Succeeded()) IceArrowClass = IceArrowRef.Class;
 }
 
 void AEnemyCharacter::BeginPlay()
 {
     Super::BeginPlay();
+    AttackNMontageSection = FName(TEXT("Attack_N"));
+    AttackFMontageSection = FName(TEXT("Attack_F"));
+    DieMontageSection     = FName(TEXT("Die"));
+    HitMontageSection     = FName(TEXT("Hit"));
+
+    
     bIsAttacking = false;
     MonsterHpBarWidget = Cast<UMonsterHPBarWidget>(hpFloatingWidget->GetUserWidgetObject());
     UE_LOG(LogTemp, Warning, TEXT("Slime Position: %s"), *GetActorLocation().ToString());
+
 }
 
 void AEnemyCharacter::Tick(float DeltaTime) {
@@ -121,6 +136,50 @@ void AEnemyCharacter::start_attack(AttackType attack_type) {
         }
     }
 }
+/*void AEnemyCharacter::start_attack(AttackType attack_type)
+{
+    if (bIsAttacking || !AttackMontage || !bIsRangeHit) return;
+
+    float CurrentTime = GetWorld()->GetTimeSeconds();
+
+    FName SectionToPlay;
+    float Duration = 0.0f;
+
+    UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+    if (!AnimInstance) return;
+
+    if (CurrentTime - LastAttackNTime >= CooldownAttackN)
+    {
+        SectionToPlay = AttackNMontageSection;
+        LastAttackNTime = CurrentTime;
+        Duration = AnimInstance->Montage_Play(AttackMontage, 1.0f);
+    }
+    else if (CurrentTime - LastAttackFTime >= CooldownAttackF)
+    {
+        SectionToPlay = AttackFMontageSection;
+        LastAttackFTime = CurrentTime;
+        Duration = AnimInstance->Montage_Play(AttackMontage, 1.0f);
+    }
+    else
+    {
+        // 둘 다 쿨타임 중이므로 아무 것도 하지 않음
+        return;
+    }
+
+    if (Duration > 0.f)
+    {
+        bIsAttacking = true;
+
+        FOnMontageEnded Delegate;
+        Delegate.BindUObject(this, &AEnemyCharacter::OnAttackMontageEnded);
+        AnimInstance->Montage_SetEndDelegate(Delegate, AttackMontage);
+
+        if (!SectionToPlay.IsNone())
+        {
+            AnimInstance->Montage_JumpToSection(SectionToPlay, AttackMontage);
+        }
+    }
+}*/
 
 void AEnemyCharacter::start_attack(AttackType attack_type, FVector attack_location) {
 
@@ -148,6 +207,11 @@ void AEnemyCharacter::BaseAttackCheck()
         Color, false, 3.f);
 }
 
+void AEnemyCharacter::FarAttackCheck()
+{
+    //중간 보스처럼 원거리 공격
+}
+
 void AEnemyCharacter::OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted)
 {
     if (Montage == AttackMontage)
@@ -164,6 +228,21 @@ void AEnemyCharacter::ReceiveSkillHit(const FSkillInfo& Info, AActor* Causer)
     ShowHud(Info.Damage, Info.Element);
 
     UE_LOG(LogTemp, Warning, TEXT("Damage: %f, HP: %f"), Info.Damage, HP);
+
+    // 맞는 모션 추가
+    if (!bIsAttacking) {
+    UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+    if (AnimInstance && HitMontageSection != NAME_None) {
+        float Duration = AnimInstance->Montage_Play(AttackMontage, 1.0f);
+        if (Duration > 0.f) {
+            FOnMontageEnded HitDelegate;
+            HitDelegate.BindUObject(this, &AEnemyCharacter::OnHitMontageEnded);
+            AnimInstance->Montage_SetEndDelegate(HitDelegate, AttackMontage);
+
+            AnimInstance->Montage_JumpToSection(HitMontageSection, AttackMontage);
+            }
+        }
+    }   
 
     if (HP <= 0.0f) {
         if (DroppedItemActorClass)
@@ -182,6 +261,15 @@ void AEnemyCharacter::ReceiveSkillHit(const FSkillInfo& Info, AActor* Causer)
         Die();
     }
 }
+
+void AEnemyCharacter::OnHitMontageEnded(UAnimMontage* Montage, bool bInterrupted)
+{
+    if (Montage == AttackMontage)
+    {
+        bIsRangeHit = true;
+    }
+}
+
 
 void AEnemyCharacter::Die()
 {

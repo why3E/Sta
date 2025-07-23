@@ -38,6 +38,7 @@ public:
     virtual void start_attack(AttackType attack_type, FVector attack_location) override;
 
     virtual void BaseAttackCheck() override;
+    virtual void FarAttackCheck() override;
 
     UFUNCTION()
     void OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);
@@ -104,8 +105,52 @@ public:
 
     class UMonsterHPBarWidget* MonsterHpBarWidget;
 
+    
+
 protected:
     // 드랍된 아이템 액터를 저장할 변수
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
     TSubclassOf<class AMyItemDropActor> DroppedItemActorClass;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CombatMontage")
+    FName AttackNMontageSection;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CombatMontage")
+    FName AttackFMontageSection;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CombatMontage")
+    FName DieMontageSection;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CombatMontage")
+    FName HitMontageSection;
+
+    float LastAttackNTime = -FLT_MAX;
+    float LastAttackFTime = -FLT_MAX;
+    float LastHitTime     = -FLT_MAX;
+
+    // 각 애니메이션 별 쿨타임 (초 단위)
+    float CooldownAttackN = 2.0f;
+    float CooldownAttackF = 5.0f;
+    float CooldownHit     = 1.0f;
+
+    UFUNCTION()
+    void OnHitMontageEnded(UAnimMontage* Montage, bool bInterrupted);
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
+    bool bIsRangeHit = false;
+
+    // 애니메이션 쿨타임 관리용
+    float LastAttackTime = -FLT_MAX;
+    float CooldownCurrentAttack = 0.0f;
+
+private:
+    UPROPERTY(VisibleAnywhere, Category = "Quiver", meta = (AllowPrivateAccess = "true"))
+	TSubclassOf<AActor> WindCutterClass;
+
+	UPROPERTY(VisibleAnywhere, Category = "Quiver", meta = (AllowPrivateAccess = "true"))
+	TSubclassOf<AActor> FireBallClass;
+
+	UPROPERTY(VisibleAnywhere, Category = "Quiver", meta = (AllowPrivateAccess = "true"))
+	TSubclassOf<AActor> IceArrowClass;
+
 };

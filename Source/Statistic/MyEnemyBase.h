@@ -17,6 +17,7 @@ public:
 
 	// ID
 	unsigned short m_id;
+	MonsterType m_type;
 
 	FVector m_target_location;
 
@@ -25,9 +26,11 @@ public:
 	float m_wander_radius;
 
 	void set_id(unsigned short id) { m_id = id; }
+	void set_type(MonsterType type) { m_type = type; }
 	void set_target_location(FVector target_location) { m_target_location = target_location; }
 
 	unsigned short get_id() { return m_id; }
+	MonsterType get_type() { return m_type; }
 	FVector get_target_location() { return m_target_location; }
 
 	// Combat
@@ -39,7 +42,7 @@ public:
 	void set_attack_radius(float attack_radius) { m_attack_radius = attack_radius; }
 
 	unsigned short get_skill_id() { return m_skill_id; }
-	float get_attack_radius() { return m_attack_radius; }
+	virtual float get_attack_radius() { return m_attack_radius; }
 
 	virtual void start_attack(AttackType attack_type);
 	virtual void start_attack(AttackType attack_type, FVector attack_location);

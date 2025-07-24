@@ -3,6 +3,7 @@
 #include "MyWindSkill.h"
 #include "MyFireBall.h"
 #include "MyFireSkill.h"
+#include "MyIceArrow.h"
 #include "AIController.h"
 #include "BrainComponent.h"
 
@@ -28,10 +29,10 @@ AEnemyCharacter::AEnemyCharacter()
     MaxHP = 100.0f;
     HP = MaxHP;
 
-    m_view_radius = 500.0f;
-    m_track_radius = 1000.0f;
+    m_view_radius = 1000.0f;
+    m_track_radius = 2000.0f;
     m_wander_radius = 500.0f;
-    m_attack_radius = 100.0f;
+    m_attack_radius = 200.0f;
 
     PrimaryActorTick.bCanEverTick = true;
 
@@ -59,11 +60,13 @@ AEnemyCharacter::AEnemyCharacter()
     hpFloatingWidget->SetWorldScale3D(FVector(1.0, 0.23, 0.03));
     hpFloatingWidget->SetWidgetSpace(EWidgetSpace::Screen);
 
-    //만약 슬라임이면 - 윈드, 선인장은 파이어, swarm은 아이스
+    //만약 슬라임이면 윈드, 선인장은 파이어, swarm은 아이스
     static ConstructorHelpers::FClassFinder<AActor> WindCutterRef(TEXT("/Game/Weapon/MyWindCutter.MyWindCutter_C"));
 	if (WindCutterRef.Succeeded()) WindCutterClass = WindCutterRef.Class;
+
 	static ConstructorHelpers::FClassFinder<AActor> FireBallRef(TEXT("/Game/Weapon/MyFireBall.MyFireBall_C"));
 	if (FireBallRef.Succeeded()) FireBallClass = FireBallRef.Class;
+
 	static ConstructorHelpers::FClassFinder<AActor> IceArrowRef(TEXT("/Game/Weapon/MyIceArrow.MyIceArrow_C"));
 	if (IceArrowRef.Succeeded()) IceArrowClass = IceArrowRef.Class;
 }
@@ -75,12 +78,10 @@ void AEnemyCharacter::BeginPlay()
     AttackFMontageSection = FName(TEXT("Attack_F"));
     DieMontageSection     = FName(TEXT("Die"));
     HitMontageSection     = FName(TEXT("Hit"));
-
     
     bIsAttacking = false;
     MonsterHpBarWidget = Cast<UMonsterHPBarWidget>(hpFloatingWidget->GetUserWidgetObject());
     UE_LOG(LogTemp, Warning, TEXT("Slime Position: %s"), *GetActorLocation().ToString());
-
 }
 
 void AEnemyCharacter::Tick(float DeltaTime) {
@@ -104,7 +105,8 @@ void AEnemyCharacter::Tick(float DeltaTime) {
         // Move
         AddMovementInput(Direction, 1.0f);
     }
-    if(MonsterHpBarWidget) {
+
+    if (MonsterHpBarWidget) {
         MonsterHpBarWidget->updateHpBar(HP, MaxHP);
         // 체력이 100이 아닐 때만 HP바 보이기
         if (HP < MaxHP && HP > 0.0f) {
@@ -120,25 +122,9 @@ void AEnemyCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComp
     Super::SetupPlayerInputComponent(PlayerInputComponent);
 }
 
-void AEnemyCharacter::start_attack(AttackType attack_type) {
-    if (bIsAttacking || !AttackMontage) return;
-
-    UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-
-    if (AnimInstance) {
-        float Duration = AnimInstance->Montage_Play(AttackMontage, 1.0f);
-
-        if (Duration > 0.f) {
-            bIsAttacking = true;
-            FOnMontageEnded Delegate;
-            Delegate.BindUObject(this, &AEnemyCharacter::OnAttackMontageEnded);
-            AnimInstance->Montage_SetEndDelegate(Delegate, AttackMontage);
-        }
-    }
-}
-/*void AEnemyCharacter::start_attack(AttackType attack_type)
+void AEnemyCharacter::start_attack(AttackType attack_type)
 {
-    if (bIsAttacking || !AttackMontage || !bIsRangeHit) return;
+    if (bIsAttacking || !AttackMontage) return;
 
     float CurrentTime = GetWorld()->GetTimeSeconds();
 
@@ -148,22 +134,15 @@ void AEnemyCharacter::start_attack(AttackType attack_type) {
     UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
     if (!AnimInstance) return;
 
-    if (CurrentTime - LastAttackNTime >= CooldownAttackN)
-    {
+    switch (attack_type) {
+    case AttackType::Melee: 
         SectionToPlay = AttackNMontageSection;
         LastAttackNTime = CurrentTime;
         Duration = AnimInstance->Montage_Play(AttackMontage, 1.0f);
-    }
-    else if (CurrentTime - LastAttackFTime >= CooldownAttackF)
-    {
-        SectionToPlay = AttackFMontageSection;
-        LastAttackFTime = CurrentTime;
-        Duration = AnimInstance->Montage_Play(AttackMontage, 1.0f);
-    }
-    else
-    {
-        // 둘 다 쿨타임 중이므로 아무 것도 하지 않음
-        return;
+        break;
+
+    default:
+        break;
     }
 
     if (Duration > 0.f)
@@ -179,10 +158,50 @@ void AEnemyCharacter::start_attack(AttackType attack_type) {
             AnimInstance->Montage_JumpToSection(SectionToPlay, AttackMontage);
         }
     }
-}*/
+}
 
 void AEnemyCharacter::start_attack(AttackType attack_type, FVector attack_location) {
+    if (bIsAttacking || !AttackMontage) return;
 
+    float CurrentTime = GetWorld()->GetTimeSeconds();
+
+    FName SectionToPlay;
+    float Duration = 0.0f;
+
+    UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+    if (!AnimInstance) return;
+
+    switch (attack_type) {
+    case AttackType::FireBall:
+    case AttackType::WindCutter:
+    case AttackType::IceArrow:
+        m_target_location = attack_location;
+
+        FRotator LookAtRotation = (m_target_location - GetActorLocation()).Rotation();
+        SetActorRotation(LookAtRotation);
+
+        SectionToPlay = AttackFMontageSection;
+        LastAttackFTime = CurrentTime;
+        Duration = AnimInstance->Montage_Play(AttackMontage, 1.0f);
+        break;
+
+    default:
+        break;
+    }
+
+    if (Duration > 0.f)
+    {
+        bIsAttacking = true;
+
+        FOnMontageEnded Delegate;
+        Delegate.BindUObject(this, &AEnemyCharacter::OnAttackMontageEnded);
+        AnimInstance->Montage_SetEndDelegate(Delegate, AttackMontage);
+
+        if (!SectionToPlay.IsNone())
+        {
+            AnimInstance->Montage_JumpToSection(SectionToPlay, AttackMontage);
+        }
+    }
 }
 
 void AEnemyCharacter::BaseAttackCheck()
@@ -209,7 +228,66 @@ void AEnemyCharacter::BaseAttackCheck()
 
 void AEnemyCharacter::FarAttackCheck()
 {
-    //중간 보스처럼 원거리 공격
+    FVector TargetLocation = m_target_location;
+    FVector SpawnLocation = GetActorLocation();
+    FVector FireDirection = (TargetLocation - SpawnLocation).GetSafeNormal();
+    FRotator FireRotation = FireDirection.Rotation();
+
+    FActorSpawnParameters SpawnParams;
+    SpawnParams.Owner = this;
+    SpawnParams.Instigator = GetInstigator();
+
+    AMySkillBase* Skill = nullptr;
+    
+    switch (m_type) {
+    case MonsterType::Cactus: {
+        Skill = GetWorld()->SpawnActor<AMyFireBall>(FireBallClass, SpawnLocation, FireRotation, SpawnParams);
+        break; }
+
+    case MonsterType::Slime: {
+        Skill = GetWorld()->SpawnActor<AMyWindCutter>(WindCutterClass, SpawnLocation, FireRotation, SpawnParams);
+        break; }
+
+    case MonsterType::Swarm: {
+        Skill = GetWorld()->SpawnActor<AMyIceArrow>(IceArrowClass, SpawnLocation, FireRotation, SpawnParams);
+        break; }
+    }
+    
+    if (!Skill) return;
+
+    unsigned short skill_id = get_skill_id();
+    Skill->SetID(skill_id);
+    g_c_skills.emplace(skill_id, Skill);
+
+    if (g_c_skill_collisions.count(skill_id)) {
+        while (!g_c_skill_collisions[skill_id].empty()) {
+            char skill_type = g_c_skill_collisions[skill_id].front();
+            g_c_skill_collisions[skill_id].pop();
+            Skill->Overlap(skill_type);
+        }
+    }
+
+    if (g_c_object_collisions.count(skill_id)) {
+        while (!g_c_object_collisions[skill_id].empty()) {
+            unsigned short object_id = g_c_object_collisions[skill_id].front();
+            g_c_object_collisions[skill_id].pop();
+            Skill->Overlap(object_id);
+        }
+    }
+
+    switch (m_type) {
+    case MonsterType::Cactus: {
+        Cast<AMyFireBall>(Skill)->Fire(TargetLocation);
+        break; }
+
+    case MonsterType::Slime: {
+        Cast<AMyWindCutter>(Skill)->Fire(TargetLocation);
+        break; }
+
+    case MonsterType::Swarm: {
+        Cast<AMyIceArrow>(Skill)->Fire(TargetLocation);
+        break; }
+    }
 }
 
 void AEnemyCharacter::OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted)
@@ -231,34 +309,27 @@ void AEnemyCharacter::ReceiveSkillHit(const FSkillInfo& Info, AActor* Causer)
 
     // 맞는 모션 추가
     if (!bIsAttacking) {
-    UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-    if (AnimInstance && HitMontageSection != NAME_None) {
-        float Duration = AnimInstance->Montage_Play(AttackMontage, 1.0f);
-        if (Duration > 0.f) {
-            FOnMontageEnded HitDelegate;
-            HitDelegate.BindUObject(this, &AEnemyCharacter::OnHitMontageEnded);
-            AnimInstance->Montage_SetEndDelegate(HitDelegate, AttackMontage);
+        UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 
-            AnimInstance->Montage_JumpToSection(HitMontageSection, AttackMontage);
-            }
-        }
-    }   
+        if (AnimInstance && HitMontageSection != NAME_None) {
+            float Duration = AnimInstance->Montage_Play(AttackMontage, 1.0f);
 
-    if (HP <= 0.0f) {
-        if (DroppedItemActorClass)
-        {
-            for (int32 i = 0; i < 5; ++i)
-            {
-                FVector SpawnLocation = GetActorLocation() + FVector(0.f, 0.f, 200.f);
-                FRotator SpawnRotation = FRotator::ZeroRotator;
-                AMyItemDropActor* SpawnedItem = GetWorld()->SpawnActor<AMyItemDropActor>(DroppedItemActorClass, SpawnLocation, SpawnRotation);
-                if (SpawnedItem)
-                {
-                    SpawnedItem->SpawnItem(SpawnLocation);
+            if (Duration > 0.f) {
+                FOnMontageEnded HitDelegate;
+                HitDelegate.BindUObject(this, &AEnemyCharacter::OnHitMontageEnded);
+                AnimInstance->Montage_SetEndDelegate(HitDelegate, AttackMontage);
+
+                AnimInstance->Montage_JumpToSection(HitMontageSection, AttackMontage);
                 }
             }
+    }   
+
+    if (g_is_host) {
+        if (HP <= 0.0f) {
+            MonsterEvent monster_event = DieEvent(m_id);
+            std::lock_guard<std::mutex> lock(g_s_monster_events_l);
+            g_s_monster_events.push(monster_event);
         }
-        Die();
     }
 }
 
@@ -270,9 +341,20 @@ void AEnemyCharacter::OnHitMontageEnded(UAnimMontage* Montage, bool bInterrupted
     }
 }
 
-
 void AEnemyCharacter::Die()
 {
+    if (DroppedItemActorClass) {
+        for (int32 i = 0; i < 5; ++i) {
+            FVector SpawnLocation = GetActorLocation() + FVector(0.f, 0.f, 200.f);
+            FRotator SpawnRotation = FRotator::ZeroRotator;
+
+            AMyItemDropActor* SpawnedItem = GetWorld()->SpawnActor<AMyItemDropActor>(DroppedItemActorClass, SpawnLocation, SpawnRotation);
+
+            if (SpawnedItem) {
+                SpawnedItem->SpawnItem(SpawnLocation);
+            }
+        }
+    }
 
     CopySkeletalMeshToProcedural(0);
 

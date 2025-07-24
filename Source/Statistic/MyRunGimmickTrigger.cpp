@@ -70,6 +70,7 @@ void AMyRunGimmickTrigger::Active() {
         FRotator SpawnRotation = FRotator::ZeroRotator;
 
         AActor* RunActor = World->SpawnActor<AActor>(RunPointClass, SpawnLocation, SpawnRotation);
+
         if (RunActor)
         {
             SpawnedRunPoints.Add(RunActor);

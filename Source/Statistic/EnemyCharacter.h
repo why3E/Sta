@@ -33,7 +33,7 @@ public:
     DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnAttackEnded);
     UPROPERTY(BlueprintAssignable, Category = "Combat")
     FOnAttackEnded OnAttackEnded;
-
+    
     virtual void start_attack(AttackType attack_type) override;
     virtual void start_attack(AttackType attack_type, FVector attack_location) override;
 
@@ -105,8 +105,6 @@ public:
 
     class UMonsterHPBarWidget* MonsterHpBarWidget;
 
-    
-
 protected:
     // 드랍된 아이템 액터를 저장할 변수
     UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -143,6 +141,14 @@ protected:
     float LastAttackTime = -FLT_MAX;
     float CooldownCurrentAttack = 0.0f;
 
+public:
+    FVector m_skill_location;
+
+    bool CanAttackN() { return GetWorld()->GetTimeSeconds() - LastAttackNTime >= CooldownAttackN; }
+    bool CanAttackF() { return GetWorld()->GetTimeSeconds() - LastAttackFTime >= CooldownAttackF; }
+
+    virtual float get_attack_radius() override { return CanAttackF() ? m_view_radius : m_attack_radius; }
+
 private:
     UPROPERTY(VisibleAnywhere, Category = "Quiver", meta = (AllowPrivateAccess = "true"))
 	TSubclassOf<AActor> WindCutterClass;
@@ -152,5 +158,4 @@ private:
 
 	UPROPERTY(VisibleAnywhere, Category = "Quiver", meta = (AllowPrivateAccess = "true"))
 	TSubclassOf<AActor> IceArrowClass;
-
 };

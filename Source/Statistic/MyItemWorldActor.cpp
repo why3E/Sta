@@ -8,6 +8,7 @@
 #include "NiagaraSystem.h"
 #include "PlayerCharacter.h"
 #include "Blueprint/UserWidget.h"
+#include "Enums.h"
 #include "Kismet/GameplayStatics.h"
 #include "GameFramework/PlayerController.h"
 
@@ -64,7 +65,8 @@ void AMyItemWorldActor::Interact(APlayerCharacter* InteractingPlayer)
 	if (InteractingPlayer)
 	{
 		// 인벤토리 추가 등 아이템 획득 처리
-		// InteractingPlayer->AddItemToInventory(this);
+		InteractingPlayer->ItemInventory.AddItem(ItemType);
+
 		InteractingPlayer->bIsInteraction = false;
 		InteractingPlayer->CurrentInteractTarget = nullptr;
 		Destroy();

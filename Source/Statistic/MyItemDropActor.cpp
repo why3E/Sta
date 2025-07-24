@@ -6,6 +6,8 @@
 #include "Components/SphereComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Engine/World.h"
+#include "PlayerCharacter.h"
+#include "Enums.h"
 #include "GameFramework/PlayerController.h"
 
 // Sets default values
@@ -107,7 +109,8 @@ void AMyItemDropActor::Interact(APlayerCharacter* InteractingPlayer)
     if (InteractingPlayer)
     {
         // 인벤토리 추가 등 아이템 획득 처리
-        // InteractingPlayer->AddItemToInventory(this);
+        InteractingPlayer->ItemInventory.AddItem(ItemType);
+
         InteractingPlayer->bIsInteraction = false;
         InteractingPlayer->CurrentInteractTarget = nullptr;
         Destroy();

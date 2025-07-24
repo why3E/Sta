@@ -62,18 +62,49 @@ struct FItemInventory
 
     // 아이템 종류별 개수
     UPROPERTY()
-    TMap<EItemDropType, int32> ItemCounts;
+    TMap<EItemDropType, int32> DropItemCounts;
+    UPROPERTY()
+    TMap<EItemWorldType, int32> WorldItemCounts;
+
+    FItemInventory()
+    {
+        const UEnum* DropEnum = StaticEnum<EItemDropType>();
+        if (DropEnum)
+        {
+            for (int32 i = 0; i < DropEnum->NumEnums() - 1; ++i)
+            {
+                DropItemCounts.Add(static_cast<EItemDropType>(i), 0);
+            }
+        }
+
+        const UEnum* WorldEnum = StaticEnum<EItemWorldType>();
+        if (WorldEnum)
+        {
+            for (int32 i = 0; i < WorldEnum->NumEnums() - 1; ++i)
+            {
+                WorldItemCounts.Add(static_cast<EItemWorldType>(i), 0);
+            }
+        }
+
+    } 
 
     // 아이템 추가
     void AddItem(EItemDropType Type, int32 Amount = 1)
     {
-        ItemCounts.FindOrAdd(Type) += Amount;
+        int32& Count = DropItemCounts.FindOrAdd(Type);
+        Count += Amount;
+
+        // 로그 출력
+        UE_LOG(LogTemp, Log, TEXT("[인벤토리] %s 아이템 %d개 추가됨. 현재 개수: %d"),
+        *UEnum::GetValueAsString(Type),
+        Amount,
+        Count);
     }
 
     // 아이템 사용(감소)
     bool RemoveItem(EItemDropType Type, int32 Amount = 1)
     {
-        int32* Count = ItemCounts.Find(Type);
+        int32* Count = DropItemCounts.Find(Type);
         if (Count && *Count >= Amount)
         {
             *Count -= Amount;
@@ -85,9 +116,11 @@ struct FItemInventory
     // 개수 조회
     int32 GetCount(EItemDropType Type) const
     {
-        const int32* Count = ItemCounts.Find(Type);
+        const int32* Count = DropItemCounts.Find(Type);
         return Count ? *Count : 0;
     }
+
+    
 
     // 포션류만 확률에 따라 하나 선택 (Bottle 82%, L 각각 1%, S 각각 5%)
     static EItemDropType GetRandomPotionType()
@@ -108,5 +141,37 @@ struct FItemInventory
             return EItemDropType::ManaPotion_S;
         else
             return EItemDropType::StaminaPotion_S;
+    }
+
+
+    void AddItem(EItemWorldType Type, int32 Amount = 1)
+    {
+        int32& Count = WorldItemCounts.FindOrAdd(Type);
+        Count += Amount;
+
+    // 로그 출력
+        UE_LOG(LogTemp, Log, TEXT("[인벤토리] %s 아이템 %d개 추가됨. 현재 개수: %d"),
+        *UEnum::GetValueAsString(Type),
+        Amount,
+        Count);
+    }
+
+    // 아이템 사용(감소)
+    bool RemoveItem(EItemWorldType Type, int32 Amount = 1)
+    {
+        int32* Count = WorldItemCounts.Find(Type);
+        if (Count && *Count >= Amount)
+        {
+            *Count -= Amount;
+            return true;
+        }
+        return false;
+    }
+
+    // 개수 조회
+    int32 GetCount(EItemWorldType Type) const
+    {
+        const int32* Count = WorldItemCounts.Find(Type);
+        return Count ? *Count : 0;
     }
 };

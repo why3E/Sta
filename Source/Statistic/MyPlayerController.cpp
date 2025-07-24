@@ -61,9 +61,16 @@ void CALLBACK c_send_callback(DWORD err, DWORD num_bytes, LPWSAOVERLAPPED p_over
 //////////////////////////////////////////////////
 // AMyPlayerController
 AMyPlayerController::AMyPlayerController() {
-	static ConstructorHelpers::FClassFinder<AEnemyCharacter> SlimeBP(TEXT("/Game/Slime/BP_Slime.BP_Slime_C"));
-	static ConstructorHelpers::FObjectFinder<UBehaviorTree> SlimeBT(TEXT("/Game/Slime/AI/BT_EnemyAI.BT_EnemyAI"));
-	static ConstructorHelpers::FClassFinder<UAnimInstance> SlimeAnimBP(TEXT("/Game/Slime/slime/anim/BP_AnimSlime.BP_AnimSlime_C"));
+	static ConstructorHelpers::FObjectFinder<UBehaviorTree> MonsterBT(TEXT("/Game/Monster/Slime/AI/BT_EnemyAI.BT_EnemyAI"));
+
+	static ConstructorHelpers::FClassFinder<AEnemyCharacter> CactusBP(TEXT("/Game/Monster/Cactus/BP_Cactus.BP_Cactus_C"));
+	static ConstructorHelpers::FClassFinder<UAnimInstance> CactusAnimBP(TEXT("/Game/Monster/Cactus/ABP_CactusInst.ABP_CactusInst_C"));
+
+	static ConstructorHelpers::FClassFinder<AEnemyCharacter> SlimeBP(TEXT("/Game/Monster/Slime/BP_Slime.BP_Slime_C"));
+	static ConstructorHelpers::FClassFinder<UAnimInstance> SlimeAnimBP(TEXT("/Game/Monster/Slime/ABP_SlimeAnim.ABP_SlimeAnim_C"));
+
+	static ConstructorHelpers::FClassFinder<AEnemyCharacter> SwarmBP(TEXT("/Game/Monster/Swarm/BP_Swarm.BP_Swarm_C"));
+	static ConstructorHelpers::FClassFinder<UAnimInstance> SwarmAnimBP(TEXT("/Game/Monster/Swarm/ABP_Swarm.ABP_Swarm_C"));
 
 	static ConstructorHelpers::FClassFinder<AMidBossEnemyCharacter> MidBossBP(TEXT("/Game/MidEnemyMonster/BP_MidBossEnemyCharacter.BP_MidBossEnemyCharacter_C"));
 	static ConstructorHelpers::FObjectFinder<UBehaviorTree> MidBossBT(TEXT("/Game/MidEnemyMonster/MidBossBT.MidBossBT"));
@@ -209,10 +216,22 @@ void spawn_monster(MonsterType type, FVector Location) {
 		AMyEnemyBase* NewMonster = nullptr;
 
 		switch (type) {
+		case MonsterType::Cactus:
+			BPPath = TEXT("/Game/Monster/Cactus/BP_Cactus.BP_Cactus_C");
+			BTPath = TEXT("/Game/Monster/Slime/AI/BT_EnemyAI.BT_EnemyAI");
+			AnimBPPath = TEXT("/Game/Monster/Cactus/ABP_CactusInst.ABP_CactusInst_C");
+			break;
+
 		case MonsterType::Slime:
-			BPPath = TEXT("/Game/Slime/BP_Slime.BP_Slime_C");
-			BTPath = TEXT("/Game/Slime/AI/BT_EnemyAI.BT_EnemyAI");
-			AnimBPPath = TEXT("/Game/Slime/slime/anim/BP_AnimSlime.BP_AnimSlime_C");
+			BPPath = TEXT("/Game/Monster/Slime/BP_Slime.BP_Slime_C");
+			BTPath = TEXT("/Game/Monster/Slime/AI/BT_EnemyAI.BT_EnemyAI");
+			AnimBPPath = TEXT("/Game/Monster/Slime/ABP_SlimeAnim.ABP_SlimeAnim_C");
+			break;
+
+		case MonsterType::Swarm:
+			BPPath = TEXT("/Game/Monster/Swarm/BP_Swarm.BP_Swarm_C");
+			BTPath = TEXT("/Game/Monster/Slime/AI/BT_EnemyAI.BT_EnemyAI");
+			AnimBPPath = TEXT("/Game/Monster/Swarm/ABP_Swarm.ABP_Swarm_C");
 			break;
 
 		case MonsterType::MidBoss:
@@ -232,7 +251,9 @@ void spawn_monster(MonsterType type, FVector Location) {
 		if (!MonsterBPClass) { UE_LOG(LogTemp, Error, TEXT("Failed to load BP_MonsterCharacter!")); }
 
 		switch (type) {
+		case MonsterType::Cactus:
 		case MonsterType::Slime:
+		case MonsterType::Swarm:
 			NewMonster = World->SpawnActor<AEnemyCharacter>(
 				MonsterBPClass,
 				SpawnLocation,
@@ -261,6 +282,7 @@ void spawn_monster(MonsterType type, FVector Location) {
 		}
 
 		NewMonster->set_id(g_s_monster_id++);
+		NewMonster->set_type(type);
 
 		// AI Controller
 		AEnemyAIController* NewAI = World->SpawnActor<AEnemyAIController>(
@@ -354,7 +376,9 @@ void spawn_monster_from_json() {
 }
 
 MonsterType monster_type_from_string(const FString& type_str) {
+	if (type_str.Equals(TEXT("cactus"), ESearchCase::IgnoreCase)) { return MonsterType::Cactus; }
 	if (type_str.Equals(TEXT("slime"), ESearchCase::IgnoreCase)) { return MonsterType::Slime; }
+	if (type_str.Equals(TEXT("swarm"), ESearchCase::IgnoreCase)) { return MonsterType::Swarm; }
 	if (type_str.Equals(TEXT("midboss"), ESearchCase::IgnoreCase)) { return MonsterType::MidBoss; }
 	if (type_str.Equals(TEXT("boss"), ESearchCase::IgnoreCase)) { return MonsterType::Boss; }
 	return MonsterType::Unknown;
@@ -453,6 +477,19 @@ void process_monster_event() {
 					if (g_s_clients[client_id]) {
 						g_s_clients[client_id]->do_send(&p);
 					}
+				}
+			}
+			break; }
+
+		case MonsterEventType::Die: {
+			hc_monster_die_packet p;
+			p.packet_size = sizeof(hc_monster_die_packet);
+			p.packet_type = H2C_MONSTER_DIE_PACKET;
+			p.id = monster_event.data.die.id;
+
+			for (char client_id = 0; client_id < MAX_CLIENTS; ++client_id) {
+				if (g_s_clients[client_id]) {
+					g_s_clients[client_id]->do_send(&p);
 				}
 			}
 			break; }
@@ -771,14 +808,8 @@ void create_session(SOCKET c_socket) {
 						monster_data[i].hp = monster->GetHP();
 						monster_data[i].x = Location.X; monster_data[i].y = Location.Y; monster_data[i].z = Location.Z;
 						monster_data[i].target_x = TargetLocation.X; monster_data[i].target_y = TargetLocation.Y; monster_data[i].target_z = TargetLocation.Z;
-
-						if (monster->IsA(AEnemyCharacter::StaticClass())) {
-							monster_data[i].type = static_cast<char>(MonsterType::Slime);
-						}
-						else if (monster->IsA(AMidBossEnemyCharacter::StaticClass())) {
-							monster_data[i].type = static_cast<char>(MonsterType::MidBoss);
-						}
-
+						monster_data[i].type = static_cast<char>(monster->get_type());
+						
 						++i;
 						++offset;
 						++iter;
@@ -1358,9 +1389,19 @@ void c_process_packet(char* packet) {
 				AMyEnemyBase* NewMonster = nullptr;
 
 				switch (static_cast<MonsterType>(info.type)) {
+				case MonsterType::Cactus:
+					BPPath = TEXT("/Game/Monster/Cactus/BP_Cactus.BP_Cactus_C");
+					AnimBPPath = TEXT("/Game/Monster/Cactus/ABP_CactusInst.ABP_CactusInst_C");
+					break;
+
 				case MonsterType::Slime:
-					BPPath = TEXT("/Game/Slime/BP_Slime.BP_Slime_C");
-					AnimBPPath = TEXT("/Game/Slime/slime/anim/BP_AnimSlime.BP_AnimSlime_C");
+					BPPath = TEXT("/Game/Monster/Slime/BP_Slime.BP_Slime_C");
+					AnimBPPath = TEXT("/Game/Monster/Slime/ABP_SlimeAnim.ABP_SlimeAnim_C");
+					break;
+
+				case MonsterType::Swarm:
+					BPPath = TEXT("/Game/Monster/Swarm/BP_Swarm.BP_Swarm_C");
+					AnimBPPath = TEXT("/Game/Monster/Swarm/ABP_Swarm.ABP_Swarm_C");
 					break;
 
 				case MonsterType::MidBoss:
@@ -1379,7 +1420,9 @@ void c_process_packet(char* packet) {
 				if (!MonsterBPClass) { UE_LOG(LogTemp, Error, TEXT("Failed to load BP_MonsterCharacter!")); }
 
 				switch (static_cast<MonsterType>(info.type)) {
+				case MonsterType::Cactus:
 				case MonsterType::Slime:
+				case MonsterType::Swarm:
 					NewMonster = World->SpawnActor<AEnemyCharacter>(
 						MonsterBPClass,
 						SpawnLocation,
@@ -1408,6 +1451,7 @@ void c_process_packet(char* packet) {
 				}
 
 				NewMonster->set_id(info.id);
+				NewMonster->set_type(static_cast<MonsterType>(info.type));
 				NewMonster->SetHP(info.hp);
 				NewMonster->SetActorLocation(FVector(info.x, info.y, info.z));
 				NewMonster->set_target_location(FVector(info.target_x, info.target_y, info.target_z));
@@ -1503,6 +1547,16 @@ void c_process_packet(char* packet) {
 			if (nullptr == g_c_monsters[p->id]) { break; }
 
 			Cast<AMidBossEnemyCharacter>(g_c_monsters[p->id])->PlayStunMontage();
+		}
+		break; }
+
+	case H2C_MONSTER_DIE_PACKET: {
+		hc_monster_die_packet* p = reinterpret_cast<hc_monster_die_packet*>(packet);
+
+		if (g_c_monsters.count(p->id)) {
+			if (nullptr == g_c_monsters[p->id]) { break; }
+
+			Cast<AMyEnemyBase>(g_c_monsters[p->id])->Die();
 		}
 		break; }
 

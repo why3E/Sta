@@ -8,7 +8,6 @@
 
 void UMMBossWindCutterAnimNotify::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, const FAnimNotifyEventReference& EventReference)
 {
-    
     Super::Notify(MeshComp, Animation, EventReference);
     if (!MeshComp) return;
 

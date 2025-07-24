@@ -17,7 +17,7 @@ class STATISTIC_API AMyRunPointActor : public AActor
 	
 public:	
 	AMyRunPointActor();
-	
+
 	void SetTriggerOwner(AMyRunGimmickTrigger* Trigger);  // 트리거 등록
 
 protected:

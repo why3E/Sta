@@ -29,7 +29,8 @@ constexpr char H2C_MONSTER_ATTACK_PACKET = 13;
 constexpr char H2C_MONSTER_SKILL_PACKET = 14;
 constexpr char H2C_MONSTER_HEAL_PACKET = 15;
 constexpr char H2C_MONSTER_DAMAGED_PACKET = 16;
-constexpr char H2C_MONSTER_RESPAWN_PACKET = 17;
+constexpr char H2C_MONSTER_DIE_PACKET = 17;
+constexpr char H2C_MONSTER_RESPAWN_PACKET = 18;
 
 constexpr char H2C_PLAYER_MOVE_PACKET = 21;
 constexpr char H2C_PLAYER_STOP_PACKET = 22;
@@ -109,7 +110,9 @@ enum class MonsterEventType {
 };
 
 enum class MonsterType {
+	Cactus,
 	Slime,
+	Swarm,
 	MidBoss,
 	Boss,
 	Unknown
@@ -117,11 +120,14 @@ enum class MonsterType {
 
 enum class AttackType {
 	Melee,
+	Range,
 	WindCutter,
 	WindLaser,
 	StoneWave,
 	WindTornado,
-	StoneSkill
+	StoneSkill,
+	FireBall,
+	IceArrow
 };
 
 struct monster_init_info {
@@ -177,6 +183,7 @@ struct MonsterEvent {
 		SkillEvent skill;
 		HealEvent heal;
 		DamagedEvent damaged;
+		DieEvent die;
 		RespawnEvent respawn;
 
 		Data() {}
@@ -208,6 +215,11 @@ struct MonsterEvent {
 		new (&data.damaged) DamagedEvent(e);
 	}
 
+	MonsterEvent(const DieEvent& e) {
+		monster_event_type = MonsterEventType::Die;
+		new (&data.damaged) DieEvent(e);
+	}
+
 	MonsterEvent(const RespawnEvent& e) {
 		monster_event_type = MonsterEventType::Respawn;
 		new (&data.attack) RespawnEvent(e);
@@ -233,6 +245,10 @@ struct MonsterEvent {
 
 		case MonsterEventType::Damaged:
 			data.damaged.~DamagedEvent();
+			break;
+
+		case MonsterEventType::Die:
+			data.die.~DieEvent();
 			break;
 
 		case MonsterEventType::Respawn:
@@ -474,6 +490,12 @@ struct hc_monster_heal_packet {
 };
 
 struct hc_monster_damaged_packet {
+	unsigned char packet_size;
+	char packet_type;
+	unsigned short id;
+};
+
+struct hc_monster_die_packet {
 	unsigned char packet_size;
 	char packet_type;
 	unsigned short id;

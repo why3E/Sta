@@ -19,4 +19,5 @@ class STATISTIC_API IAnimationAttackInterface
 public:
 	// 기본 공격 성공/실패 여부 체크
 	virtual void BaseAttackCheck() = 0;
+	virtual void FarAttackCheck() = 0;
 };

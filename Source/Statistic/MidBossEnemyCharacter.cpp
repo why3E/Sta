@@ -226,6 +226,7 @@ void AMidBossEnemyCharacter::Attack(AttackType attack_type)
     case AttackType::StoneWave:
         if (AttackMontage) {
             UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+
             if (AnimInstance) {
                 AnimInstance->OnMontageEnded.RemoveDynamic(this, &AMidBossEnemyCharacter::OnAttackMontageEnded);
                 AnimInstance->OnMontageEnded.AddDynamic(this, &AMidBossEnemyCharacter::OnAttackMontageEnded);
@@ -247,8 +248,8 @@ void AMidBossEnemyCharacter::Attack(AttackType attack_type)
     case AttackType::StoneSkill:
         if (AttackMontage) {
             UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-            if (AnimInstance)
-            {
+
+            if (AnimInstance) {
                 AnimInstance->OnMontageEnded.RemoveDynamic(this, &AMidBossEnemyCharacter::OnAttackMontageEnded);
                 AnimInstance->OnMontageEnded.AddDynamic(this, &AMidBossEnemyCharacter::OnAttackMontageEnded);
 
@@ -472,9 +473,6 @@ void AMidBossEnemyCharacter::Die()
         NewLocation.Z -= 100.0f; // 아래로 이동
         DummyOtherHalf->SetWorldLocation(NewLocation);
     }
-
-
-
 }
 
 void AMidBossEnemyCharacter::Reset() {
@@ -519,8 +517,6 @@ void AMidBossEnemyCharacter::OnHitCollisionOverlap(UPrimitiveComponent* Overlapp
 
     bIsProcessingHit = false;
 }
-    
-
 
 void AMidBossEnemyCharacter::Overlap(char skill_type, FVector skill_location) {
     HP -= 10.0f;
@@ -823,9 +819,11 @@ void AMidBossEnemyCharacter::ReceiveSkillHit(const FSkillInfo& Info, AActor* Cau
 
     ShowHud(Info.Damage, Info.Element);
 
-    UE_LOG(LogTemp, Warning, TEXT("Damage: %f, HP: %f"), Info.Damage, HP);
-
-    if (HP <= 0.0f) {
-        Die();
+    if (g_is_host) {
+        if (HP <= 0.0f) {
+            MonsterEvent monster_event = DieEvent(m_id);
+            std::lock_guard<std::mutex> lock(g_s_monster_events_l);
+            g_s_monster_events.push(monster_event);
+        }
     }
 }

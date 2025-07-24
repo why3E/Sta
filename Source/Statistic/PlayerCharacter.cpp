@@ -1448,8 +1448,7 @@ void APlayerCharacter::rotate(float yaw) {
 }
 
 void APlayerCharacter::Overlap(char skill_type, bool collision_start) {
-	//switch (skill_type) {
-	//}
+	playerCurrentHp -= 10;
 }
 
 void APlayerCharacter::do_send(void* buff) {

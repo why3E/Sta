@@ -87,6 +87,8 @@ void AEnemyCharacter::BeginPlay()
 void AEnemyCharacter::Tick(float DeltaTime) {
     Super::Tick(DeltaTime);
 
+    //ShowHud(10, EClassType::CT_Fire);
+
     if (!g_is_host) {
         if ((m_target_location - GetActorLocation()).Size2D() < 100.0f) {
             m_target_location = GetActorLocation();

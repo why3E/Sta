@@ -13,16 +13,14 @@ AMyItemDropActor::AMyItemDropActor()
 {
     PrimaryActorTick.bCanEverTick = true;
 
-    // 메시 = 루트
     ItemMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ItemMesh"));
     RootComponent = ItemMesh;
     ItemMesh->SetSimulatePhysics(true);
     ItemMesh->SetCollisionProfileName(TEXT("PhysicsActor"));
 
-    // 콜리전: 메시(루트)에 붙임
     ItemCollision = CreateDefaultSubobject<USphereComponent>(TEXT("ItemCollision"));
-    ItemCollision->InitSphereRadius(40.f);
     ItemCollision->SetupAttachment(ItemMesh);
+    ItemCollision->InitSphereRadius(40.f);
     ItemCollision->SetCollisionProfileName(TEXT("OverlapAllDynamic"));
     ItemCollision->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
     ItemCollision->SetGenerateOverlapEvents(true);
@@ -55,13 +53,24 @@ void AMyItemDropActor::Tick(float DeltaTime)
 
 void AMyItemDropActor::SpawnItem(const FVector& StartLocation)
 {
+    // 포션류 아이템일 경우 랜덤 타입 선택
+    ItemType = FItemInventory::GetRandomPotionType();
+
+    // 타입에 맞는 메시 적용
+    if (ItemMeshes.Contains(ItemType) && ItemMeshes[ItemType])
+    {
+        ItemMesh->SetStaticMesh(ItemMeshes[ItemType]);
+        ItemMesh->SetWorldScale3D(FVector(2.0f));
+        
+    }
+
+    // 이하 기존 드랍 위치, 임펄스 등 코드
     float RandX = FMath::FRandRange(-400.f, 400.f);
     float RandY = FMath::FRandRange(-400.f, 400.f);
     FVector End = StartLocation - FVector(RandX, RandY, 300.f);
     FHitResult Hit;
     FCollisionQueryParams Params;
     Params.bTraceComplex = true;
-
 
     bool bHit = GetWorld()->LineTraceSingleByChannel(Hit, StartLocation, End, ECC_Visibility, Params);
 
@@ -99,6 +108,8 @@ void AMyItemDropActor::Interact(APlayerCharacter* InteractingPlayer)
     {
         // 인벤토리 추가 등 아이템 획득 처리
         // InteractingPlayer->AddItemToInventory(this);
+        InteractingPlayer->bIsInteraction = false;
+        InteractingPlayer->CurrentInteractTarget = nullptr;
         Destroy();
     }
 }
@@ -111,6 +122,8 @@ void AMyItemDropActor::OnBeginOverlapCollision(UPrimitiveComponent* OverlappedCo
 
     APlayerController* cachedController = Cast<APlayerController>(Player->GetController());
     if (!cachedController) return;
+
+    if (Player->bIsInteraction) return; // 이미 상호작용 중이면 무시
 
     if (!interactionWidgetInstance)
     {

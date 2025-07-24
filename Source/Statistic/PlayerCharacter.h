@@ -305,8 +305,6 @@ public:
 	TSubclassOf<UUserWidget> PlayerWidgetClass;
 private:
 	// PlayerWidget 생성
-	
-
 	bool bCanUseSkillQ = true;
 	float SkillQCoolTime = 5.0f;
 	float CurrnetSkillQTime = 0.0f;
@@ -360,4 +358,6 @@ public:
 	bool bIsInteractionWidgetOpen = false; // 상호작용 위젯 열림 여부
 	bool bIsAttacking = false;
 
+public:
+	FItemInventory ItemInventory;
 };

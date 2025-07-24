@@ -7,6 +7,7 @@
 #include "InteractableInterface.h"
 #include "PlayerCharacter.h"
 #include "Blueprint/UserWidget.h"
+#include "Enums.h"
 #include "MyItemDropActor.generated.h"
 
 class UNiagaraComponent;
@@ -62,4 +63,11 @@ protected:
     TSubclassOf<UUserWidget> interactionWidgetClass;
 
     UUserWidget* interactionWidgetInstance = nullptr;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Item")
+    EItemDropType ItemType = EItemDropType::Bottle; // 기본값(원하는 값으로)
+
+    // 메시 배열 (블루프린트에서 타입별로 세팅)
+    UPROPERTY(EditAnywhere, Category="Item")
+    TMap<EItemDropType, UStaticMesh*> ItemMeshes;
 };

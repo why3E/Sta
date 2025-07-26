@@ -19,6 +19,7 @@
 #include "MyWindSkill.h"
 #include "MyStoneWeapon.h"
 #include "MyIceWeapon.h"
+#include "MyWorldMapWidget.h"
 #include "Kismet/GameplayStatics.h"
 
 APlayerCharacter::APlayerCharacter() {
@@ -133,6 +134,13 @@ APlayerCharacter::APlayerCharacter() {
 		{
 			IA_Interaction = IA_InteractionRef.Object;
 		}
+
+		static ConstructorHelpers::FObjectFinder<UInputAction>IA_TapMapRef(TEXT("/Script/EnhancedInput.InputAction'/Game/input/IA_TapMap.IA_TapMap'"));
+		if (IA_TapMapRef.Object)
+		{
+			IA_TapMap = IA_TapMapRef.Object;
+		}
+	
 	}
 
 	// Setting (기본적으로 원하는 기본 이동을 위한 캐릭터 설정)
@@ -313,6 +321,7 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 	EnhancedInputComponent->BindAction(IA_ChangeClass, ETriggerEvent::Triggered, this, &APlayerCharacter::change_element);
 
 	EnhancedInputComponent->BindAction(IA_Interaction, ETriggerEvent::Triggered, this, &APlayerCharacter::Interaction);
+	EnhancedInputComponent->BindAction(IA_TapMap, ETriggerEvent::Triggered, this, &APlayerCharacter::MapClick);
 }
 
 void APlayerCharacter::BasicMove(const FInputActionValue& Value) {
@@ -1512,4 +1521,77 @@ void APlayerCharacter::ShowUI() {
     {
         CharacterWidget->SetVisibility(ESlateVisibility::Visible);
     }
+}
+
+void APlayerCharacter::MapClick()
+{
+    if (bIsMaping)
+    {
+        // 맵이 켜져있으면 끄기
+        if (WorldMapWidget)
+        {
+            WorldMapWidget->RemoveFromParent();
+            WorldMapWidget = nullptr;
+        }
+
+        APlayerController* PC = Cast<APlayerController>(GetController());
+        if (PC)
+        {
+            FInputModeGameOnly InputMode;
+            PC->SetInputMode(InputMode);
+            PC->bShowMouseCursor = false;
+        }
+
+        bIsMaping = false;
+    }
+    else
+    {
+        // 맵이 꺼져있으면 켜기
+        if (WorldMapWidgetClass)
+        {
+            WorldMapWidget = CreateWidget<UMyWorldMapWidget>(GetWorld(), WorldMapWidgetClass);
+            if (WorldMapWidget)
+            {
+                WorldMapWidget->AddToViewport();
+				WorldMapWidget->OnMapCloseRequested.AddDynamic(this, &APlayerCharacter::CloseMapWidget);
+
+                FVector PlayerLocation = GetActorLocation();
+                int32 XInt = FMath::RoundToInt(PlayerLocation.X);
+                int32 YInt = FMath::RoundToInt(PlayerLocation.Y);
+
+                APlayerController* PC = Cast<APlayerController>(GetController());
+                if (PC)
+                {
+                    FInputModeUIOnly InputMode;
+                    InputMode.SetWidgetToFocus(WorldMapWidget->TakeWidget());
+                    InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+                    PC->SetInputMode(InputMode);
+                    PC->bShowMouseCursor = true;
+                }
+
+                WorldMapWidget->UpdateNumber1Position(FVector2D((float)XInt, (float)YInt));
+            }
+        }
+
+        bIsMaping = true;
+    }
+}
+
+void APlayerCharacter::CloseMapWidget()
+{
+    if (WorldMapWidget)
+    {
+        WorldMapWidget->RemoveFromParent();
+        WorldMapWidget = nullptr;
+    }
+
+    APlayerController* PC = Cast<APlayerController>(GetController());
+    if (PC)
+    {
+        FInputModeGameOnly InputMode;
+        PC->SetInputMode(InputMode);
+        PC->bShowMouseCursor = false;
+    }
+
+    bIsMaping = false;
 }

@@ -15,12 +15,13 @@
 #include "ImpactPointInterface.h"
 #include "AnimationWeaponInterface.h"
 #include "ReceiveDamageInterface.h"
-
 #include "Components/SceneCaptureComponent2D.h"
 #include "Engine/TextureRenderTarget2D.h"
 #include "PaperSpriteComponent.h"
 
 #include "PlayerCharacter.generated.h"
+
+class UMyWorldMapWidget;
 
 UCLASS()
 class STATISTIC_API APlayerCharacter : public AMyCharacterBase, public IAnimationUpdateInterface, public IMyPlayerVisualInterface, public IAnimationWeaponInterface, public IImpactPointInterface
@@ -67,6 +68,8 @@ protected:
 	void QSkill();
 	void ESkill();
 	void Interaction();
+	
+	void MapClick();
 
 	UPROPERTY(VisibleAnywhere, Category = Input, Meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<class UInputMappingContext> IMC_Basic;
@@ -99,6 +102,9 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, Category = Input, Meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<class UInputAction> IA_Interaction;
+
+	UPROPERTY(VisibleAnywhere, Category = Input, Meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<class UInputAction> IA_TapMap;
 
 
 protected:
@@ -357,7 +363,16 @@ public:
 	bool bIsInteractionEnd = false; // 상호작용 종료 여부
 	bool bIsInteractionWidgetOpen = false; // 상호작용 위젯 열림 여부
 	bool bIsAttacking = false;
-
+	bool bIsMaping = false;
 public:
 	FItemInventory ItemInventory;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI")
+	TSubclassOf<UUserWidget> WorldMapWidgetClass;
+
+	UPROPERTY()
+	class UMyWorldMapWidget* WorldMapWidget;
+
+	UFUNCTION()
+	void CloseMapWidget();
 };

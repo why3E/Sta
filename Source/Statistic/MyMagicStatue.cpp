@@ -7,6 +7,7 @@
 #include "Blueprint/UserWidget.h"
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "MyWorldMapWidget.h"
 #include "EngineUtils.h"
 
 AMyMagicStatue::AMyMagicStatue()
@@ -210,6 +211,8 @@ void AMyMagicStatue::RemoveFadeWidget()
         {
             MoveComp->SetMovementMode(MOVE_Walking);
         }
+        cachedPlayer->bIsInteraction = false;
+        cachedPlayer->CurrentInteractTarget = nullptr;
     }
 
     cachedPlayer = nullptr;
@@ -244,9 +247,22 @@ void AMyMagicStatue::OnSelectorClosed()
         selectorWidgetInstance->RemoveFromParent();
         selectorWidgetInstance = nullptr;
     }
-
+    if(cachedPlayer)
+    {
+        cachedPlayer->bIsInteraction = false;
+        cachedPlayer->CurrentInteractTarget = nullptr;
+        if(cachedPlayer->bIsMaping)
+        {
+            FInputModeUIOnly InputMode;
+            InputMode.SetWidgetToFocus(cachedPlayer->WorldMapWidget->TakeWidget());
+            InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+            cachedController->SetInputMode(InputMode);
+            cachedController->bShowMouseCursor = true;
+        }
+    }
     cachedPlayer = nullptr;
     cachedController = nullptr;
+
 }
 
 void AMyMagicStatue::OnSelectorMove()

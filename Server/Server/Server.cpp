@@ -219,9 +219,9 @@ public:
 		p.packet_type = S2C_CHANGE_ELEMENT_PAKCET;
 		p.slot = slot;
 		p.is_left = is_left;
-		p.element = is_left ? (m_players[slot]->m_left_element % 3) + 1 : (m_players[slot]->m_right_element % 3) + 1;
+		p.element = is_left ? (m_players[slot]->m_left_element + 1) % 4 : (m_players[slot]->m_right_element + 1) % 4;
 
-		is_left ? m_players[slot]->m_left_element = (m_players[slot]->m_left_element % 3) + 1 : m_players[slot]->m_right_element = (m_players[slot]->m_right_element % 3) + 1;
+		is_left ? m_players[slot]->m_left_element = (m_players[slot]->m_left_element + 1) % 4 : m_players[slot]->m_right_element = (m_players[slot]->m_right_element + 1) % 4;
 
 		for (int i = 0; i < 4; ++i) {
 			if (nullptr != m_players[i]) {

@@ -764,10 +764,6 @@ void create_session(SOCKET c_socket) {
 				for (char other_id = 0; other_id < MAX_CLIENTS; ++other_id) {
 					if (client_id != other_id) {
 						if (g_s_clients[other_id]) {
-							if (!g_c_players[other_id]) {
-								return;
-								// 기다린다..?
-							}
 							APlayerCharacter* client = g_c_players[other_id];
 							p.id = client->get_id();
 							p.yaw = client->get_yaw();
@@ -1080,7 +1076,6 @@ void c_process_packet(char* packet) {
 			MyPlayer->set_hp(p->hp);
 			MyPlayer->change_element(p->element[0], true);
 			MyPlayer->change_element(p->element[1], false);
-
 			g_c_players[p->id] = MyPlayer;
 		}
 		break; }

@@ -28,8 +28,8 @@ APlayerCharacter::APlayerCharacter() {
 	m_yaw = 0.0f;
 	m_velocity = FVector(0.0f, 0.0f, 0.0f);
 	m_hp = 100;
-	m_current_element[0] = ELEMENT_WIND;
-	m_current_element[1] = ELEMENT_FIRE;
+	m_current_element[0] = -1;
+	m_current_element[1] = -1;
 
 	m_skill_id = INVALID_SKILL_ID;
 
@@ -230,9 +230,6 @@ void APlayerCharacter::BeginPlay() {
             EnableInput(PlayerController);
         } 
     }
-
-	change_element(static_cast<char>(EClassType::CT_Wind), true);
-	change_element(static_cast<char>(EClassType::CT_Ice), false);
 
     playerCurrentHp = playerMaxHp;
     playerCurrentMp = playerMaxMp;

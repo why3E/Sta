@@ -18,6 +18,10 @@ void AMyLobbyGameModeBase::BeginPlay()
 
     g_l_socket = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_OVERLAPPED);
 
+    for (int i = 0; i < 8; ++i) {
+        g_elements[i] = (0 == i % 2) ? 0 : 1;
+    }
+
     SOCKADDR_IN addr;
     addr.sin_family = AF_INET;
     addr.sin_port = htons(SERVER_PORT);

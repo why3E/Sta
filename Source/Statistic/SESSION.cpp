@@ -6,7 +6,7 @@ AMyLobbyGameModeBase* MyLobbyGameModeBase;
 UMyLobbyReadyWidget* MyLobbyReadyWidget;
 AMyPlayerController* MyPlayerController;
 
-std::array<char, 8> g_elements = { 0, 1, 0, 1, 0, 1, 0, 1 };
+std::array<char, 8> g_elements;
 
 volatile float g_time_offset;
 std::atomic<bool> g_is_host;

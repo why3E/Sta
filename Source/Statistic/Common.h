@@ -13,7 +13,22 @@
 
 //////////////////////////////////////////////////
 // Lobby
+constexpr char S2C_INIT_LOBBY_PAKCET = 0;
+constexpr char S2C_ADD_PLAYER_PAKCET = 1;
+constexpr char S2C_ERROR_CODE_PACKET = 2;
+constexpr char S2C_REMOVE_PLAYER_PAKCET = 3;
+constexpr char S2C_CHANGE_ELEMENT_PAKCET = 4;
+constexpr char S2C_START_GAME_PAKCET = 5;
 
+constexpr char C2S_INIT_LOBBY_PACKET = 20;
+constexpr char C2S_REMOVE_PLAYER_PAKCET = 21;
+constexpr char C2S_CHANGE_ELEMENT_PAKCET = 22;
+constexpr char C2S_START_GAME_PAKCET = 23;
+
+constexpr char INIT = 0;
+constexpr char SUCCEED = 1;
+constexpr char FAILED = 2;
+constexpr char DISCONNECTED = 3;
 
 //////////////////////////////////////////////////
 // In-Game
@@ -70,10 +85,10 @@ constexpr char C2H_GIMMICK_END_PACKET = 52;
 
 
 
-constexpr char ELEMENT_WIND = 1;
-constexpr char ELEMENT_FIRE = 2;
+constexpr char ELEMENT_WIND = 0;
+constexpr char ELEMENT_FIRE = 1;
+constexpr char ELEMENT_ICE = 2;
 constexpr char ELEMENT_STONE = 3;
-constexpr char ELEMENT_ICE = 4;
 
 constexpr char INVALID_SKILL_ID = -1;
 constexpr char SKILL_WIND_CUTTER = 1;
@@ -98,7 +113,6 @@ constexpr unsigned short INVALID_OBJECT_ID = 65535;
 
 //////////////////////////////////////////////////
 // Monster
-
 enum class MonsterEventType {
 	Target,
 	Attack,
@@ -423,7 +437,70 @@ struct Event {
 
 //////////////////////////////////////////////////
 // Lobby
+struct player_init_info {
+	char slot;
+	char left_element;
+	char right_element;
+};
 
+struct sc_error_code_packet {
+	unsigned char packet_size;
+	char packet_type;
+	char ec;
+};
+
+struct sc_init_lobby_packet {
+	unsigned char packet_size;
+	char packet_type;
+	player_init_info player;
+};
+
+struct sc_add_player_packet {
+	unsigned char packet_size;
+	char packet_type;
+	char slot;
+};
+
+struct sc_remove_player_packet {
+	unsigned char packet_size;
+	char packet_type;
+	char slot;
+};
+
+struct sc_change_element_packet {
+	unsigned char packet_size;
+	char packet_type;
+	char slot;
+	bool is_left;
+	char element;
+};
+
+struct sc_start_game_packet {
+	unsigned char packet_size;
+	char packet_type;
+};
+
+struct cs_init_lobby_packet {
+	unsigned char packet_size;
+	char packet_type;
+	char ip_address[16];
+};
+
+struct cs_remove_player_packet {
+	unsigned char packet_size;
+	char packet_type;
+};
+
+struct cs_change_element_packet {
+	unsigned char packet_size;
+	char packet_type;
+	bool is_left;
+};
+
+struct cs_start_game_packet {
+	unsigned char packet_size;
+	char packet_type;
+};
 
 //////////////////////////////////////////////////
 // In-Game 

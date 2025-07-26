@@ -27,7 +27,6 @@
 #include "SESSION.h"
 
 constexpr short HOST_PORT = 3000;
-FString HOST_ADDRESS = TEXT("127.0.0.1");
 
 //////////////////////////////////////////////////
 // Server
@@ -79,18 +78,20 @@ AMyPlayerController::AMyPlayerController() {
 
 void AMyPlayerController::BeginPlay() {
     Super::BeginPlay();
-    InitSocket();
+
+	MyPlayerController = this;
+	if (!GetWorld()->GetMapName().EndsWith(TEXT("Lobby"))) { InitSocket(); }
 }
 
 void AMyPlayerController::EndPlay(const EEndPlayReason::Type EndPlayReason) {
-	CleanupSocket();
 	Super::EndPlay(EndPlayReason);
+
+	if (!GetWorld()->GetMapName().EndsWith(TEXT("Lobby"))) { CleanupSocket(); }
 }
 
 //////////////////////////////////////////////////
 // Socket
 void AMyPlayerController::InitSocket() {
-	g_is_host = true;
 	g_is_running = true;
 	
 	g_time_offset = 0.0f;
@@ -102,6 +103,10 @@ void AMyPlayerController::InitSocket() {
 
 	g_s_skill_id = 0;
 	g_s_monster_id = MONSTER_ID_START;
+	
+	for (auto& client : g_s_clients) {
+		client = nullptr;
+	}
 
 	g_c_remained = 0;
 
@@ -129,15 +134,6 @@ void AMyPlayerController::InitSocket() {
 	addr.sin_port = htons(HOST_PORT);
 	addr.sin_addr.s_addr = htonl(INADDR_ANY);
 
-	if (!FParse::Value(FCommandLine::Get(), TEXT("ip="), HOST_ADDRESS)) {
-		HOST_ADDRESS = TEXT("127.0.0.1"); 
-		UE_LOG(LogTemp, Warning, TEXT("No IP Specified. Using Loopback : %s"), *HOST_ADDRESS);
-		g_is_host = true;
-	} else {
-		UE_LOG(LogTemp, Warning, TEXT("Parsed IP from Command Line : %s"), *HOST_ADDRESS);
-		g_is_host = false;
-	}
-
 	if (g_is_host) {
 		ret = bind(g_s_socket, reinterpret_cast<const sockaddr*>(&addr), sizeof(SOCKADDR_IN));
 		if (SOCKET_ERROR == ret) {
@@ -150,6 +146,7 @@ void AMyPlayerController::InitSocket() {
 		}
 	}
 
+	UE_LOG(LogTemp, Error, TEXT("HOST_ADDRESS: %s"), *HOST_ADDRESS);
 	std::string IP_ADDRESS = TCHAR_TO_UTF8(*HOST_ADDRESS);
 	inet_pton(AF_INET, IP_ADDRESS.c_str(), &addr.sin_addr);
 
@@ -164,35 +161,37 @@ void AMyPlayerController::InitSocket() {
 }
 
 void AMyPlayerController::CleanupSocket() {
-	g_is_running = false;
+	if (g_is_running) {
+		g_is_running = false;
 
-	if (g_is_host) {
-		// Join Server Thread
-		g_s_thread.join();
+		if (g_is_host) {
+			// Join Server Thread
+			g_s_thread.join();
 
-		g_c_skills.clear();
-		g_c_monsters.clear();
-		g_c_skill_collisions.clear();
-		g_c_object_collisions.clear();
+			g_c_skills.clear();
+			g_c_monsters.clear();
+			g_c_skill_collisions.clear();
+			g_c_object_collisions.clear();
 
-		// Delete SESSION
-		for (char client_id = 0; client_id < MAX_CLIENTS; ++client_id) {
-			if (g_s_clients[client_id]) {
-				g_s_clients[client_id] = nullptr;
+			// Delete SESSION
+			for (char client_id = 0; client_id < MAX_CLIENTS; ++client_id) {
+				if (g_s_clients[client_id]) {
+					g_s_clients[client_id] = nullptr;
+				}
 			}
 		}
-	}
 
-	// Delete Player
-	for (char client_id = 0; client_id < MAX_CLIENTS; ++client_id) {
-		if (g_c_players[client_id]) {
-			g_c_players[client_id]->Destroy();
-			g_c_players[client_id] = nullptr;
+		// Delete Player
+		for (char client_id = 0; client_id < MAX_CLIENTS; ++client_id) {
+			if (g_c_players[client_id]) {
+				g_c_players[client_id]->Destroy();
+				g_c_players[client_id] = nullptr;
+			}
 		}
-	}
 
-	closesocket(g_c_socket);
-	WSACleanup();
+		closesocket(g_c_socket);
+		WSACleanup();
+	}
 }
 
 //////////////////////////////////////////////////
@@ -747,8 +746,8 @@ void create_session(SOCKET c_socket) {
 				p.x = 37'975.0f + (client_id * 250.0f); p.y = -40'000.0f; p.z = 950.0f;
 				p.vx = 0.0f; p.vy = 0.0f; p.vz = 0.0f;
 				p.hp = 100;
-				p.element[0] = static_cast<char>(EClassType::CT_Wind);
-				p.element[1] = static_cast<char>(EClassType::CT_Fire);
+				p.element[0] = g_elements[2 * client_id];
+				p.element[1] = g_elements[2 * client_id + 1];
 				g_s_clients[client_id]->do_send(&p);
 
 				// Send Player Info to Others
@@ -765,6 +764,10 @@ void create_session(SOCKET c_socket) {
 				for (char other_id = 0; other_id < MAX_CLIENTS; ++other_id) {
 					if (client_id != other_id) {
 						if (g_s_clients[other_id]) {
+							if (!g_c_players[other_id]) {
+								return;
+								// 기다린다..?
+							}
 							APlayerCharacter* client = g_c_players[other_id];
 							p.id = client->get_id();
 							p.yaw = client->get_yaw();
@@ -1157,7 +1160,6 @@ void c_process_packet(char* packet) {
 		{
 			UE_LOG(LogTemp, Error, TEXT("Failed to Load AnimBP"));
 		}
-
 
 		g_c_players[p->id] = NewPlayer;
 		//UE_LOG(LogTemp, Warning, TEXT("[Client] Spawned Player %d and Stored in g_c_players"), p->id);

@@ -1,16 +1,20 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-
+#include "SESSION.h"
 #include "MyLobbyReadyWidget.h"
 #include "Enums.h"
 #include "Components/Button.h"
 #include "Components/Image.h"
 #include "Components/TextBlock.h"
-#include "Kismet/GameplayStatics.h"
+
+EXP_OVER g_recv_over;
+int g_remained = 0;
 
 void UMyLobbyReadyWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
+
+    MyLobbyReadyWidget = this;
 
     // 초기 속성 설정
     CurrentClassTypeLeft = EClassType::CT_Wind;
@@ -21,7 +25,7 @@ void UMyLobbyReadyWidget::NativeConstruct()
     UpdateImageByClassType(CurrentClassTypeRight, MainRight);
 
     if (Number1OnOff)
-        Number1OnOff->SetOpacity(1.0f);
+        Number1OnOff->SetOpacity(0.25f);
 
     if (Number2OnOff)
         Number2OnOff->SetOpacity(0.25f);
@@ -34,7 +38,7 @@ void UMyLobbyReadyWidget::NativeConstruct()
 
     // 텍스트 초기화
     if (Number1)
-        Number1->SetText(FText::FromString(TEXT("Player 1")));
+        Number1->SetText(FText::FromString(TEXT("Open")));
 
     if (Number2)
         Number2->SetText(FText::FromString(TEXT("Open")));
@@ -47,7 +51,9 @@ void UMyLobbyReadyWidget::NativeConstruct()
 
 	if (StartButton)
 	{
-		StartButton->OnClicked.AddUniqueDynamic(this, &UMyLobbyReadyWidget::OnStartButtonClicked);
+        if (false == g_is_host) { StartButton->SetVisibility(ESlateVisibility::Collapsed); }
+
+        StartButton->OnClicked.AddUniqueDynamic(this, &UMyLobbyReadyWidget::OnStartButtonClicked);
 	}
 
 	if (OutButton)
@@ -68,25 +74,12 @@ void UMyLobbyReadyWidget::NativeConstruct()
 
 void UMyLobbyReadyWidget::OnStartButtonClicked()
 {
-    APlayerController* PC = GetWorld()->GetFirstPlayerController();
-    if (PC)
-    {
-        // 마우스 커서 숨기기
-        PC->bShowMouseCursor = false;
+    if (false == g_is_host) { return; }
 
-        // 입력 모드를 게임 플레이 모드로 전환 (게임 및 UI 입력 모두 허용)
-        FInputModeGameOnly InputMode;
-        PC->SetInputMode(InputMode);
-    }
-    // 월드 컨텍스트 가져오기
-    UWorld* World = GetWorld();
-    if (World)
-    {
-        // 레벨 경로는 프로젝트 내 경로 (패키지 경로)
-        FString LevelName = TEXT("DemoLevel1");
-
-        UGameplayStatics::OpenLevel(World, FName(*LevelName));
-    }
+    cs_start_game_packet p;
+    p.packet_size = sizeof(cs_start_game_packet);
+    p.packet_type = C2S_START_GAME_PAKCET;
+    g_do_send(&p);
 }
 
 void UMyLobbyReadyWidget::OnOutButtonClicked()
@@ -97,12 +90,18 @@ void UMyLobbyReadyWidget::OnOutButtonClicked()
 
 void UMyLobbyReadyWidget::OnChangeLeftClicked()
 {
+    cs_change_element_packet p;
+    p.packet_size = sizeof(cs_change_element_packet);
+    p.packet_type = C2S_CHANGE_ELEMENT_PAKCET;
+    p.is_left = true;
+    g_do_send(&p);
+
     switch (CurrentClassTypeLeft)
     {
-    case EClassType::CT_Wind:  CurrentClassTypeLeft = EClassType::CT_Stone; break;
-    case EClassType::CT_Stone: CurrentClassTypeLeft = EClassType::CT_Ice;   break;
-    case EClassType::CT_Ice:   CurrentClassTypeLeft = EClassType::CT_Fire;  break;
-    case EClassType::CT_Fire:  CurrentClassTypeLeft = EClassType::CT_Wind;  break;
+    case EClassType::CT_Wind:  CurrentClassTypeLeft = EClassType::CT_Fire; break;
+    case EClassType::CT_Fire: CurrentClassTypeLeft = EClassType::CT_Ice;   break;
+    case EClassType::CT_Ice:   CurrentClassTypeLeft = EClassType::CT_Stone;  break;
+    case EClassType::CT_Stone:  CurrentClassTypeLeft = EClassType::CT_Wind;  break;
     default:                   CurrentClassTypeLeft = EClassType::CT_Wind;  break;
     }
 
@@ -111,13 +110,19 @@ void UMyLobbyReadyWidget::OnChangeLeftClicked()
 
 void UMyLobbyReadyWidget::OnChangeRightClicked()
 {
+    cs_change_element_packet p;
+    p.packet_size = sizeof(cs_change_element_packet);
+    p.packet_type = C2S_CHANGE_ELEMENT_PAKCET;
+    p.is_left = false;
+    g_do_send(&p);
+
     switch (CurrentClassTypeRight)
     {
-    case EClassType::CT_Wind:  CurrentClassTypeRight = EClassType::CT_Fire;  break;
-    case EClassType::CT_Fire:  CurrentClassTypeRight = EClassType::CT_Ice;   break;
-    case EClassType::CT_Ice:   CurrentClassTypeRight = EClassType::CT_Stone; break;
-    case EClassType::CT_Stone: CurrentClassTypeRight = EClassType::CT_Wind;  break;
-    default:                   CurrentClassTypeRight = EClassType::CT_Wind;  break;
+    case EClassType::CT_Wind:  CurrentClassTypeRight = EClassType::CT_Fire; break;
+    case EClassType::CT_Fire: CurrentClassTypeRight = EClassType::CT_Ice;   break;
+    case EClassType::CT_Ice:   CurrentClassTypeRight = EClassType::CT_Stone;  break;
+    case EClassType::CT_Stone:  CurrentClassTypeRight = EClassType::CT_Wind;  break;
+    default:                   CurrentClassTypeRight = EClassType::CT_Fire;  break;
     }
 
     UpdateImageByClassType(CurrentClassTypeRight, MainRight);
@@ -154,4 +159,3 @@ void UMyLobbyReadyWidget::UpdateImageByClassType(EClassType ClassType, UImage* I
         ImageWidget->SetBrush(NewBrush);
     }
 }
-

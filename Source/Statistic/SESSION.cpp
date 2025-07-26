@@ -1,9 +1,18 @@
 #include "SESSION.h"
 
+FString HOST_ADDRESS;
+
+AMyLobbyGameModeBase* MyLobbyGameModeBase;
+UMyLobbyReadyWidget* MyLobbyReadyWidget;
+AMyPlayerController* MyPlayerController;
+
+std::array<char, 8> g_elements = { 0, 1, 0, 1, 0, 1, 0, 1 };
+
 volatile float g_time_offset;
 std::atomic<bool> g_is_host;
 std::atomic<bool> g_is_running;
 
+SOCKET g_l_socket;
 SOCKET g_c_socket;
 
 std::array<APlayerCharacter*, MAX_CLIENTS> g_c_players;

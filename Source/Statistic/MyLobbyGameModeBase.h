@@ -15,7 +15,7 @@ class STATISTIC_API AMyLobbyGameModeBase : public AGameModeBase
 {
 	GENERATED_BODY()
 
-protected:
+public:
 	virtual void BeginPlay() override;
 
 	UPROPERTY(EditDefaultsOnly)
@@ -24,7 +24,7 @@ protected:
 	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<class UUserWidget> LobbyReadyUIClass;
 
-private:
+public:
 	UPROPERTY()
 	class UMyLobbyWidget* LobbyUI;
 
@@ -37,6 +37,7 @@ private:
 	// Delegate 콜백 함수
 	UFUNCTION()
 	void HandleStartPressed(const FString& IP);
+
 public:
     UFUNCTION()
     void HandleOutPressed();

@@ -5,11 +5,23 @@
 class APlayerCharacter;
 class AMySkillBase;
 class AMyEnemyBase;
+class UMyLobbyReadyWidget;
+class AMyPlayerController;
+class AMyLobbyGameModeBase;
+
+extern FString HOST_ADDRESS;
+
+extern AMyLobbyGameModeBase* MyLobbyGameModeBase;
+extern UMyLobbyReadyWidget* MyLobbyReadyWidget;
+extern AMyPlayerController* MyPlayerController;
+
+extern std::array<char, 8> g_elements;
 
 extern volatile float g_time_offset;
 extern std::atomic<bool> g_is_host;
 extern std::atomic<bool> g_is_running;
 
+extern SOCKET g_l_socket;
 extern SOCKET g_c_socket;
 
 extern std::array<APlayerCharacter*, MAX_CLIENTS> g_c_players;

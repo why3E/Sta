@@ -179,7 +179,7 @@ void AMidBossEnemyCharacter::BeginPlay()
     MontageToHitCapsuleMap.Add(TEXT("IceArrow"), RightArmLowerCollision);
     MontageToHitCapsuleMap.Add(TEXT("FireBall"), LeftArmLowerCollision);
 
-    //Die();
+    Die();
     //WindBoomEffect();
 }
 

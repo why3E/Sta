@@ -57,6 +57,14 @@ void UPlayerWidget::UpdateMpBar(float CurrentMp, float MaxMp)
     }
 }
 
+void UPlayerWidget::UpdateStBar(float CurrenSt, float MaxSt)
+{
+    if (ProgressBar_St)
+    {
+        ProgressBar_St->SetPercent(FMath::Clamp(CurrenSt / MaxSt, 0.0f, 1.0f));
+    }
+}
+
 void UPlayerWidget::UpdateCoolTimeText()
 {
     if (TextBlock_SkillQ && IsQSkill)
@@ -281,4 +289,53 @@ void UPlayerWidget::UpdateHpMpBar(float CurrentHp, float CurrentMp, int32 BarInd
     default:
         break;
     }
+}
+
+void UPlayerWidget::UpdatePotionIcons(const FItemInventory& Inventory)
+{
+    auto SetPotionUI = [](UImage* Image, UTextBlock* CountText, int32 LargeCount, int32 SmallCount, UTexture2D* LargeIcon, UTexture2D* SmallIcon)
+    {
+        if (LargeCount > 0)
+        {
+            if (Image) Image->SetBrushFromTexture(LargeIcon);
+            if (CountText) CountText->SetText(FText::AsNumber(LargeCount));
+        }
+        else if (SmallCount > 0)
+        {
+            if (Image) Image->SetBrushFromTexture(SmallIcon);
+            if (CountText) CountText->SetText(FText::AsNumber(SmallCount));
+        }
+        else
+        {
+            if (Image) Image->SetBrushFromTexture(nullptr);
+            if (CountText) CountText->SetText(FText::FromString(TEXT("0")));
+        }
+    };
+
+    SetPotionUI(
+        HPPosion,
+        HPPosion_count,
+        Inventory.GetCount(EItemDropType::HealPotion_L),
+        Inventory.GetCount(EItemDropType::HealPotion_S),
+        HPPosionLIcon,
+        HPPosionSIcon
+    );
+
+    SetPotionUI(
+        MPPosion,
+        MPPosion_count,
+        Inventory.GetCount(EItemDropType::ManaPotion_L),
+        Inventory.GetCount(EItemDropType::ManaPotion_S),
+        MPPosionLIcon,
+        MPPosionSIcon
+    );
+
+    SetPotionUI(
+        STPosion,
+        STPosion_count,
+        Inventory.GetCount(EItemDropType::StaminaPotion_L),
+        Inventory.GetCount(EItemDropType::StaminaPotion_S),
+        STPosionLIcon,
+        STPosionSIcon
+    );
 }

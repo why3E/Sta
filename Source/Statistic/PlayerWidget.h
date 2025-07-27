@@ -6,6 +6,7 @@
 #include "Components/Image.h"
 #include "Blueprint/UserWidget.h"
 #include "Components/Border.h"
+#include "Enums.h"
 #include "PlayerWidget.generated.h"
 
 class UProgressBar;
@@ -24,6 +25,9 @@ public:
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<class UProgressBar> ProgressBar_Mp;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<class UProgressBar> ProgressBar_St;
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<class UImage> Cross;
@@ -54,6 +58,8 @@ public:
 
 	void UpdateHpBar(float CurrentHp, float MaxHp);
 	void UpdateMpBar(float CurrentMp, float MaxMp);
+	void UpdateStBar(float CurrenSt, float MaxSt);
+	
 	void UpdateCountDown(float CoolTime, bool bIsQSkill);
 	void UpdateCoolTimeText();
 
@@ -95,6 +101,40 @@ public:
     UTexture2D* StoneSkillIcon;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="SkillIcon")
     UTexture2D* StoneAttackIcon;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="SkillIcon")
+    UTexture2D* HPPosionLIcon;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="SkillIcon")
+    UTexture2D* HPPosionSIcon;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="SkillIcon")
+    UTexture2D* MPPosionLIcon;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="SkillIcon")
+    UTexture2D* MPPosionSIcon;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="SkillIcon")
+    UTexture2D* STPosionLIcon;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="SkillIcon")
+    UTexture2D* STPosionSIcon;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UImage> HPPosion;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UImage> MPPosion;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UImage> STPosion;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UTextBlock> HPPosion_count;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UTextBlock> MPPosion_count;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UTextBlock> STPosion_count;
+
 
 	UPROPERTY(meta = (BindWidget))
 	TObjectPtr<class UProgressBar> ProgressBar_Hp_P2;
@@ -188,5 +228,5 @@ public:
 	UFUNCTION()
 	void UpdateHpMpBar(float CurrentHp, float CurrentMp, int32 BarIndex, float MaxHp = 100.0f, float MaxMp = 100.0f);
 
-
+	void UpdatePotionIcons(const FItemInventory& Inventory);
 };

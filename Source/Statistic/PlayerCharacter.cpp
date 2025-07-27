@@ -6,7 +6,7 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "InteractableInterface.h"
-
+#include "MidBossEnemyCharacter.h"
 #include "PlayerWidget.h"
 #include "InputAction.h"
 #include "InputMappingContext.h"
@@ -149,7 +149,29 @@ APlayerCharacter::APlayerCharacter() {
 		{
 			IA_Item = IA_ItemRef.Object;
 		}
+
+		static ConstructorHelpers::FObjectFinder<UInputAction>IA_UseItemRef(TEXT("/Script/EnhancedInput.InputAction'/Game/input/IA_UseItem.IA_UseItem'"));
+		if (IA_UseItemRef.Object)
+		{
+			IA_UseItem = IA_UseItemRef.Object;
+		}
+		static ConstructorHelpers::FObjectFinder<UInputAction>IA_UseItem1Ref(TEXT("/Script/EnhancedInput.InputAction'/Game/input/IA_UseItem1.IA_UseItem1'"));
+		if (IA_UseItem1Ref.Object)
+		{
+			IA_UseItem1 = IA_UseItem1Ref.Object;
+		}
+		static ConstructorHelpers::FObjectFinder<UInputAction>IA_UseItem2Ref(TEXT("/Script/EnhancedInput.InputAction'/Game/input/IA_UseItem2.IA_UseItem2'"));
+		if (IA_UseItem2Ref.Object)
+		{
+			IA_UseItem2 = IA_UseItem2Ref.Object;
+		}
+		static ConstructorHelpers::FObjectFinder<UInputAction>IA_SpawnRef(TEXT("/Script/EnhancedInput.InputAction'/Game/input/IA_Spawn.IA_Spawn'"));
+		if (IA_SpawnRef.Object)
+		{
+			IA_Spawn = IA_SpawnRef.Object;
+		}
 	}
+	
 
 	// Setting (기본적으로 원하는 기본 이동을 위한 캐릭터 설정)
 	{
@@ -248,6 +270,7 @@ void APlayerCharacter::BeginPlay() {
 
     playerCurrentHp = playerMaxHp;
     playerCurrentMp = playerMaxMp;
+	playerCurrentSt = playerMaxSt;
 
     if (PlayerController && PlayerWidgetClass)
     {
@@ -304,6 +327,7 @@ void APlayerCharacter::BeginPlay() {
 	ItemInventory.AddItem(EItemWorldType::HP_Flower, 4);
 	ItemInventory.AddItem(EItemWorldType::MP_Flower, 6);
 	ItemInventory.AddItem(EItemWorldType::Stamina_Flower, 8);
+	CharacterWidget->UpdatePotionIcons(ItemInventory);
 }
 
 void APlayerCharacter::EndPlay(const EEndPlayReason::Type EndPlayReason) {
@@ -349,6 +373,11 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 	EnhancedInputComponent->BindAction(IA_Interaction, ETriggerEvent::Triggered, this, &APlayerCharacter::Interaction);
 	EnhancedInputComponent->BindAction(IA_TapMap, ETriggerEvent::Triggered, this, &APlayerCharacter::MapClick);
 	EnhancedInputComponent->BindAction(IA_Item, ETriggerEvent::Triggered, this, &APlayerCharacter::Item);
+
+	EnhancedInputComponent->BindAction(IA_UseItem, ETriggerEvent::Triggered, this, &APlayerCharacter::UseItem);
+	EnhancedInputComponent->BindAction(IA_UseItem1, ETriggerEvent::Triggered, this, &APlayerCharacter::UseItem1);
+	EnhancedInputComponent->BindAction(IA_UseItem2, ETriggerEvent::Triggered, this, &APlayerCharacter::UseItem2);
+	EnhancedInputComponent->BindAction(IA_Spawn, ETriggerEvent::Triggered, this, &APlayerCharacter::SpawnMonster);
 }
 
 void APlayerCharacter::BasicMove(const FInputActionValue& Value) {
@@ -478,6 +507,8 @@ void APlayerCharacter::StopJump() {
 
 void APlayerCharacter::DashStart() {
 	if (!CheckBackMove)	{
+		if (bIsDash || bIsHold || bIsIceAiming) return;
+		if (playerCurrentSt < 10.0f) return; // 대시를 위한 스태미나가 부족한 경우
 		bIsDash = true;
 	}
 }
@@ -1013,9 +1044,21 @@ void APlayerCharacter::EquipWeapon(AMyWeapon* Weapon, bool bIsLeftType) {
 
 void APlayerCharacter::Tick(float DeltaTime) {
 	Super::Tick(DeltaTime);
-
-	float MpRenRate = 10.0f;
+	
+	
+	float MpRenRate = 1.0f;
 	playerCurrentMp = FMath::Clamp(playerCurrentMp + MpRenRate * DeltaTime, 0.0f, playerMaxMp);
+
+	if(bIsDash){
+		playerCurrentSt = FMath::Clamp(playerCurrentSt - 2.0f * DeltaTime, 0.0f, playerMaxSt);
+	}
+	else{
+		playerCurrentSt = FMath::Clamp(playerCurrentSt + MpRenRate * DeltaTime, 0.0f, playerMaxSt);
+	}
+	if(playerCurrentSt <= 0.0f && bIsDash) {
+		bIsDash = false;
+		GetCharacterMovement()->MaxWalkSpeed = 280.0f;
+	}
 
 	if (!bCanUseSkillQ)
 	{
@@ -1555,6 +1598,7 @@ void APlayerCharacter::UpdateUI() {
     {
         CharacterWidget->UpdateHpBar(playerCurrentHp, playerMaxHp);
         CharacterWidget->UpdateMpBar(playerCurrentMp, playerMaxMp);
+		CharacterWidget->UpdateStBar(playerCurrentSt, playerMaxSt);
     }
 }
 
@@ -1751,4 +1795,122 @@ void APlayerCharacter::OnInventoryWidgetClosed()
 
 	ItemWidget = nullptr;
 	bIsIteming = false;
+}
+void APlayerCharacter::UseItem() // HP
+{
+    bool bUsed = false;
+
+    if (ItemInventory.RemoveItem(EItemDropType::HealPotion_L))
+    {
+        playerCurrentHp = FMath::Clamp(playerCurrentHp + 40.0f, 0.0f, playerMaxHp);
+        bUsed = true;
+    }
+    else if (ItemInventory.RemoveItem(EItemDropType::HealPotion_S))
+    {
+        playerCurrentHp = FMath::Clamp(playerCurrentHp + 10.0f, 0.0f, playerMaxHp);
+        bUsed = true;
+    }
+
+    if (bUsed && CharacterWidget)
+    {
+        CharacterWidget->UpdateHpBar(playerCurrentHp, playerMaxHp);
+        CharacterWidget->UpdatePotionIcons(ItemInventory);
+    }
+}
+
+void APlayerCharacter::UseItem1() // MP
+{
+    bool bUsed = false;
+
+    if (ItemInventory.RemoveItem(EItemDropType::ManaPotion_L))
+    {
+        playerCurrentMp = FMath::Clamp(playerCurrentMp + 40.0f, 0.0f, playerMaxMp);
+        bUsed = true;
+    }
+    else if (ItemInventory.RemoveItem(EItemDropType::ManaPotion_S))
+    {
+        playerCurrentMp = FMath::Clamp(playerCurrentMp + 10.0f, 0.0f, playerMaxMp);
+        bUsed = true;
+    }
+
+    if (bUsed && CharacterWidget)
+    {
+        CharacterWidget->UpdateMpBar(playerCurrentMp, playerMaxMp);
+        CharacterWidget->UpdatePotionIcons(ItemInventory);
+    }
+}
+void APlayerCharacter::UseItem2() // ST
+{
+    bool bUsed = false;
+
+    if (ItemInventory.RemoveItem(EItemDropType::StaminaPotion_L))
+    {
+        playerCurrentSt = FMath::Clamp(playerCurrentSt + 40.0f, 0.0f, playerMaxSt);
+        bUsed = true;
+    }
+    else if (ItemInventory.RemoveItem(EItemDropType::StaminaPotion_S))
+    {
+        playerCurrentSt = FMath::Clamp(playerCurrentSt + 10.0f, 0.0f, playerMaxSt);
+        bUsed = true;
+    }
+
+    if (bUsed && CharacterWidget)
+    {
+        // ST 바가 따로 있으면 여기에 Update 함수 추가
+        CharacterWidget->UpdatePotionIcons(ItemInventory);
+    }
+}
+
+void APlayerCharacter::SpawnMonster()
+{
+    if (!MidBossClass) return;
+
+    // 내 메시 정면 방향으로 300cm 앞에 소환
+    FVector Forward = GetActorForwardVector();
+    FVector SpawnLocation = GetActorLocation() + Forward * 300.0f;
+
+    FActorSpawnParameters SpawnParams;
+    SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+
+    AMidBossEnemyCharacter* SpawnedMonster = GetWorld()->SpawnActor<AMidBossEnemyCharacter>(
+        MidBossClass, SpawnLocation, FRotator::ZeroRotator, SpawnParams
+    );
+
+    if (SpawnedMonster)
+    {
+        int32 Index = static_cast<int32>(SpawnCount) % 5;
+
+        switch (Index)
+        {
+        case 0:
+            SpawnedMonster->TargetBoneName = "spine_04";
+            SpawnedMonster->ProceduralMeshAttachSocketName = "SliceSocket_Upper";
+            SpawnedMonster->OtherHalfMeshAttachSocketName = "SliceSocket_Lower";
+            break;
+        case 1:
+            SpawnedMonster->TargetBoneName = "lowerarm_r";
+            SpawnedMonster->ProceduralMeshAttachSocketName = "SliceSocket_Upper2";
+            SpawnedMonster->OtherHalfMeshAttachSocketName = "SliceSocket_Lower2";
+            break;
+        case 2:
+            SpawnedMonster->TargetBoneName = "lowerarm_l";
+            SpawnedMonster->ProceduralMeshAttachSocketName = "SliceSocket_Upper3";
+            SpawnedMonster->OtherHalfMeshAttachSocketName = "SliceSocket_Lower3";
+            break;
+        case 3:
+            SpawnedMonster->TargetBoneName = "calf_r";
+            SpawnedMonster->ProceduralMeshAttachSocketName = "SliceSocket_Upper4";
+            SpawnedMonster->OtherHalfMeshAttachSocketName = "SliceSocket_Lower4";
+            break;
+        case 4:
+            SpawnedMonster->TargetBoneName = "calf_l";
+            SpawnedMonster->ProceduralMeshAttachSocketName = "SliceSocket_Upper5";
+            SpawnedMonster->OtherHalfMeshAttachSocketName = "SliceSocket_Lower5";
+            break;
+        }
+
+        SpawnedMonster->Die(); // 바로 절단
+
+        SpawnCount += 1.0f; // 소환 카운트 증가
+    }
 }

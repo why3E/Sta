@@ -180,7 +180,7 @@ void AMidBossEnemyCharacter::BeginPlay()
     MontageToHitCapsuleMap.Add(TEXT("IceArrow"), RightArmLowerCollision);
     MontageToHitCapsuleMap.Add(TEXT("FireBall"), LeftArmLowerCollision);
 
-    Die();
+    //Die();
     //WindBoomEffect();
 }
 
@@ -541,7 +541,6 @@ void AMidBossEnemyCharacter::Die()
         GetMesh()->bNoSkeletonUpdate = true;
     }
 
-    TargetBoneName = GetBoneName();
 
     // (1) 복사 및 메시 생성
     CopySkeletalMeshToProcedural(0);
@@ -567,7 +566,7 @@ void AMidBossEnemyCharacter::Die()
     //GetMesh()->SetVisibility(false, true);
     //GetMesh()->SetHiddenInGame(true, true);
 
-    FVector BoneLocation = GetMesh()->GetBoneLocation(GetBoneName());
+    FVector BoneLocation = GetMesh()->GetBoneLocation(TargetBoneName);
 
     SliceMeshAtBone(FVector(0, 0, 1), true);
 }

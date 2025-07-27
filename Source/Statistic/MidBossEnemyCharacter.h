@@ -218,14 +218,16 @@ private:
 	TArray<FColor> Colors;
 	TArray<FProcMeshTangent> Tangents;
 	TMap<int32, int32> VertexIndexMap;
-
-	UPROPERTY(EditAnywhere)
+public:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Slice", meta = (ToolTip = "슬라이스 기준이 될 Bone 이름"))
 	FName TargetBoneName;
 
-	UPROPERTY(EditAnywhere, Category = "Slice")
+	// 절단된 ProceduralMesh가 붙을 소켓 이름
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Slice", meta = (ToolTip = "절단된 ProceduralMesh가 붙을 상단 소켓 이름"))
 	FName ProceduralMeshAttachSocketName = TEXT("SliceSocket_Upper");
 
-	UPROPERTY(EditAnywhere, Category = "Slice")
+	// 절단 후 나머지 반쪽 메쉬가 붙을 소켓 이름
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Slice", meta = (ToolTip = "절단된 OtherHalf 메쉬가 붙을 하단 소켓 이름"))
 	FName OtherHalfMeshAttachSocketName = TEXT("SliceSocket_Lower");
 
 	UPROPERTY(EditAnywhere)

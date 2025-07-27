@@ -23,6 +23,7 @@
 
 class UMyWorldMapWidget;
 class UMyInventoryWidget;
+class AMidBossEnemyCharacter;
 
 UCLASS()
 class STATISTIC_API APlayerCharacter : public AMyCharacterBase, public IAnimationUpdateInterface, public IMyPlayerVisualInterface, public IAnimationWeaponInterface, public IImpactPointInterface
@@ -71,6 +72,10 @@ protected:
 	void Interaction();
 	void Item();
 	void MapClick();
+	void SpawnMonster();
+	void UseItem();
+	void UseItem1();
+	void UseItem2();
 
 	UPROPERTY(VisibleAnywhere, Category = Input, Meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<class UInputMappingContext> IMC_Basic;
@@ -109,6 +114,16 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, Category = Input, Meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<class UInputAction> IA_Item;
+
+	UPROPERTY(VisibleAnywhere, Category = Input, Meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<class UInputAction> IA_UseItem;
+	UPROPERTY(VisibleAnywhere, Category = Input, Meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<class UInputAction> IA_UseItem1;
+	UPROPERTY(VisibleAnywhere, Category = Input, Meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<class UInputAction> IA_UseItem2;
+
+	UPROPERTY(VisibleAnywhere, Category = Input, Meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<class UInputAction> IA_Spawn;
 
 protected:
 	uint8 bIsDash : 1;
@@ -308,7 +323,13 @@ public:
 	float playerMaxMp = 100.0f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite ,Category = "Status")
 	float playerCurrentMp = 100.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite ,Category = "Status")
+	float playerMaxSt = 100.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite ,Category = "Status")
+	float playerCurrentSt = 100.0f;
 
+	bool bIsRunning = false;
+	
 public:
     // PlayerWidget 선언
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
@@ -400,4 +421,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Skill")
 	UDecalComponent* SkillRangeDecal2;
+
+	UPROPERTY(EditAnywhere, Category = "Spawn")
+	TSubclassOf<AMidBossEnemyCharacter> MidBossClass;
+
+	float SpawnCount = 0; 
 };

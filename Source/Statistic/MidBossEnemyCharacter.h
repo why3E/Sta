@@ -18,12 +18,19 @@
 
 class UCapsuleComponent;
 
+enum class BossType : uint8 {
+	IceGiant,
+	WoodGiant
+};
+
 UCLASS()
 class STATISTIC_API AMidBossEnemyCharacter : public AMyEnemyBase, public IImpactPointInterface, public IReceiveDamageInterface{
 	GENERATED_BODY()
 
 public:
 	AMidBossEnemyCharacter();
+
+	BossType BossType = BossType::WoodGiant;
 
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaTime) override;
@@ -179,6 +186,9 @@ public:
 
 	void PlayStunMontage();
 
+	UPROPERTY(EditAnywhere, Category = "Mesh")
+	TObjectPtr<USkeletalMesh> IceGiantMesh;
+	
 private:
 	// ProceduralMesh
 	UPROPERTY(VisibleAnywhere)

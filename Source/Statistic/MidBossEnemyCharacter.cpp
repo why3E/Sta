@@ -115,11 +115,18 @@ AMidBossEnemyCharacter::AMidBossEnemyCharacter()
     hpFloatingWidget->SetRelativeLocation(FVector(0, 0, 125));
     hpFloatingWidget->SetWorldScale3D(FVector(1.0, 0.23, 0.03));
     hpFloatingWidget->SetWidgetSpace(EWidgetSpace::Screen);
+
+    static ConstructorHelpers::FObjectFinder<USkeletalMesh> IceGiantMeshRef(TEXT("/Game/Wood_Monster/CharacterParts/Meshes/SK_Ice_giant.SK_Ice_giant"));
+    if (IceGiantMeshRef.Succeeded())
+    {
+        IceGiantMesh = IceGiantMeshRef.Object;
+    }
 }
 
 void AMidBossEnemyCharacter::BeginPlay()
 {
 	Super::BeginPlay();
+
     MonsterHpBarWidget = Cast<UMonsterHPBarWidget>(hpFloatingWidget->GetUserWidgetObject());
 
     HeadCollision->OnComponentBeginOverlap.AddDynamic(this, &AMidBossEnemyCharacter::OnHitCollisionOverlap);
@@ -144,7 +151,7 @@ void AMidBossEnemyCharacter::BeginPlay()
 	MontageToHitCapsuleMap.Add(TEXT("StoneThrow"), HipCollision);
 	MontageToHitCapsuleMap.Add(TEXT("WindTonado"), HipCollision);
 
-    Die();
+    //Die();
     
     
 

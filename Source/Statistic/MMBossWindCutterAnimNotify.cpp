@@ -41,6 +41,7 @@ void UMMBossWindCutterAnimNotify::Notify(USkeletalMeshComponent* MeshComp, UAnim
             unsigned short skill_id = Cast<AMidBossEnemyCharacter>(OwnerActor)->get_skill_id();
 
             WindCutter->SetID(skill_id);
+            WindCutter->SetOwner(OwnerActor);
 
             g_c_skills.emplace(skill_id, WindCutter);
 

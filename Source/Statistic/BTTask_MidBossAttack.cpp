@@ -25,7 +25,25 @@ EBTNodeResult::Type UBTTask_MidBossAttack::ExecuteTask(UBehaviorTreeComponent& O
     MidBossEnemyCharacter->FindPlayerCharacter();
 
     if (MidBossEnemyCharacter->CachedPlayerCharacter) {
-        AttackType skill_type = static_cast<AttackType>((uid(dre) % 5) + 2);
+        AttackType skill_type;
+
+        switch (MidBossEnemyCharacter->get_type()) {
+        case MonsterType::MidBoss:
+            skill_type = static_cast<AttackType>((uid(dre) % 5) + 2);
+            break;
+
+        case MonsterType::Boss:
+            if ((false == MidBossEnemyCharacter->m_used_ultimate) &&
+                (MidBossEnemyCharacter->HP <= (MidBossEnemyCharacter->MaxHP / 2))) {
+                MidBossEnemyCharacter->m_used_ultimate = true;
+                skill_type = AttackType::WindBoom;
+                break;
+            }
+
+            skill_type = static_cast<AttackType>((uid(dre) % 3) + 7);
+            break;
+        } 
+
         FVector skill_location = MidBossEnemyCharacter->CachedPlayerCharacter->GetActorLocation();
 
         {

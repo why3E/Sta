@@ -234,6 +234,7 @@ void spawn_monster(MonsterType type, FVector Location) {
 			break;
 
 		case MonsterType::MidBoss:
+		case MonsterType::Boss:
 			BPPath = TEXT("/Game/MidEnemyMonster/BP_MidBossEnemyCharacter.BP_MidBossEnemyCharacter_C");
 			BTPath = TEXT("/Game/MidEnemyMonster/MidBossBT.MidBossBT");
 			AnimBPPath = TEXT("/Game/MidEnemyMonster/Anim/ABP_MidBossEnemyAnimInstance.ABP_MidBossEnemyAnimInstance_C");
@@ -262,6 +263,7 @@ void spawn_monster(MonsterType type, FVector Location) {
 			break;
 
 		case MonsterType::MidBoss:
+		case MonsterType::Boss:
 			NewMonster = World->SpawnActor<AMidBossEnemyCharacter>(
 				MonsterBPClass,
 				SpawnLocation,
@@ -1411,6 +1413,7 @@ void c_process_packet(char* packet) {
 					break;
 
 				case MonsterType::MidBoss:
+				case MonsterType::Boss:
 					BPPath = TEXT("/Game/MidEnemyMonster/BP_MidBossEnemyCharacter.BP_MidBossEnemyCharacter_C");
 					AnimBPPath = TEXT("/Game/MidEnemyMonster/Anim/ABP_MidBossEnemyAnimInstance.ABP_MidBossEnemyAnimInstance_C");
 					break;
@@ -1438,6 +1441,7 @@ void c_process_packet(char* packet) {
 					break;
 
 				case MonsterType::MidBoss:
+				case MonsterType::Boss:
 					NewMonster = World->SpawnActor<AMidBossEnemyCharacter>(
 						MonsterBPClass,
 						SpawnLocation,

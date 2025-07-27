@@ -28,6 +28,7 @@
 #include "UObject/ConstructorHelpers.h"
 #include "NiagaraComponent.h"
 #include "TimerManager.h"
+#include "MyMusicTriggerBox.h"
 #include "DrawDebugHelpers.h"
 #include "NiagaraFunctionLibrary.h"
 
@@ -210,7 +211,7 @@ void AMidBossEnemyCharacter::Tick(float DeltaTime)
         AddMovementInput(Direction, 1.0f);
     }
 
-    if(MonsterHpBarWidget) {
+    if (MonsterHpBarWidget) {
         MonsterHpBarWidget->updateHpBar(HP, MaxHP);
         // 체력이 100이 아닐 때만 HP바 보이기
         if (HP < MaxHP) {
@@ -219,8 +220,6 @@ void AMidBossEnemyCharacter::Tick(float DeltaTime)
             hpFloatingWidget->SetVisibility(false);
         }
     }
-
-
 }
 
 void AMidBossEnemyCharacter::rotate_to_target(float DeltaTime) {
@@ -260,100 +259,44 @@ void AMidBossEnemyCharacter::start_attack(AttackType attack_type, FVector attack
 
 void AMidBossEnemyCharacter::Attack(AttackType attack_type)
 {
-    if(!bIsEndBoss)
-    {
-        switch (attack_type) {
-        case AttackType::WindCutter:
-        case AttackType::WindLaser:
-        case AttackType::StoneWave:
-            if (AttackMontage) {
-                UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+    switch (attack_type) {
+    case AttackType::WindCutter:
+    case AttackType::WindLaser:
+    case AttackType::StoneWave:
+    case AttackType::WindTornado:
+    case AttackType::StoneSkill:
+    case AttackType::IceArrow:
+    case AttackType::IceWall:
+    case AttackType::FireBall:
+        if (AttackMontage) {
+            UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 
-                if (AnimInstance) {
-                    AnimInstance->OnMontageEnded.RemoveDynamic(this, &AMidBossEnemyCharacter::OnAttackMontageEnded);
-                    AnimInstance->OnMontageEnded.AddDynamic(this, &AMidBossEnemyCharacter::OnAttackMontageEnded);
+            if (AnimInstance) {
+                AnimInstance->OnMontageEnded.RemoveDynamic(this, &AMidBossEnemyCharacter::OnAttackMontageEnded);
+                AnimInstance->OnMontageEnded.AddDynamic(this, &AMidBossEnemyCharacter::OnAttackMontageEnded);
 
-                    int32 SectionIndex = static_cast<int32>(attack_type) - 1;
-                    FName SelectedSection = Sections[SectionIndex];
+                int32 SectionIndex = static_cast<int32>(attack_type) - 2;
+                FName SelectedSection = Sections[SectionIndex];
 
-                    float PlayRate = (SelectedSection == TEXT("WindLaser")) ? 0.5f : 1.0f;
+                float PlayRate = (SelectedSection == TEXT("WindLaser")) ? 0.5f : 1.0f;
 
-                    bIsPlayingMontageSection = true; 
-                    AnimInstance->Montage_Play(AttackMontage, PlayRate);
-                    AnimInstance->Montage_JumpToSection(SelectedSection, AttackMontage);
-                    SpawnWeakPointEffectForCurrentSection(SelectedSection);
-                }
+                bIsPlayingMontageSection = true; 
+                AnimInstance->Montage_Play(AttackMontage, PlayRate);
+                AnimInstance->Montage_JumpToSection(SelectedSection, AttackMontage);
+                SpawnWeakPointEffectForCurrentSection(SelectedSection);
             }
-            break;
-
-        case AttackType::WindTornado:
-        case AttackType::StoneSkill:
-            if (AttackMontage) {
-                UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-
-                if (AnimInstance) {
-                    AnimInstance->OnMontageEnded.RemoveDynamic(this, &AMidBossEnemyCharacter::OnAttackMontageEnded);
-                    AnimInstance->OnMontageEnded.AddDynamic(this, &AMidBossEnemyCharacter::OnAttackMontageEnded);
-
-                    int32 SectionIndex = static_cast<int32>(attack_type) - 1;
-                    FName SelectedSection = Sections[SectionIndex];
-
-                    bIsPlayingMontageSection = true; 
-                    AnimInstance->Montage_Play(AttackMontage, 0.5f);
-                    AnimInstance->Montage_JumpToSection(SelectedSection, AttackMontage);
-                    SpawnWeakPointEffectForCurrentSection(SelectedSection);
-                }
-            }
-            break;
         }
-    }
-    else
-    {
-        switch (attack_type) {
-        case AttackType::WindCutter:
-        case AttackType::WindLaser:
-        case AttackType::IceArrow:
-        case AttackType::FireBall:
-            if (AttackMontage) {
-                UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+        break;
 
-                if (AnimInstance) {
-                    AnimInstance->OnMontageEnded.RemoveDynamic(this, &AMidBossEnemyCharacter::OnAttackMontageEnded);
-                    AnimInstance->OnMontageEnded.AddDynamic(this, &AMidBossEnemyCharacter::OnAttackMontageEnded);
+    case AttackType::WindBoom:
+        WindBoomEffect();
 
-                    int32 SectionIndex = static_cast<int32>(attack_type) - 1;
-                    FName SelectedSection = Sections[SectionIndex];
-
-                    float PlayRate = (SelectedSection == TEXT("WindLaser")) ? 0.5f : 1.0f;
-
-                    bIsPlayingMontageSection = true; 
-                    AnimInstance->Montage_Play(AttackMontage, PlayRate);
-                    AnimInstance->Montage_JumpToSection(SelectedSection, AttackMontage);
-                    SpawnWeakPointEffectForCurrentSection(SelectedSection);
-                }
+        if (AAIController* AICon = Cast<AAIController>(GetController())) {
+            if (UBlackboardComponent* BB = AICon->GetBlackboardComponent()) {
+                OnAttackEnded.Broadcast();
             }
-            break;
-
-        case AttackType::WindTornado:
-        //case AttackType::IceWall:
-            if (AttackMontage) {
-                UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-
-                if (AnimInstance) {
-                    AnimInstance->OnMontageEnded.RemoveDynamic(this, &AMidBossEnemyCharacter::OnAttackMontageEnded);
-                    AnimInstance->OnMontageEnded.AddDynamic(this, &AMidBossEnemyCharacter::OnAttackMontageEnded);
-
-                    int32 SectionIndex = static_cast<int32>(attack_type) - 1;
-                    FName SelectedSection = Sections[SectionIndex];
-
-                    bIsPlayingMontageSection = true; 
-                    AnimInstance->Montage_Play(AttackMontage, 0.5f);
-                    AnimInstance->Montage_JumpToSection(SelectedSection, AttackMontage);
-                    SpawnWeakPointEffectForCurrentSection(SelectedSection);
-                }
-            }
-            break;
         }
+        break;
     }
 }
 
@@ -475,8 +418,6 @@ TArray<FVector> AMidBossEnemyCharacter::GenerateWindTonadoLocations(int32 Count,
     return Result;
 }
 
-
-
 void AMidBossEnemyCharacter::Reset() {
 
 }
@@ -493,10 +434,14 @@ bool bIsProcessingHit = false;
 
 void AMidBossEnemyCharacter::OnHitCollisionOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult) {
     if (bIsProcessingHit) return; // 재진입 방지
+
     bIsProcessingHit = true;
 
     if (g_is_host) {
         if (OtherActor && (OtherActor->GetOwner() != this)) {
+            if (OtherActor->IsA(AMyMusicTriggerBox::StaticClass()) || 
+                OtherActor->IsA(AMidBossEnemyCharacter::StaticClass())) { bIsProcessingHit = false; return; }
+
             UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 
             if (!AnimInstance || !AnimInstance->Montage_IsPlaying(AttackMontage)) { bIsProcessingHit = false; return; }
@@ -848,7 +793,6 @@ void AMidBossEnemyCharacter::SliceMeshAtBone(FVector SliceNormal, bool bCreateOt
     ApplyVertexAlphaToSkeletalMesh();
 }
 
-
 void AMidBossEnemyCharacter::ApplyVertexAlphaToSkeletalMesh()
 {
     if (!GetMesh() || !GetMesh()->GetSkeletalMeshAsset()) return;
@@ -927,6 +871,7 @@ void AMidBossEnemyCharacter::ReceiveSkillHit(const FSkillInfo& Info, AActor* Cau
         }
     }
 }
+
 void AMidBossEnemyCharacter::WindBoomEffect()
 {
 	if (!WindBoomNiagaraEffect) return;
@@ -940,12 +885,15 @@ void AMidBossEnemyCharacter::WindBoomEffect()
 		true,                   // 자동 소멸
 		true                    // 자동 활성화
 	);
-    //ApplyWindBoomDamage();
+
+    if (g_is_host) {
+        ApplyWindBoomDamage();
+    }
 }
 
 void AMidBossEnemyCharacter::ApplyWindBoomDamage()
 {
-	const float DamageRadius = 400.0f; // 4.0 scale 기준 거리 (원하는 값으로 조정)
+	const float DamageRadius = 1000.0f; // 4.0 scale 기준 거리 (원하는 값으로 조정)
 	const FVector MyLoc = GetActorLocation();
 
 	TArray<AActor*> FoundPlayers;
@@ -977,11 +925,19 @@ void AMidBossEnemyCharacter::ApplyWindBoomDamage()
     DrawDebugLine(GetWorld(), MyLoc, PlayerLoc, FColor::Red, false, 1.0f, 0, 2.0f);
     #endif
 
+        if (bBlocked) {
+            UE_LOG(LogTemp, Log, TEXT("Player [%s] blocked."), *Player->GetName());
+        }
+
 		if (bBlocked && Hit.GetActor() && Hit.GetActor()->ActorHasTag(TEXT("IceWall")))
 		{
 			UE_LOG(LogTemp, Log, TEXT("Player [%s] is blocked by IceWall."), *Player->GetName());
 			continue;
-		}
+        } 
+
+        CollisionEvent collision_event = PlayerSkillEvent(Cast<APlayerCharacter>(Player)->get_id(), SKILL_WIND_BOOM);
+        std::lock_guard<std::mutex> lock(g_s_collision_events_l);
+        g_s_collision_events.push(collision_event);
 
 		// 데미지 적용
 		//UGameplayStatics::ApplyDamage(Player, 20.0f, GetController(), this, nullptr);

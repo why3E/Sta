@@ -35,13 +35,14 @@ void UMMBossIceArrowAnimNotify::Notify(USkeletalMeshComponent* MeshComp, UAnimSe
         SpawnParams.Owner = OwnerActor;
         SpawnParams.Instigator = OwnerActor->GetInstigator();
 
-        AMyIceArrow* IceArrow = MeshComp->GetWorld()->SpawnActor<AMyIceArrow>(BossCharacter->GetWindCutterClass(), SpawnLocation, FireRotation, SpawnParams);
+        AMyIceArrow* IceArrow = MeshComp->GetWorld()->SpawnActor<AMyIceArrow>(BossCharacter->GetIceArrowClass(), SpawnLocation, FireRotation, SpawnParams);
 
         if (IceArrow)
         {
             unsigned short skill_id = Cast<AMidBossEnemyCharacter>(OwnerActor)->get_skill_id();
 
             IceArrow->SetID(skill_id);
+            IceArrow->SetOwner(OwnerActor);
 
             g_c_skills.emplace(skill_id, IceArrow);
 

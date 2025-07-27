@@ -36,13 +36,14 @@ void UMMBossFireBallAnimNotify::Notify(USkeletalMeshComponent* MeshComp, UAnimSe
         SpawnParams.Owner = OwnerActor;
         SpawnParams.Instigator = OwnerActor->GetInstigator();
 
-        AMyFireBall* FireBall = MeshComp->GetWorld()->SpawnActor<AMyFireBall>(BossCharacter->GetWindCutterClass(), SpawnLocation, FireRotation, SpawnParams);
+        AMyFireBall* FireBall = MeshComp->GetWorld()->SpawnActor<AMyFireBall>(BossCharacter->GetFireBallClass(), SpawnLocation, FireRotation, SpawnParams);
 
         if (FireBall)
         {
             unsigned short skill_id = Cast<AMidBossEnemyCharacter>(OwnerActor)->get_skill_id();
 
             FireBall->SetID(skill_id);
+            FireBall->SetOwner(OwnerActor);
 
             g_c_skills.emplace(skill_id, FireBall);
 

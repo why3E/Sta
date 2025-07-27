@@ -505,6 +505,13 @@ void AMidBossEnemyCharacter::Die()
         }
     }
 
+    if (AnimInstance)
+    {
+        AnimInstance->StopAllMontages(0.1f);
+        GetMesh()->bPauseAnims = true;
+        GetMesh()->bNoSkeletonUpdate = true;
+    }
+
     TargetBoneName = GetBoneName();
 
     // (1) 복사 및 메시 생성
@@ -661,7 +668,6 @@ void AMidBossEnemyCharacter::CopySkeletalMeshToProcedural(int32 LODIndex)
 
 }
 
-
 void AMidBossEnemyCharacter::SliceMeshAtBone(FVector SliceNormal, bool bCreateOtherHalf)
 {
     if (!GetMesh() || !ProcMeshComponent)
@@ -713,35 +719,46 @@ void AMidBossEnemyCharacter::SliceMeshAtBone(FVector SliceNormal, bool bCreateOt
     ProcMeshComponent->SetSimulatePhysics(false);
     OtherHalfMesh->SetSimulatePhysics(false);
 
-    // 1. Attach with SnapToTarget then manually correct rotation
+    // Attach with SnapToTarget
     FAttachmentTransformRules AttachRules(EAttachmentRule::SnapToTarget, true);
     ProcMeshComponent->AttachToComponent(GetMesh(), AttachRules, ProceduralMeshAttachSocketName);
     OtherHalfMesh->AttachToComponent(GetMesh(), AttachRules, OtherHalfMeshAttachSocketName);
 
-    // 2. Get average center in local space (after attach)
-    FVector Center = GetAverageVertexPosition(FilteredVerticesArray);
+    // 보정 회전 적용
+    FRotator ProcSocketRot = GetMesh()->GetSocketTransform(ProceduralMeshAttachSocketName, RTS_Component).Rotator();
+    FRotator OtherSocketRot = GetMesh()->GetSocketTransform(OtherHalfMeshAttachSocketName, RTS_Component).Rotator();
 
+    ProcMeshComponent->AddLocalRotation(FRotator(270.f, 0.f, 0.f));
+    OtherHalfMesh->AddLocalRotation(FRotator(270.f, 0.f, 0.f));
+
+    // 위치 오프셋 보정 (중심 → 소켓)
+    FVector Center = GetAverageVertexPosition(FilteredVerticesArray);
     FVector ProcWorldCenter = ProcMeshComponent->GetComponentTransform().TransformPosition(Center);
     FVector ProcSocketWorld = GetMesh()->GetSocketLocation(ProceduralMeshAttachSocketName);
-    FVector ProcOffset = ProcSocketWorld - ProcWorldCenter;
-    ProcMeshComponent->AddWorldOffset(ProcOffset);
+    ProcMeshComponent->AddWorldOffset(ProcSocketWorld - ProcWorldCenter);
 
-    FVector OtherWorldCenter = OtherHalfMesh->GetComponentTransform().TransformPosition(Center);
+    FProcMeshSection* OtherSection = OtherHalfMesh->GetProcMeshSection(0);
+    TArray<FVector> OtherVertices;
+    for (const FProcMeshVertex& V : OtherSection->ProcVertexBuffer)
+        OtherVertices.Add(V.Position);
+
+    FVector OtherCenter = GetAverageVertexPosition(OtherVertices);
+    FVector OtherWorldCenter = OtherHalfMesh->GetComponentTransform().TransformPosition(OtherCenter);
     FVector OtherSocketWorld = GetMesh()->GetSocketLocation(OtherHalfMeshAttachSocketName);
-    FVector OtherOffset = OtherSocketWorld - OtherWorldCenter;
-    OtherHalfMesh->AddWorldOffset(OtherOffset);
+    OtherHalfMesh->AddWorldOffset(OtherSocketWorld - OtherWorldCenter);
 
-    // 3. Enable physics on SkeletalMesh and slice bone
+    // Enable physics on SkeletalMesh and slice bone
     GetMesh()->SetCollisionProfileName(TEXT("Ragdoll"));
     GetMesh()->BreakConstraint(FVector(1000.f, 1000.f, 1000.f), FVector::ZeroVector, TargetBoneName);
     GetMesh()->SetSimulatePhysics(true);
 
-    // 4. Disable collision on sliced mesh
+    // Disable collision on sliced mesh
     ProcMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+    OtherHalfMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
     ApplyVertexAlphaToSkeletalMesh();
-
 }
+
 
 void AMidBossEnemyCharacter::ApplyVertexAlphaToSkeletalMesh()
 {

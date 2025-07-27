@@ -34,11 +34,15 @@ public:
 	// 클릭된 IP 저장용
 	FString EnteredIP;
 
+	FTimerHandle SleepExTimerHandle;
+
 	// Delegate 콜백 함수
 	UFUNCTION()
 	void HandleStartPressed(const FString& IP);
 
+	void SleepExTimer();
+
 public:
-    UFUNCTION()
+	UFUNCTION()
     void HandleOutPressed();
 };

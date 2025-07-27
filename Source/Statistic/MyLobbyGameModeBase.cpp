@@ -39,6 +39,8 @@ void AMyLobbyGameModeBase::BeginPlay()
             LobbyUI->OnStartPressed.AddDynamic(this, &AMyLobbyGameModeBase::HandleStartPressed);
 		}
 	}
+
+    GetWorld()->GetTimerManager().SetTimer(SleepExTimerHandle, this, &AMyLobbyGameModeBase::SleepExTimer, 1.0f, true);
 }
 
 void AMyLobbyGameModeBase::HandleStartPressed(const FString& IP)
@@ -59,12 +61,20 @@ void AMyLobbyGameModeBase::HandleStartPressed(const FString& IP)
     DWORD recv_flag = 0;
     ret = WSARecv(g_l_socket, g_recv_over.m_wsabuf, 1, &recv_bytes, &recv_flag, &g_recv_over.m_over, g_recv_callback);
 
-
     cs_init_lobby_packet p;
     p.packet_size = sizeof(cs_init_lobby_packet);
     p.packet_type = C2S_INIT_LOBBY_PACKET;
     strncpy(p.ip_address, ipCStr, sizeof(p.ip_address) - 1);
     g_do_send(&p);
+}
+
+void AMyLobbyGameModeBase::SleepExTimer() {
+    if (!g_is_running) {
+        SleepEx(1, TRUE);
+        return;
+    }
+
+    GetWorld()->GetTimerManager().ClearTimer(SleepExTimerHandle);
 }
 
 void AMyLobbyGameModeBase::HandleOutPressed()

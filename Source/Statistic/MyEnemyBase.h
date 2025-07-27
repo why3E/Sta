@@ -72,7 +72,18 @@ public:
 
 		if (std::atomic_compare_exchange_strong(&m_is_active, &expected, true)) {
 			AAIController* AICon = Cast<AAIController>(GetController());
-			UBehaviorTree* BTAsset = LoadObject<UBehaviorTree>(nullptr, TEXT("/Game/Monster/Slime/AI/BT_EnemyAI.BT_EnemyAI"));
+			UBehaviorTree* BTAsset;
+			
+			switch (m_type) {
+			case MonsterType::MidBoss:
+			case MonsterType::Boss:
+				BTAsset = LoadObject<UBehaviorTree>(nullptr, TEXT("/Game/MidEnemyMonster/MidBossBT.MidBossBT"));
+				break;
+
+			default:
+				BTAsset = LoadObject<UBehaviorTree>(nullptr, TEXT("/Game/Monster/Slime/AI/BT_EnemyAI.BT_EnemyAI"));
+				break;
+			}
 
 			AICon->RunBehaviorTree(BTAsset);
 			UE_LOG(LogTemp, Error, TEXT("Monster %d is Now Active"), m_id);

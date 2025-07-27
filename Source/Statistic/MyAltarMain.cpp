@@ -73,6 +73,8 @@ void AMyAltarMain::BeginPlay()
 
             SpawnedTorch->set_id(g_c_object_id++);
             g_c_objects[SpawnedTorch->get_id()] = SpawnedTorch;
+
+            UE_LOG(LogTemp, Warning, TEXT("Spawned Torch %d and Stored in g_c_objects"), SpawnedTorch->get_id());
         }
     }
 }

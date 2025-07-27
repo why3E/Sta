@@ -1326,6 +1326,7 @@ void c_process_packet(char* packet) {
 
 	case H2C_OBJECT_SKILL_COLLISION_PACKET: {
 		object_skill_collision_packet* p = reinterpret_cast<object_skill_collision_packet*>(packet);
+		UE_LOG(LogTemp, Warning, TEXT("Object %d Collision Occured"), p->object_id);
 		if (nullptr != g_c_objects[p->object_id]) {
 			if (g_c_objects[p->object_id]->IsA(AMyAltarTorch::StaticClass())) { 
 				Cast<AMyAltarTorch>(g_c_objects[p->object_id])->Overlap(); 

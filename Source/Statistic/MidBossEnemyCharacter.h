@@ -18,12 +18,19 @@
 
 class UCapsuleComponent;
 
+enum class BossType : uint8 {
+	IceGiant,
+	WoodGiant
+};
+
 UCLASS()
 class STATISTIC_API AMidBossEnemyCharacter : public AMyEnemyBase, public IImpactPointInterface, public IReceiveDamageInterface{
 	GENERATED_BODY()
 
 public:
 	AMidBossEnemyCharacter();
+
+	BossType BossType = BossType::WoodGiant;
 
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaTime) override;
@@ -179,6 +186,9 @@ public:
 
 	void PlayStunMontage();
 
+	UPROPERTY(EditAnywhere, Category = "Mesh")
+	TObjectPtr<USkeletalMesh> IceGiantMesh;
+	
 private:
 	// ProceduralMesh
 	UPROPERTY(VisibleAnywhere)
@@ -202,17 +212,22 @@ private:
 	FName OtherHalfMeshAttachSocketName = TEXT("SliceSocket_Lower");
 
 	UPROPERTY(EditAnywhere)
-	float CreateProceduralMeshDistance = 250.0f;
+	float CreateProceduralMeshDistance = 30.0f;
+	
 
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category = "Slice")
 	UProceduralMeshComponent* CachedOtherHalfMesh = nullptr;
+
 
 	UPROPERTY()
 	UMaterialInterface* CapMaterial;
 
 	int32 NumVertices;
-
+private:
+    float TimeSinceLastLog = 0.f;
 public:
+
+FVector GetAverageVertexPosition(const TArray<FVector>& Vertices);
     void CopySkeletalMeshToProcedural(int32 LODIndex);
     void SliceMeshAtBone(FVector SliceNormal, bool bCreateOtherHalf);
 
@@ -232,4 +247,9 @@ public:
     // Hud
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Hud")
     TSubclassOf<class ADamagePopupActor> DamagePopupActorClass;
+	
+	void ApplyVertexAlphaToSkeletalMesh();
+
+	UPROPERTY()
+	UProceduralMeshComponent* OtherHalfMesh = nullptr;
 };

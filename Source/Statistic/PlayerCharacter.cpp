@@ -20,6 +20,7 @@
 #include "MyStoneWeapon.h"
 #include "MyIceWeapon.h"
 #include "MyWorldMapWidget.h"
+#include "MyInventoryWidget.h"
 #include "MyEnemyBase.h"
 #include "Kismet/GameplayStatics.h"
 
@@ -140,6 +141,12 @@ APlayerCharacter::APlayerCharacter() {
 		if (IA_TapMapRef.Object)
 		{
 			IA_TapMap = IA_TapMapRef.Object;
+		}
+
+		static ConstructorHelpers::FObjectFinder<UInputAction>IA_ItemRef(TEXT("/Script/EnhancedInput.InputAction'/Game/input/IA_Item.IA_Item'"));
+		if (IA_ItemRef.Object)
+		{
+			IA_Item = IA_ItemRef.Object;
 		}
 	}
 
@@ -284,6 +291,18 @@ void APlayerCharacter::BeginPlay() {
         minimapCapture->SetVisibility(false, true);
         minimapCapture->SetComponentTickEnabled(false);
     }
+
+	ItemInventory.AddItem(EItemDropType::Bottle, 10);
+	ItemInventory.AddItem(EItemDropType::HealPotion_L, 5);
+	ItemInventory.AddItem(EItemDropType::ManaPotion_L, 3);
+	ItemInventory.AddItem(EItemDropType::StaminaPotion_L, 2);
+	ItemInventory.AddItem(EItemDropType::HealPotion_S, 20);
+	ItemInventory.AddItem(EItemDropType::ManaPotion_S, 15);
+	ItemInventory.AddItem(EItemDropType::StaminaPotion_S, 10);
+	
+	ItemInventory.AddItem(EItemWorldType::HP_Flower, 4);
+	ItemInventory.AddItem(EItemWorldType::MP_Flower, 6);
+	ItemInventory.AddItem(EItemWorldType::Stamina_Flower, 8);
 }
 
 void APlayerCharacter::EndPlay(const EEndPlayReason::Type EndPlayReason) {
@@ -328,6 +347,7 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 
 	EnhancedInputComponent->BindAction(IA_Interaction, ETriggerEvent::Triggered, this, &APlayerCharacter::Interaction);
 	EnhancedInputComponent->BindAction(IA_TapMap, ETriggerEvent::Triggered, this, &APlayerCharacter::MapClick);
+	EnhancedInputComponent->BindAction(IA_Item, ETriggerEvent::Triggered, this, &APlayerCharacter::Item);
 }
 
 void APlayerCharacter::BasicMove(const FInputActionValue& Value) {
@@ -1653,4 +1673,72 @@ void APlayerCharacter::CloseMapWidget()
     }
 
     bIsMaping = false;
+}
+
+void APlayerCharacter::Item()
+{
+	UE_LOG(LogTemp, Warning, TEXT("Item button pressed. Current state: %s"), bIsIteming ? TEXT("On") : TEXT("Off"));
+	if (bIsIteming)
+	{
+		// 아이템 UI가 켜져있으면 끄기
+		if (ItemWidget)
+		{
+			ItemWidget->RemoveFromParent();
+			ItemWidget = nullptr;
+		}
+
+		APlayerController* PC = Cast<APlayerController>(GetController());
+		if (PC)
+		{
+			FInputModeGameOnly InputMode;
+			PC->SetInputMode(InputMode);
+			PC->bShowMouseCursor = false;
+		}
+
+		bIsIteming = false;
+	}
+	else
+	{
+		// 아이템 UI가 꺼져있으면 켜기
+		if (ItemWidgetClass)
+		{
+			ItemWidget = CreateWidget<UMyInventoryWidget>(GetWorld(), ItemWidgetClass);
+
+			if (ItemWidget)
+			{
+				ItemWidget->AddToViewport();
+				ItemWidget->SetInventoryData(ItemInventory);
+				ItemWidget->OnInventoryClosed.AddDynamic(this, &APlayerCharacter::OnInventoryWidgetClosed);
+
+				APlayerController* PC = Cast<APlayerController>(GetController());
+				if (PC)
+				{
+					FInputModeUIOnly InputMode;
+					InputMode.SetWidgetToFocus(ItemWidget->TakeWidget());
+					InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+					PC->SetInputMode(InputMode);
+					PC->bShowMouseCursor = true;
+				}
+			}
+		}
+
+		bIsIteming = true;
+	}
+}
+
+void APlayerCharacter::OnInventoryWidgetClosed()
+{
+	UE_LOG(LogTemp, Log, TEXT("Inventory widget closed via OutButton."));
+
+	// UI 입력 모드 → 게임 전용으로 전환
+	APlayerController* PC = Cast<APlayerController>(GetController());
+	if (PC)
+	{
+		FInputModeGameOnly InputMode;
+		PC->SetInputMode(InputMode);
+		PC->bShowMouseCursor = false;
+	}
+
+	ItemWidget = nullptr;
+	bIsIteming = false;
 }

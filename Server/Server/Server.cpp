@@ -234,10 +234,18 @@ public:
 	}
 
 	void send_start_game() {
+		char num_of_players = 0;
+		for (int i = 0; i < 4; ++i) {
+			if (nullptr != m_players[i]) {
+				++num_of_players;
+			}
+		}
+
 		if (false == m_is_game_started) {
 			sc_start_game_packet p;
 			p.packet_size = sizeof(sc_start_game_packet);
 			p.packet_type = S2C_START_GAME_PAKCET;
+			p.num_of_players = num_of_players;
 
 			std::shared_ptr<SESSION> client = g_clients.at(m_players[0]->m_id);
 			if (nullptr == client) { return; }
@@ -246,11 +254,12 @@ public:
 
 			m_is_game_started = true;
 		} else {
-			Sleep(1000);
+			Sleep(2500);
 
 			sc_start_game_packet p;
 			p.packet_size = sizeof(sc_start_game_packet);
 			p.packet_type = S2C_START_GAME_PAKCET;
+			p.num_of_players = num_of_players;
 
 			for (int i = 1; i < 4; ++i) {
 				if (nullptr != m_players[i]) {

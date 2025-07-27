@@ -141,6 +141,7 @@ void AMyMagicStatue::Interact(APlayerCharacter* InteractingPlayer)
     }
 
     selectorWidgetInstance = CreateWidget<UMyUserSelectorUI>(cachedController, selectorWidget);
+
     if (selectorWidgetInstance)
     {
         selectorWidgetInstance->AddToViewport();

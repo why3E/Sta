@@ -6,6 +6,7 @@ AMyLobbyGameModeBase* MyLobbyGameModeBase;
 UMyLobbyReadyWidget* MyLobbyReadyWidget;
 AMyPlayerController* MyPlayerController;
 
+char g_num_of_players;
 std::array<char, 8> g_elements;
 
 volatile float g_time_offset;

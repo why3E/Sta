@@ -383,6 +383,11 @@ inline void g_process_packet(char* packet) {
     }
 
     case S2C_START_GAME_PAKCET: {
+        {
+            sc_start_game_packet* p = reinterpret_cast<sc_start_game_packet*>(packet);
+            g_num_of_players = p->num_of_players;
+        }
+
         APlayerController* PC = MyLobbyReadyWidget->GetWorld()->GetFirstPlayerController();
 
         if (PC)

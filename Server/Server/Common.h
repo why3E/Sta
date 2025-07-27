@@ -57,6 +57,7 @@ struct sc_change_element_packet {
 struct sc_start_game_packet {
 	unsigned char packet_size;
 	char packet_type;
+	char num_of_players;
 };
 
 struct cs_init_lobby_packet {

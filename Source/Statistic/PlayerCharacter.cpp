@@ -237,10 +237,11 @@ void APlayerCharacter::BeginPlay() {
     if (PlayerController && PlayerWidgetClass)
     {
         CharacterWidget = CreateWidget<UPlayerWidget>(PlayerController, PlayerWidgetClass);
+
         if (CharacterWidget)
         {
             CharacterWidget->AddToViewport();
-			CharacterWidget->ShowPlayers(4); // 초기 플레이어 수 설정
+			CharacterWidget->ShowPlayers(g_num_of_players); // 초기 플레이어 수 설정
             UpdateUI();
         }
     }
@@ -1008,20 +1009,21 @@ void APlayerCharacter::Tick(float DeltaTime) {
 		}
 	}
 
-	playerCurrentMp -= DeltaTime;
-	
-	if (CharacterWidget) {
-		/* 
-		// 임시 테스트용 - 아군 플레이어 체력바 업데이트
-		CharacterWidget->UpdateHpMpBar(playerCurrentMp, playerCurrentMp, 2);
-		CharacterWidget->UpdateHpMpBar(playerCurrentMp, playerCurrentMp, 3);
-		CharacterWidget->UpdateHpMpBar(playerCurrentMp, playerCurrentMp, 4);
-		*/
-	}
-	
 	UpdateUI();
 
 	if (m_is_player) {
+		if (CharacterWidget) {
+			for (int i = 0; i < g_num_of_players; ++i) {
+				if (i == m_id) { continue; }
+
+				if (g_c_players[i]) {
+					int idx = i;
+					if (i < m_id) { ++idx; }
+					CharacterWidget->UpdateHpMpBar(g_c_players[i]->playerCurrentHp, g_c_players[i]->playerCurrentMp, idx + 1);
+				}
+			}
+		}
+
 		if (m_was_moving) {
 			FVector Velocity = GetCharacterMovement()->Velocity;
 

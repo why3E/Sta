@@ -54,6 +54,7 @@ void UMyWorldMapWidget::InitializeStatues(UWorld* World)
 void UMyWorldMapWidget::TeleportToStatueByIndex(int32 Index)
 {
     if (!Statues.IsValidIndex(Index)) return;
+    UE_LOG(LogTemp, Error, TEXT("Index : %d"), Index);
 
     AMyMagicStatue* Statue = Statues[Index];
     if (!Statue) return;
@@ -68,8 +69,8 @@ void UMyWorldMapWidget::TeleportToStatueByIndex(int32 Index)
     if (!Player) return;
 
     Statue->Interact(Player);
-
 }
+
 void UMyWorldMapWidget::OnButton0Clicked() { TeleportToStatueByIndex(0); }
 void UMyWorldMapWidget::OnButton1Clicked() { TeleportToStatueByIndex(1); }
 void UMyWorldMapWidget::OnButton2Clicked() { TeleportToStatueByIndex(2); }
@@ -78,7 +79,6 @@ void UMyWorldMapWidget::OnButton4Clicked() { TeleportToStatueByIndex(4); }
 void UMyWorldMapWidget::OnButton5Clicked() { TeleportToStatueByIndex(5); }
 void UMyWorldMapWidget::OnButton6Clicked() { TeleportToStatueByIndex(6); }
 void UMyWorldMapWidget::OnButton7Clicked() { TeleportToStatueByIndex(7); }
-
 
 void UMyWorldMapWidget::UpdateNumber1Position(const FVector2D& WorldPos)
 {

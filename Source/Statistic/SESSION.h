@@ -15,6 +15,7 @@ extern AMyLobbyGameModeBase* MyLobbyGameModeBase;
 extern UMyLobbyReadyWidget* MyLobbyReadyWidget;
 extern AMyPlayerController* MyPlayerController;
 
+extern char g_num_of_players;
 extern std::array<char, 8> g_elements;
 
 extern volatile float g_time_offset;

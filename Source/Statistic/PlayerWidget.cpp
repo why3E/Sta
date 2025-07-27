@@ -39,7 +39,6 @@ void UPlayerWidget::NativeConstruct()
     if (Image_P2) Image_P2->SetRenderOpacity(0.f);
     if (Image_P3) Image_P3->SetRenderOpacity(0.f);
     if (Image_P4) Image_P4->SetRenderOpacity(0.f);
-
 }
 
 void UPlayerWidget::UpdateHpBar(float CurrentHp, float MaxHp)
@@ -87,7 +86,7 @@ void UPlayerWidget::UpdateCoolTimeText()
             TextBlock_SkillQ->SetVisibility(ESlateVisibility::Hidden);
         }
     }
-    else if(TextBlock_SkillE && !IsQSkill)
+    else if (TextBlock_SkillE && !IsQSkill)
     {
         TextBlock_SkillE->SetVisibility(ESlateVisibility::Visible);
 

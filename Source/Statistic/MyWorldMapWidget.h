@@ -110,8 +110,8 @@ private:
 public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Statues")
     TArray<AMyMagicStatue*> Statues;
+
 public:
     UFUNCTION()
     void TeleportToStatueByIndex(int32 Index);
-
 };

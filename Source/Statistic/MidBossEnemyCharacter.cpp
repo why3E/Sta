@@ -541,7 +541,6 @@ void AMidBossEnemyCharacter::Die()
         GetMesh()->bNoSkeletonUpdate = true;
     }
 
-
     // (1) 복사 및 메시 생성
     CopySkeletalMeshToProcedural(0);
 
@@ -825,7 +824,7 @@ FVector AMidBossEnemyCharacter::GetAverageVertexPosition(const TArray<FVector>& 
 
 FName AMidBossEnemyCharacter::GetBoneName() const
 {
-    return TEXT("spine_04");
+    return TEXT("lowerarm_l");
 }
 
 FName AMidBossEnemyCharacter::GetSecondBoneName() const

@@ -202,17 +202,22 @@ private:
 	FName OtherHalfMeshAttachSocketName = TEXT("SliceSocket_Lower");
 
 	UPROPERTY(EditAnywhere)
-	float CreateProceduralMeshDistance = 250.0f;
+	float CreateProceduralMeshDistance = 30.0f;
+	
 
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category = "Slice")
 	UProceduralMeshComponent* CachedOtherHalfMesh = nullptr;
+
 
 	UPROPERTY()
 	UMaterialInterface* CapMaterial;
 
 	int32 NumVertices;
-
+private:
+    float TimeSinceLastLog = 0.f;
 public:
+
+FVector GetAverageVertexPosition(const TArray<FVector>& Vertices);
     void CopySkeletalMeshToProcedural(int32 LODIndex);
     void SliceMeshAtBone(FVector SliceNormal, bool bCreateOtherHalf);
 
@@ -232,4 +237,9 @@ public:
     // Hud
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Hud")
     TSubclassOf<class ADamagePopupActor> DamagePopupActorClass;
+	
+	void ApplyVertexAlphaToSkeletalMesh();
+
+	UPROPERTY()
+	UProceduralMeshComponent* OtherHalfMesh = nullptr;
 };

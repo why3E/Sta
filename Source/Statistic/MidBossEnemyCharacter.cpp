@@ -10,7 +10,8 @@
 #include "AIController.h"
 #include "BehaviorTree/BlackboardComponent.h"
 #include "BehaviorTree/BehaviorTree.h"
-
+#include "Components/SkeletalMeshComponent.h"
+#include "Engine/SkeletalMeshSocket.h"
 #include "DrawDebugHelpers.h" // 꼭 추가!
 #include "MidBossEnemyCharacter.h"
 #include "ProceduralMeshComponent.h"
@@ -78,7 +79,7 @@ AMidBossEnemyCharacter::AMidBossEnemyCharacter()
 		Capsule->SetMobility(EComponentMobility::Movable);
 		Capsule->InitCapsuleSize(15.f, 30.f);
 		Capsule->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
-		Capsule->SetCollisionProfileName(TEXT("BlockAll"));
+		Capsule->SetCollisionProfileName(TEXT("OverlapAll"));
 		Capsule->SetGenerateOverlapEvents(true);
 		return Capsule;
 	};
@@ -143,6 +144,10 @@ void AMidBossEnemyCharacter::BeginPlay()
 	MontageToHitCapsuleMap.Add(TEXT("StoneThrow"), HipCollision);
 	MontageToHitCapsuleMap.Add(TEXT("WindTonado"), HipCollision);
 
+    Die();
+    
+    
+
 }
 
 void AMidBossEnemyCharacter::Tick(float DeltaTime)
@@ -181,6 +186,8 @@ void AMidBossEnemyCharacter::Tick(float DeltaTime)
             hpFloatingWidget->SetVisibility(false);
         }
     }
+
+
 }
 
 void AMidBossEnemyCharacter::rotate_to_target(float DeltaTime) {
@@ -384,96 +391,7 @@ TArray<FVector> AMidBossEnemyCharacter::GenerateWindTonadoLocations(int32 Count,
     return Result;
 }
 
-void AMidBossEnemyCharacter::Die()
-{
-    UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-    if (AnimInstance && AnimInstance->Montage_IsPlaying(AttackMontage))
-    {
-        AnimInstance->Montage_Stop(0.1f, AttackMontage);
-    }
-    if (AnimInstance && AnimInstance->Montage_IsPlaying(HitAttackMontage))
-    {
-        AnimInstance->Montage_Stop(0.1f, HitAttackMontage);
-    }
-    if (AAIController* AICon = Cast<AAIController>(GetController()))
-    {
-        AICon->StopMovement();
-        if (UBehaviorTreeComponent* BTComp = Cast<UBehaviorTreeComponent>(AICon->BrainComponent))
-        {
-            BTComp->StopTree(EBTStopMode::Safe);
-        }
-    }
 
-    TargetBoneName = GetBoneName();
-
-    // (1) 복사 및 메시 생성
-    CopySkeletalMeshToProcedural(0);
-
-    FTransform MeshTransform = GetMesh()->GetComponentTransform();
-    ProcMeshComponent->SetWorldTransform(MeshTransform);
-
-    ProcMeshComponent->SetWorldTransform(GetMesh()->GetComponentTransform());
-    ProcMeshComponent->SetVisibility(true, true);
-    ProcMeshComponent->SetHiddenInGame(false, true);
-
-    // 디버그: 위치/스케일/회전 로그
-    UE_LOG(LogTemp, Warning, TEXT("[Debug] Mesh Location: %s, ProcMesh Location: %s"), 
-        *GetMesh()->GetComponentLocation().ToString(), 
-        *ProcMeshComponent->GetComponentLocation().ToString());
-    UE_LOG(LogTemp, Warning, TEXT("[Debug] Mesh Scale: %s, ProcMesh Scale: %s"), 
-        *GetMesh()->GetComponentScale().ToString(), 
-        *ProcMeshComponent->GetComponentScale().ToString());
-    UE_LOG(LogTemp, Warning, TEXT("[Debug] Mesh Rot: %s, ProcMesh Rot: %s"), 
-        *GetMesh()->GetComponentRotation().ToString(), 
-        *ProcMeshComponent->GetComponentRotation().ToString());
-
-    // 머티리얼: 반드시 마지막에 실제 메시용으로!
-    for (int32 i = 0; i < GetMesh()->GetNumMaterials(); i++)
-    {
-        UMaterialInterface* Mat = GetMesh()->GetMaterial(i);
-        if (Mat) ProcMeshComponent->SetMaterial(i, Mat);
-    }
-
-    // (3) SkeletalMesh 숨기기
-    GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-    GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-    GetCapsuleComponent()->SetCanEverAffectNavigation(false);
-    GetMesh()->SetVisibility(false, true);
-    GetMesh()->SetHiddenInGame(true, true);
-
-    FVector BoneLocation = GetMesh()->GetBoneLocation(GetBoneName());
-    FVector SliceNormal = FVector(0, 0, 1); // X축 절단
-
-    UProceduralMeshComponent* DummyOtherHalf = nullptr;
-
-    UKismetProceduralMeshLibrary::SliceProceduralMesh(
-        ProcMeshComponent,
-        BoneLocation,
-        SliceNormal,
-        true, // OtherHalf 생성
-        DummyOtherHalf,
-        EProcMeshSliceCapOption::CreateNewSectionForCap,
-        CapMaterial
-    );
-
-    // 절단 후 시각적으로 구분되게 위치 이동
-    if (ProcMeshComponent)
-    {
-        FVector NewLocation = ProcMeshComponent->GetComponentLocation();
-        NewLocation.Z += 100.0f; // 위로 이동
-        ProcMeshComponent->SetWorldLocation(NewLocation);
-    }
-
-    if (DummyOtherHalf)
-    {
-        DummyOtherHalf->RegisterComponent(); // 생성된 메시 활성화
-        DummyOtherHalf->AttachToComponent(RootComponent, FAttachmentTransformRules::KeepWorldTransform);
-
-        FVector NewLocation = DummyOtherHalf->GetComponentLocation();
-        NewLocation.Z -= 100.0f; // 아래로 이동
-        DummyOtherHalf->SetWorldLocation(NewLocation);
-    }
-}
 
 void AMidBossEnemyCharacter::Reset() {
 
@@ -567,160 +485,182 @@ void AMidBossEnemyCharacter::PlayStunMontage() {
     bIsPlayingMontageSection = false; 
 }
 
+void AMidBossEnemyCharacter::Die()
+{
+    UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+    if (AnimInstance && AnimInstance->Montage_IsPlaying(AttackMontage))
+    {
+        AnimInstance->Montage_Stop(0.1f, AttackMontage);
+    }
+    if (AnimInstance && AnimInstance->Montage_IsPlaying(HitAttackMontage))
+    {
+        AnimInstance->Montage_Stop(0.1f, HitAttackMontage);
+    }
+    if (AAIController* AICon = Cast<AAIController>(GetController()))
+    {
+        AICon->StopMovement();
+        if (UBehaviorTreeComponent* BTComp = Cast<UBehaviorTreeComponent>(AICon->BrainComponent))
+        {
+            BTComp->StopTree(EBTStopMode::Safe);
+        }
+    }
+
+    TargetBoneName = GetBoneName();
+
+    // (1) 복사 및 메시 생성
+    CopySkeletalMeshToProcedural(0);
+
+    FTransform MeshTransform = GetMesh()->GetComponentTransform();
+    ProcMeshComponent->SetWorldTransform(MeshTransform);
+
+    ProcMeshComponent->SetWorldTransform(GetMesh()->GetComponentTransform());
+    ProcMeshComponent->SetVisibility(true, true);
+    ProcMeshComponent->SetHiddenInGame(false, true);
+
+    // 머티리얼: 반드시 마지막에 실제 메시용으로!
+    for (int32 i = 0; i < GetMesh()->GetNumMaterials(); i++)
+    {
+        UMaterialInterface* Mat = GetMesh()->GetMaterial(i);
+        if (Mat) ProcMeshComponent->SetMaterial(i, Mat);
+    }
+
+    // (3) SkeletalMesh 숨기기
+    GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+    GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+    GetCapsuleComponent()->SetCanEverAffectNavigation(false);
+    //GetMesh()->SetVisibility(false, true);
+    //GetMesh()->SetHiddenInGame(true, true);
+
+    FVector BoneLocation = GetMesh()->GetBoneLocation(GetBoneName());
+
+    SliceMeshAtBone(FVector(0, 0, 1), true);
+}
+
 void AMidBossEnemyCharacter::CopySkeletalMeshToProcedural(int32 LODIndex)
 {
     if (!GetMesh() || !ProcMeshComponent)
     {
-        UE_LOG(LogTemp, Warning, TEXT("CopySkeletalMeshToProcedural: SkeletalMeshComponent or ProcMeshComp is null."));
+        UE_LOG(LogTemp, Warning, TEXT("CopySkeletalMeshToProcedural: GetMesh() or ProcMeshComponent is null"));
         return;
     }
-
-    // Skeletal Mesh → ProcMesh 위치/회전 맞추기 (스케일은 별도 조정)
-    ProcMeshComponent->SetWorldLocation(GetMesh()->GetComponentLocation());
-    ProcMeshComponent->SetWorldRotation(GetMesh()->GetComponentRotation());
 
     USkeletalMesh* SkeletalMesh = GetMesh()->GetSkeletalMeshAsset();
     if (!SkeletalMesh)
     {
-        UE_LOG(LogTemp, Warning, TEXT("CopySkeletalMeshToProcedural: SkeletalMesh is null."));
+        UE_LOG(LogTemp, Warning, TEXT("CopySkeletalMeshToProcedural: SkeletalMesh is null"));
         return;
     }
 
     const FSkeletalMeshRenderData* RenderData = SkeletalMesh->GetResourceForRendering();
     if (!RenderData || !RenderData->LODRenderData.IsValidIndex(LODIndex))
     {
-        UE_LOG(LogTemp, Warning, TEXT("CopySkeletalMeshToProcedural: LODRenderData[%d] is not valid."), LODIndex);
+        UE_LOG(LogTemp, Warning, TEXT("CopySkeletalMeshToProcedural: Invalid LOD Index %d"), LODIndex);
+        return; 
+    }
+
+    NumVertices = RenderData->LODRenderData[LODIndex].GetNumVertices(); 
+
+    const FSkeletalMeshLODRenderData& LODData = RenderData->LODRenderData[LODIndex];
+    const FPositionVertexBuffer& PositionBuffer = LODData.StaticVertexBuffers.PositionVertexBuffer;
+    const FStaticMeshVertexBuffer& StaticMeshBuffer = LODData.StaticVertexBuffers.StaticMeshVertexBuffer;
+    const FRawStaticIndexBuffer16or32Interface* IndexBuffer = LODData.MultiSizeIndexContainer.GetIndexBuffer();
+
+    if (!IndexBuffer)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("CopySkeletalMeshToProcedural: Index buffer is null"));
         return;
     }
 
-    const FSkeletalMeshLODRenderData& LODRenderData = RenderData->LODRenderData[LODIndex];
+    FTransform MeshTransform = GetMesh()->GetComponentTransform();
+    FVector BoneWorldLocation = GetMesh()->GetBoneLocation(TargetBoneName);
 
-    // "Local Space" 버텍스를 그대로 사용 (ProcMeshComponent 기준)
-    FVector TargetBoneLocation = GetMesh()->GetBoneLocation(TargetBoneName);
-
-    UE_LOG(LogTemp, Warning, TEXT("TargetBoneName: %s, TargetBoneLocation: %s, Distance: %.2f"),
-        *TargetBoneName.ToString(), *TargetBoneLocation.ToString(), CreateProceduralMeshDistance);
-
-    VertexIndexMap.Reset();
     FilteredVerticesArray.Reset();
     Normals.Reset();
     Tangents.Reset();
     UV.Reset();
     Colors.Reset();
     Indices.Reset();
+    VertexIndexMap.Reset();
 
-    int32 vertexCounter = 0;
-    int32 totalVertices = 0;
-    int32 filteredVertices = 0;
+    int32 VertexCount = PositionBuffer.GetNumVertices();
+    int32 CreatedVertexCount = 0;
 
-    FTransform MeshTransform = GetMesh()->GetComponentTransform();
-
-    for (const FSkelMeshRenderSection& Section : LODRenderData.RenderSections)
+    for (int32 i = 0; i < VertexCount; ++i)
     {
-        const int32 NumSourceVertices = Section.NumVertices;
-        const int32 BaseVertexIndex = Section.BaseVertexIndex;
+        FVector LocalPosition = FVector(PositionBuffer.VertexPosition(i)); // SkeletalMesh 기준 로컬
+        FVector WorldPosition = MeshTransform.TransformPosition(LocalPosition);
 
-        for (int32 i = 0; i < NumSourceVertices; i++)
-        {
-            totalVertices++;
-            const int32 VertexIndex = i + BaseVertexIndex;
-            const FVector3f SkinnedVectorPos = LODRenderData.StaticVertexBuffers.PositionVertexBuffer.VertexPosition(VertexIndex);
-
-            // "World" 좌표는 필터링(거리 비교)에만 사용, 실제 저장은 "Local"로!
-            FVector WorldVertexPosition = MeshTransform.TransformPosition(FVector(SkinnedVectorPos));
-            float DistanceToBone = FVector::Dist(WorldVertexPosition, TargetBoneLocation);
-
-            if (DistanceToBone <= CreateProceduralMeshDistance)
-            {
-                filteredVertices++;
-                // **꼭 Local Space!**
-                FilteredVerticesArray.Add(FVector(SkinnedVectorPos));
-                VertexIndexMap.Add(VertexIndex, vertexCounter);
-                vertexCounter++;
-
-                const FVector3f Normal = LODRenderData.StaticVertexBuffers.StaticMeshVertexBuffer.VertexTangentZ(VertexIndex);
-                const FVector3f TangentX = LODRenderData.StaticVertexBuffers.StaticMeshVertexBuffer.VertexTangentX(VertexIndex);
-                const FVector2f SourceUVs = LODRenderData.StaticVertexBuffers.StaticMeshVertexBuffer.GetVertexUV(VertexIndex, 0);
-                Normals.Add(FVector(Normal));
-                Tangents.Add(FProcMeshTangent(FVector(TangentX), false));
-                UV.Add(FVector2D(SourceUVs));
-                Colors.Add(FColor(0, 0, 0, 255));
-            }
-        }
-    }
-
-    UE_LOG(LogTemp, Warning, TEXT("Vertices in original mesh: %d"), totalVertices);
-    UE_LOG(LogTemp, Warning, TEXT("Vertices within %.1f units of bone '%s': %d"),
-        CreateProceduralMeshDistance, *TargetBoneName.ToString(), filteredVertices);
-
-    const FRawStaticIndexBuffer16or32Interface* IndexBuffer = LODRenderData.MultiSizeIndexContainer.GetIndexBuffer();
-    if (!IndexBuffer)
-    {
-        UE_LOG(LogTemp, Warning, TEXT("CopySkeletalMeshToProcedural: Index buffer is null."));
-        return;
-    }
-
-    const int32 NumIndices = IndexBuffer->Num();
-    int32 SkippedTriangleCount = 0;
-    int32 TotalTriangles = NumIndices / 3;
-    int32 CreatedTriangles = 0;
-
-    for (int32 i = 0; i < NumIndices; i += 3)
-    {
-        int32 OldIndex0 = static_cast<int32>(IndexBuffer->Get(i));
-        int32 OldIndex1 = static_cast<int32>(IndexBuffer->Get(i + 1));
-        int32 OldIndex2 = static_cast<int32>(IndexBuffer->Get(i + 2));
-
-        int32 NewIndex0 = VertexIndexMap.Contains(OldIndex0) ? VertexIndexMap[OldIndex0] : -1;
-        int32 NewIndex1 = VertexIndexMap.Contains(OldIndex1) ? VertexIndexMap[OldIndex1] : -1;
-        int32 NewIndex2 = VertexIndexMap.Contains(OldIndex2) ? VertexIndexMap[OldIndex2] : -1;
-
-        // **삼각형 winding order 뒤집기도 실험 (아래 라인 두 줄 중 하나만 주석 해제)**
-        // winding order: 정방향
-        // if (조건) { Indices.Add(NewIndex0); Indices.Add(NewIndex1); Indices.Add(NewIndex2); CreatedTriangles++; }
-        // winding order: 역방향 (삼각형 면이 뒤집혀 있다면 이걸로 실험)
-        if (NewIndex0 < 0 || NewIndex1 < 0 || NewIndex2 < 0 ||
-            NewIndex0 == NewIndex1 || NewIndex1 == NewIndex2 || NewIndex2 == NewIndex0 ||
-            NewIndex0 >= FilteredVerticesArray.Num() || NewIndex1 >= FilteredVerticesArray.Num() || NewIndex2 >= FilteredVerticesArray.Num())
-        {
-            SkippedTriangleCount++;
+        float Distance = FVector::Dist(WorldPosition, BoneWorldLocation);
+        if (Distance > CreateProceduralMeshDistance)
             continue;
-        }
-        else
+
+        // 실제 메시 생성은 LocalPosition으로
+        FilteredVerticesArray.Add(LocalPosition);
+        VertexIndexMap.Add(i, CreatedVertexCount++);
+
+        FVector Normal = FVector(StaticMeshBuffer.VertexTangentZ(i));
+        FVector TangentX = FVector(StaticMeshBuffer.VertexTangentX(i));
+        FVector2D UV0 = FVector2D(StaticMeshBuffer.GetVertexUV(i, 0));
+
+        Normals.Add(Normal);
+        Tangents.Add(FProcMeshTangent(TangentX, false));
+        UV.Add(UV0);
+        Colors.Add(FColor::White);  // 마스킹 X, 전부 보이게
+    }
+
+    // 삼각형 생성
+    for (int32 i = 0; i < IndexBuffer->Num(); i += 3)
+    {
+        int32 I0 = IndexBuffer->Get(i);
+        int32 I1 = IndexBuffer->Get(i + 1);
+        int32 I2 = IndexBuffer->Get(i + 2);
+
+        int32* NewI0 = VertexIndexMap.Find(I0);
+        int32* NewI1 = VertexIndexMap.Find(I1);
+        int32* NewI2 = VertexIndexMap.Find(I2);
+
+        if (NewI0 && NewI1 && NewI2 &&
+            *NewI0 != *NewI1 && *NewI1 != *NewI2 && *NewI2 != *NewI0)
         {
-            // 아래 중 하나만 주석 해제해서 테스트!
-            Indices.Add(NewIndex0); Indices.Add(NewIndex1); Indices.Add(NewIndex2); CreatedTriangles++;
-            // Indices.Add(NewIndex2); Indices.Add(NewIndex1); Indices.Add(NewIndex0); CreatedTriangles++;
+            Indices.Add(*NewI0);
+            Indices.Add(*NewI1);
+            Indices.Add(*NewI2);
         }
     }
 
-    UE_LOG(LogTemp, Warning, TEXT("Triangles in original mesh: %d"), TotalTriangles);
-    UE_LOG(LogTemp, Warning, TEXT("Created triangles: %d"), CreatedTriangles);
-    UE_LOG(LogTemp, Warning, TEXT("Skipped degenerate or invalid triangles: %d"), SkippedTriangleCount);
+    // 메시 생성 (버텍스 컬러 포함, 마스킹 안 함)
+    ProcMeshComponent->CreateMeshSection(
+        0,
+        FilteredVerticesArray,
+        Indices,
+        Normals,
+        UV,
+        Colors,
+        Tangents,
+        false
+    );
 
-    ProcMeshComponent->CreateMeshSection(0, FilteredVerticesArray, Indices, Normals, UV, Colors, Tangents, true);
-
-    if (FilteredVerticesArray.Num() > 0)
-    {
-        ProcMeshComponent->ClearCollisionConvexMeshes();
-        ProcMeshComponent->AddCollisionConvexMesh(FilteredVerticesArray);
-    }
-
+    // 충돌 & 물리 설정
+    ProcMeshComponent->ClearCollisionConvexMeshes();
+    ProcMeshComponent->AddCollisionConvexMesh(FilteredVerticesArray);
     ProcMeshComponent->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-    ProcMeshComponent->SetCollisionObjectType(ECC_WorldDynamic);
     ProcMeshComponent->SetSimulatePhysics(false);
-    ProcMeshComponent->SetEnableGravity(true);
 
-    UMaterialInterface* SkeletalMeshMaterial = GetMesh()->GetMaterial(0);
-    if (SkeletalMeshMaterial)
+    // 머티리얼 복사
+    UMaterialInterface* BaseMat = GetMesh()->GetMaterial(0);
+    if (BaseMat)
     {
-        ProcMeshComponent->SetMaterial(0, SkeletalMeshMaterial);
+        ProcMeshComponent->SetMaterial(0, BaseMat);
     }
-    else
-    {
-        UE_LOG(LogTemp, Warning, TEXT("SkeletalMesh has no material assigned."));
-    }
+
+    ProcMeshComponent->SetWorldLocation(GetMesh()->GetComponentLocation());
+    ProcMeshComponent->SetWorldRotation(GetMesh()->GetComponentRotation());
+    ProcMeshComponent->SetWorldScale3D(GetMesh()->GetComponentScale());
+    ProcMeshComponent->SetVisibility(true, true);           // 보이게
+    ProcMeshComponent->SetHiddenInGame(false, true);        // 게임 중에도 보이게
+
 }
+
 
 void AMidBossEnemyCharacter::SliceMeshAtBone(FVector SliceNormal, bool bCreateOtherHalf)
 {
@@ -730,20 +670,24 @@ void AMidBossEnemyCharacter::SliceMeshAtBone(FVector SliceNormal, bool bCreateOt
         return;
     }
 
-    FVector BoneLocation = GetMesh()->GetBoneLocation(TargetBoneName);
-    if (BoneLocation.IsNearlyZero())
+    // 애니메이션 정지
+    if (UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance())
     {
-        UE_LOG(LogTemp, Error, TEXT("SliceMeshAtBone: Failed to get Bone '%s' location. Check if the bone exists."), *TargetBoneName.ToString());
+        AnimInstance->StopAllMontages(0.1f);
+        GetMesh()->bPauseAnims = true;
+        GetMesh()->bNoSkeletonUpdate = true;
+    }
+
+    FVector BoneLocation = GetMesh()->GetBoneLocation(TargetBoneName);
+    if (BoneLocation == FVector::ZeroVector)
+    {
+        UE_LOG(LogTemp, Error, TEXT("SliceMeshAtBone: Failed to get Bone '%s' location."), *TargetBoneName.ToString());
         return;
     }
 
-    CapMaterial = LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/Slime/M_CutFace1.M_CutFace1"));
-    if (!CapMaterial)
-    {
-        UE_LOG(LogTemp, Warning, TEXT("SliceMeshAtBone: Failed to load Cap Material."));
-    }
+    CapMaterial = LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/Monster/Slime/M_CutFace1.M_CutFace1"));
+    OtherHalfMesh = nullptr;
 
-    UProceduralMeshComponent* OtherHalfMesh = nullptr;
     UKismetProceduralMeshLibrary::SliceProceduralMesh(
         ProcMeshComponent,
         BoneLocation,
@@ -762,27 +706,77 @@ void AMidBossEnemyCharacter::SliceMeshAtBone(FVector SliceNormal, bool bCreateOt
 
     if (ProceduralMeshAttachSocketName.IsNone() || OtherHalfMeshAttachSocketName.IsNone())
     {
-        UE_LOG(LogTemp, Warning, TEXT("SliceMeshAtBone: One or both socket names are invalid."));
+        UE_LOG(LogTemp, Warning, TEXT("SliceMeshAtBone: One or both Socket Names are invalid!"));
         return;
     }
 
     ProcMeshComponent->SetSimulatePhysics(false);
     OtherHalfMesh->SetSimulatePhysics(false);
 
+    // 1. Attach with SnapToTarget then manually correct rotation
     FAttachmentTransformRules AttachRules(EAttachmentRule::SnapToTarget, true);
     ProcMeshComponent->AttachToComponent(GetMesh(), AttachRules, ProceduralMeshAttachSocketName);
     OtherHalfMesh->AttachToComponent(GetMesh(), AttachRules, OtherHalfMeshAttachSocketName);
 
+    // 2. Get average center in local space (after attach)
+    FVector Center = GetAverageVertexPosition(FilteredVerticesArray);
+
+    FVector ProcWorldCenter = ProcMeshComponent->GetComponentTransform().TransformPosition(Center);
+    FVector ProcSocketWorld = GetMesh()->GetSocketLocation(ProceduralMeshAttachSocketName);
+    FVector ProcOffset = ProcSocketWorld - ProcWorldCenter;
+    ProcMeshComponent->AddWorldOffset(ProcOffset);
+
+    FVector OtherWorldCenter = OtherHalfMesh->GetComponentTransform().TransformPosition(Center);
+    FVector OtherSocketWorld = GetMesh()->GetSocketLocation(OtherHalfMeshAttachSocketName);
+    FVector OtherOffset = OtherSocketWorld - OtherWorldCenter;
+    OtherHalfMesh->AddWorldOffset(OtherOffset);
+
+    // 3. Enable physics on SkeletalMesh and slice bone
     GetMesh()->SetCollisionProfileName(TEXT("Ragdoll"));
     GetMesh()->BreakConstraint(FVector(1000.f, 1000.f, 1000.f), FVector::ZeroVector, TargetBoneName);
     GetMesh()->SetSimulatePhysics(true);
 
+    // 4. Disable collision on sliced mesh
     ProcMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+    ApplyVertexAlphaToSkeletalMesh();
+
+}
+
+void AMidBossEnemyCharacter::ApplyVertexAlphaToSkeletalMesh()
+{
+    if (!GetMesh() || !GetMesh()->GetSkeletalMeshAsset()) return;
+
+    TArray<FLinearColor> LinearVertexColors;
+    LinearVertexColors.Init(FLinearColor(1, 1, 1, 1), NumVertices); // 흰색(보임)
+
+    // VertexIndexMap을 활용해 잘린 부분만 색상을 변경
+    for (const TPair<int32, int32>& Pair : VertexIndexMap) {
+        int32 ColorChangeIndex = Pair.Key;  // 원본 Skeletal Mesh의 버텍스 인덱스
+		if (ColorChangeIndex >= 0) {		//잘못된 Index 방지.
+            LinearVertexColors[ColorChangeIndex] = FLinearColor(0, 0, 0, 0);  // 검은색 = 마스킹 처리
+        }
+    }
+
+    // Skeletal Mesh에 버텍스 컬러 적용
+    GetMesh()->SetVertexColorOverride_LinearColor(0, LinearVertexColors);
+    GetMesh()->MarkRenderStateDirty(); // 렌더 상태 갱신
+}
+
+FVector AMidBossEnemyCharacter::GetAverageVertexPosition(const TArray<FVector>& Vertices)
+{
+    if (Vertices.Num() == 0) return FVector::ZeroVector;
+
+    FVector Sum = FVector::ZeroVector;
+    for (const FVector& V : Vertices)
+        Sum += V;
+
+    return Sum / Vertices.Num();
 }
 
 FName AMidBossEnemyCharacter::GetBoneName() const
 {
-    return TEXT("spine_03");
+    return TEXT("spine_04");
 }
 
 FName AMidBossEnemyCharacter::GetSecondBoneName() const

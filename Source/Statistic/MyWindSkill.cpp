@@ -159,12 +159,14 @@ void AMyWindSkill::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* O
             APlayerCharacter* ptr = Cast<APlayerCharacter>(OtherActor);
 
             {
-                CollisionEvent collision_event = SkillPlayerEvent(m_id);
+                CollisionEvent collision_event = SkillPlayerEvent(m_id, ptr->get_id());
                 std::lock_guard<std::mutex> lock(g_s_collision_events_l);
                 g_s_collision_events.push(collision_event);
 
-                collision_event = PlayerSkillEvent(ptr->get_id(), GetType());
-                g_s_collision_events.push(collision_event);
+                if (ptr != Owner) {
+                    collision_event = PlayerSkillEvent(ptr->get_id(), m_type);
+                    g_s_collision_events.push(collision_event);
+                }
             }
         }
     }
@@ -177,13 +179,9 @@ void AMyWindSkill::OnEndOverlap(UPrimitiveComponent* OverlappedComp, AActor* Oth
         APlayerCharacter* ptr = Cast<APlayerCharacter>(OtherActor);
 
         {
-            CollisionEvent collision_event = SkillPlayerEvent(m_id);
+            CollisionEvent collision_event = SkillPlayerEvent(m_id, ptr->get_id());
             collision_event.collision_start = false;
             std::lock_guard<std::mutex> lock(g_s_collision_events_l);
-            g_s_collision_events.push(collision_event);
-
-            collision_event = PlayerSkillEvent(ptr->get_id(), GetType());
-            collision_event.collision_start = false;
             g_s_collision_events.push(collision_event);
         }
     }
@@ -228,10 +226,6 @@ void AMyWindSkill::Overlap(unsigned short object_id, bool collision_start) {
             if (collision_start) {
                 if (!OverlappingCharacters.Contains(ptr)) {
                     OverlappingCharacters.Add(ptr);
-
-                    if (ptr != Owner) {
-                        ptr->playerCurrentHp -= 10.0f;
-                    }
                 }
             } else {
                 if (OverlappingCharacters.Contains(ptr)) {
@@ -301,7 +295,7 @@ void AMyWindSkill::SpawnMixTonado(unsigned short skill_id)
         {
             MixWindTonado->SetID(skill_id);
             MixWindTonado->SetOwner(GetOwner());
-            MixWindTonado->SetActorLocation(SpawnLocation);
+            MixWindTonado->SpawnMixWindTondado(SpawnLocation);
 
             g_c_skills.emplace(skill_id, MixWindTonado);
             UGameplayStatics::FinishSpawningActor(MixWindTonado, SpawnTransform);

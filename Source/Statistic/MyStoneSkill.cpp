@@ -183,7 +183,7 @@ void AMyStoneSkill::OnBeginOverlap(class UPrimitiveComponent* OverlappedComp, cl
 
         if (g_c_players[ptr->get_id()]) {
             {
-                CollisionEvent collision_event = SkillPlayerEvent(m_id);
+                CollisionEvent collision_event = SkillPlayerEvent(m_id, ptr->get_id());
                 std::lock_guard<std::mutex> lock(g_s_collision_events_l);
                 g_s_collision_events.push(collision_event);
 

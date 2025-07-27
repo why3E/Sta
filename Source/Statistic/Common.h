@@ -295,6 +295,7 @@ struct SkillMonsterEvent {
 
 struct SkillPlayerEvent {
 	unsigned short skill_id;
+	char player_id;
 };
 
 struct SkillObjectEvent {
@@ -676,6 +677,7 @@ struct skill_player_collision_packet {
 	unsigned char packet_size;
 	char packet_type;
 	unsigned short skill_id;
+	char player_id;
 	bool collision_start;
 };
 

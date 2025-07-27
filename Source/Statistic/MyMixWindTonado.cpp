@@ -36,7 +36,6 @@ AMyMixWindTonado::AMyMixWindTonado()
 void AMyMixWindTonado::BeginPlay()
 {
     Super::BeginPlay();
-
     GetWorld()->GetTimerManager().SetTimer(CheckOverlapTimerHandle, this, &AMyMixWindTonado::CheckOverlappingActors, 1.0f, true);
 }
 

@@ -552,6 +552,7 @@ void process_collision_event() {
 			p.packet_size = sizeof(skill_player_collision_packet);
 			p.packet_type = H2C_SKILL_PLAYER_COLLISION_PACKET;
 			p.skill_id = collision_event.data.skill_player.skill_id;
+			p.player_id = collision_event.data.skill_player.player_id;
 			p.collision_start = collision_event.collision_start;
 
 			for (char client_id = 0; client_id < MAX_CLIENTS; ++client_id) {
@@ -1279,10 +1280,10 @@ void c_process_packet(char* packet) {
 		skill_player_collision_packet* p = reinterpret_cast<skill_player_collision_packet*>(packet);
 		if (g_c_skills.count(p->skill_id)) {
 			if (nullptr != g_c_skills[p->skill_id]) {
-				g_c_skills[p->skill_id]->Overlap(INVALID_OBJECT_ID);
+				g_c_skills[p->skill_id]->Overlap(p->player_id, p->collision_start);
 			}
 		} else {
-			g_c_object_collisions[p->skill_id].push(INVALID_OBJECT_ID);
+			g_c_object_collisions[p->skill_id].push(p->player_id);
 		}
 		break; }
 

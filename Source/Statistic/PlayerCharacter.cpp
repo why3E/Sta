@@ -18,8 +18,10 @@
 #include "MyWindWeapon.h"
 #include "MyWindSkill.h"
 #include "MyStoneWeapon.h"
+#include "Components/DecalComponent.h"
 #include "MyIceWeapon.h"
 #include "MyWorldMapWidget.h"
+#include "MyInventoryWidget.h"
 #include "MyEnemyBase.h"
 #include "Kismet/GameplayStatics.h"
 
@@ -140,6 +142,12 @@ APlayerCharacter::APlayerCharacter() {
 		if (IA_TapMapRef.Object)
 		{
 			IA_TapMap = IA_TapMapRef.Object;
+		}
+
+		static ConstructorHelpers::FObjectFinder<UInputAction>IA_ItemRef(TEXT("/Script/EnhancedInput.InputAction'/Game/input/IA_Item.IA_Item'"));
+		if (IA_ItemRef.Object)
+		{
+			IA_Item = IA_ItemRef.Object;
 		}
 	}
 
@@ -284,6 +292,18 @@ void APlayerCharacter::BeginPlay() {
         minimapCapture->SetVisibility(false, true);
         minimapCapture->SetComponentTickEnabled(false);
     }
+
+	ItemInventory.AddItem(EItemDropType::Bottle, 10);
+	ItemInventory.AddItem(EItemDropType::HealPotion_L, 5);
+	ItemInventory.AddItem(EItemDropType::ManaPotion_L, 3);
+	ItemInventory.AddItem(EItemDropType::StaminaPotion_L, 2);
+	ItemInventory.AddItem(EItemDropType::HealPotion_S, 20);
+	ItemInventory.AddItem(EItemDropType::ManaPotion_S, 15);
+	ItemInventory.AddItem(EItemDropType::StaminaPotion_S, 10);
+	
+	ItemInventory.AddItem(EItemWorldType::HP_Flower, 4);
+	ItemInventory.AddItem(EItemWorldType::MP_Flower, 6);
+	ItemInventory.AddItem(EItemWorldType::Stamina_Flower, 8);
 }
 
 void APlayerCharacter::EndPlay(const EEndPlayReason::Type EndPlayReason) {
@@ -328,6 +348,7 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 
 	EnhancedInputComponent->BindAction(IA_Interaction, ETriggerEvent::Triggered, this, &APlayerCharacter::Interaction);
 	EnhancedInputComponent->BindAction(IA_TapMap, ETriggerEvent::Triggered, this, &APlayerCharacter::MapClick);
+	EnhancedInputComponent->BindAction(IA_Item, ETriggerEvent::Triggered, this, &APlayerCharacter::Item);
 }
 
 void APlayerCharacter::BasicMove(const FInputActionValue& Value) {
@@ -1141,15 +1162,24 @@ void APlayerCharacter::QSkill() {
         // 라인트레이스 실행
         bool bHit = GetWorld()->LineTraceSingleByChannel(HitResult, Start, End, ECC_Visibility, CollisionParams);
 
-        if (bHit)
+		
+        if (bHit && LeftClassType == EClassType::CT_Wind)
         {
             // 충돌 지점 저장
             CurrentImpactPoint = HitResult.ImpactPoint;
 
             // 원 업데이트 타이머 시작
             GetWorld()->GetTimerManager().SetTimer(CircleUpdateTimerHandle, this, &APlayerCharacter::UpdateCircle, 0.1f, true);
-            UE_LOG(LogTemp, Warning, TEXT("QSkill activated."));
+
         }
+		else if (bHit)
+		{
+			// 충돌 지점 저장
+			CurrentImpactPoint = HitResult.ImpactPoint;
+
+			// 원 업데이트 타이머 시작
+			GetWorld()->GetTimerManager().SetTimer(CircleUpdateTimerHandle, this, &APlayerCharacter::UpdateRectangle, 0.1f, true);
+		}
     }
 }
 
@@ -1191,109 +1221,101 @@ void APlayerCharacter::ESkill() {
         // 라인트레이스 실행
         bool bHit = GetWorld()->LineTraceSingleByChannel(HitResult, Start, End, ECC_Visibility, CollisionParams);
 
-        if (bHit)
+        if (bHit && RightClassType == EClassType::CT_Wind)
         {
             // 충돌 지점 저장
             CurrentImpactPoint = HitResult.ImpactPoint;
 
-            // 사각형 업데이트 타이머 시작
-            GetWorld()->GetTimerManager().SetTimer(RectangleUpdateTimerHandle, this, &APlayerCharacter::UpdateRectangle, 0.1f, true);
-            UE_LOG(LogTemp, Warning, TEXT("ESkill activated."));
+            // 원 업데이트 타이머 시작
+            GetWorld()->GetTimerManager().SetTimer(CircleUpdateTimerHandle, this, &APlayerCharacter::UpdateCircle, 0.1f, true);
+
         }
+		else if (bHit)
+		{
+			// 충돌 지점 저장
+			CurrentImpactPoint = HitResult.ImpactPoint;
+
+			// 원 업데이트 타이머 시작
+			GetWorld()->GetTimerManager().SetTimer(CircleUpdateTimerHandle, this, &APlayerCharacter::UpdateRectangle, 0.1f, true);
+		}
     }
 }
 
-void APlayerCharacter::UpdateCircle() {
-    if (bIsQDrawing)
+void APlayerCharacter::UpdateCircle()
+{
+    if (bIsQDrawing && SkillRangeDecal)
     {
-        // 카메라 위치와 방향 가져오기
         FVector CameraLocation;
         FRotator CameraRotation;
         GetController()->GetPlayerViewPoint(CameraLocation, CameraRotation);
 
-        // 라인트레이스 시작점과 끝점 설정
         FVector Start = CameraLocation;
-        FVector End = Start + (CameraRotation.Vector() * 10000.0f); // 10,000 단위 거리
+        FVector End = Start + (CameraRotation.Vector() * 10000.0f);
 
-        // 충돌 파라미터 설정
         FHitResult HitResult;
         FCollisionQueryParams CollisionParams;
-        CollisionParams.AddIgnoredActor(this); // 자기 자신은 무시
+        CollisionParams.AddIgnoredActor(this);
 
-        // 라인트레이스 실행
         bool bHit = GetWorld()->LineTraceSingleByChannel(HitResult, Start, End, ECC_Visibility, CollisionParams);
 
         if (bHit)
         {
-            // 충돌 지점 업데이트
             CurrentImpactPoint = HitResult.ImpactPoint;
-			FVector Direction = (CurrentImpactPoint - GetActorLocation()).GetSafeNormal();
-			CurrentImpactRot = Direction.Rotation();
-            // 충돌 지점에 구 모양의 디버그 라인 표시
-            DrawDebugSphere(GetWorld(), CurrentImpactPoint, 50.0f, 12, FColor::Green, false, 0.1f);
-        }
-    }
-}
-
-void APlayerCharacter::UpdateRectangle() {
-    if (bisEDrawing)
-    {
-        // 카메라 위치와 방향 가져오기
-        FVector CameraLocation;
-        FRotator CameraRotation;
-        GetController()->GetPlayerViewPoint(CameraLocation, CameraRotation);
-
-        // 라인트레이스 시작점과 끝점 설정
-        FVector Start = CameraLocation;
-        FVector End = Start + (CameraRotation.Vector() * 6000.0f); // 6,000 단위 거리
-
-        // 충돌 파라미터 설정
-        FHitResult HitResult;
-        FCollisionQueryParams CollisionParams;
-        CollisionParams.AddIgnoredActor(this); // 자기 자신은 무시
-
-        // 라인트레이스 실행
-        bool bHit = GetWorld()->LineTraceSingleByChannel(HitResult, Start, End, ECC_Visibility, CollisionParams);
-
-        if (bHit)
-        {
-            // 충돌 지점 업데이트
-            CurrentImpactPoint = HitResult.ImpactPoint;
-
-            // 방향 업데이트
             FVector Direction = (CurrentImpactPoint - GetActorLocation()).GetSafeNormal();
             CurrentImpactRot = Direction.Rotation();
 
-            // 바닥 높이를 유지하도록 Z 좌표를 고정
+            // 데칼 위치 및 회전 설정
+            SkillRangeDecal->SetWorldLocation(CurrentImpactPoint);
+            SkillRangeDecal->SetWorldRotation(FRotator(-90.f, CurrentImpactRot.Yaw, 0.f)); // 바닥 평면으로 회전
+
+            SkillRangeDecal->SetVisibility(true);
+        }
+    }
+    else if (SkillRangeDecal)
+    {
+        SkillRangeDecal->SetVisibility(false);
+    }
+}
+
+void APlayerCharacter::UpdateRectangle()
+{
+    if (bisEDrawing && SkillRangeDecal2)
+    {
+        FVector CameraLocation;
+        FRotator CameraRotation;
+        GetController()->GetPlayerViewPoint(CameraLocation, CameraRotation);
+
+        FVector Start = CameraLocation;
+        FVector End = Start + (CameraRotation.Vector() * 6000.0f);
+
+        FHitResult HitResult;
+        FCollisionQueryParams CollisionParams;
+        CollisionParams.AddIgnoredActor(this);
+
+        bool bHit = GetWorld()->LineTraceSingleByChannel(HitResult, Start, End, ECC_Visibility, CollisionParams);
+
+        if (bHit)
+        {
+            CurrentImpactPoint = HitResult.ImpactPoint;
+            FVector Direction = (CurrentImpactPoint - GetActorLocation()).GetSafeNormal();
+            CurrentImpactRot = Direction.Rotation();
+
             CurrentImpactPoint.Z = HitResult.Location.Z;
 
-            // 사각형의 중심 좌표
-            FVector Center = CurrentImpactPoint;
+            // 데칼 위치 및 회전 적용
+            SkillRangeDecal2->SetWorldLocation(CurrentImpactPoint);
+            SkillRangeDecal2->SetWorldRotation(FRotator(-90.f, CurrentImpactRot.Yaw, 0.f));
 
-            // 사각형의 크기와 방향 설정
-            float RectangleWidth = 800.0f;  // 사각형의 너비
-            float RectangleHeight = 200.0f; // 사각형의 높이
-            FVector Forward = CameraRotation.Vector();
-            FVector Right = FVector::CrossProduct(Forward, FVector::UpVector).GetSafeNormal();
+            // 스케일 적용 (1.0, 1.0, 2.5)
+            SkillRangeDecal2->SetRelativeScale3D(FVector(1.0f, 2.5f, 1.0f));
 
-            // 사각형의 네 모서리 좌표 계산 (Z 고정)
-            FVector TopLeft = Center - (Right * RectangleWidth / 2) + (Forward * RectangleHeight / 2);
-            FVector TopRight = Center + (Right * RectangleWidth / 2) + (Forward * RectangleHeight / 2);
-            FVector BottomLeft = Center - (Right * RectangleWidth / 2) - (Forward * RectangleHeight / 2);
-            FVector BottomRight = Center + (Right * RectangleWidth / 2) - (Forward * RectangleHeight / 2);
-
-            // 각 꼭짓점의 Z 좌표를 충돌 지점의 Z로 고정
-            TopLeft.Z = CurrentImpactPoint.Z;
-            TopRight.Z = CurrentImpactPoint.Z;
-            BottomLeft.Z = CurrentImpactPoint.Z;
-            BottomRight.Z = CurrentImpactPoint.Z;
-
-            // 사각형을 디버그 라인으로 그리기
-            DrawDebugLine(GetWorld(), TopLeft, TopRight, FColor::Blue, false, 0.1f, 0, 2.0f);
-            DrawDebugLine(GetWorld(), TopRight, BottomRight, FColor::Blue, false, 0.1f, 0, 2.0f);
-            DrawDebugLine(GetWorld(), BottomRight, BottomLeft, FColor::Blue, false, 0.1f, 0, 2.0f);
-            DrawDebugLine(GetWorld(), BottomLeft, TopLeft, FColor::Blue, false, 0.1f, 0, 2.0f);
+            // 데칼 표시
+            SkillRangeDecal2->SetVisibility(true);
         }
+    }
+    else if (SkillRangeDecal2)
+    {
+        SkillRangeDecal2->SetVisibility(false);
     }
 }
 
@@ -1661,4 +1683,72 @@ void APlayerCharacter::CloseMapWidget()
     }
 
     bIsMaping = false;
+}
+
+void APlayerCharacter::Item()
+{
+	UE_LOG(LogTemp, Warning, TEXT("Item button pressed. Current state: %s"), bIsIteming ? TEXT("On") : TEXT("Off"));
+	if (bIsIteming)
+	{
+		// 아이템 UI가 켜져있으면 끄기
+		if (ItemWidget)
+		{
+			ItemWidget->RemoveFromParent();
+			ItemWidget = nullptr;
+		}
+
+		APlayerController* PC = Cast<APlayerController>(GetController());
+		if (PC)
+		{
+			FInputModeGameOnly InputMode;
+			PC->SetInputMode(InputMode);
+			PC->bShowMouseCursor = false;
+		}
+
+		bIsIteming = false;
+	}
+	else
+	{
+		// 아이템 UI가 꺼져있으면 켜기
+		if (ItemWidgetClass)
+		{
+			ItemWidget = CreateWidget<UMyInventoryWidget>(GetWorld(), ItemWidgetClass);
+
+			if (ItemWidget)
+			{
+				ItemWidget->AddToViewport();
+				ItemWidget->SetInventoryData(ItemInventory);
+				ItemWidget->OnInventoryClosed.AddDynamic(this, &APlayerCharacter::OnInventoryWidgetClosed);
+
+				APlayerController* PC = Cast<APlayerController>(GetController());
+				if (PC)
+				{
+					FInputModeUIOnly InputMode;
+					InputMode.SetWidgetToFocus(ItemWidget->TakeWidget());
+					InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+					PC->SetInputMode(InputMode);
+					PC->bShowMouseCursor = true;
+				}
+			}
+		}
+
+		bIsIteming = true;
+	}
+}
+
+void APlayerCharacter::OnInventoryWidgetClosed()
+{
+	UE_LOG(LogTemp, Log, TEXT("Inventory widget closed via OutButton."));
+
+	// UI 입력 모드 → 게임 전용으로 전환
+	APlayerController* PC = Cast<APlayerController>(GetController());
+	if (PC)
+	{
+		FInputModeGameOnly InputMode;
+		PC->SetInputMode(InputMode);
+		PC->bShowMouseCursor = false;
+	}
+
+	ItemWidget = nullptr;
+	bIsIteming = false;
 }

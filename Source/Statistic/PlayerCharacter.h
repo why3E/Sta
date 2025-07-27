@@ -22,6 +22,7 @@
 #include "PlayerCharacter.generated.h"
 
 class UMyWorldMapWidget;
+class UMyInventoryWidget;
 
 UCLASS()
 class STATISTIC_API APlayerCharacter : public AMyCharacterBase, public IAnimationUpdateInterface, public IMyPlayerVisualInterface, public IAnimationWeaponInterface, public IImpactPointInterface
@@ -68,7 +69,7 @@ protected:
 	void QSkill();
 	void ESkill();
 	void Interaction();
-	
+	void Item();
 	void MapClick();
 
 	UPROPERTY(VisibleAnywhere, Category = Input, Meta = (AllowPrivateAccess = "true"))
@@ -106,6 +107,8 @@ protected:
 	UPROPERTY(VisibleAnywhere, Category = Input, Meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<class UInputAction> IA_TapMap;
 
+	UPROPERTY(VisibleAnywhere, Category = Input, Meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<class UInputAction> IA_Item;
 
 protected:
 	uint8 bIsDash : 1;
@@ -369,6 +372,8 @@ public:
 	bool bIsInteractionWidgetOpen = false; // 상호작용 위젯 열림 여부
 	bool bIsAttacking = false;
 	bool bIsMaping = false;
+	bool bIsIteming = false;
+
 public:
 	FItemInventory ItemInventory;
 
@@ -380,4 +385,19 @@ public:
 
 	UFUNCTION()
 	void CloseMapWidget();
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI")
+	TSubclassOf<UUserWidget> ItemWidgetClass;
+
+	UPROPERTY()
+	class UMyInventoryWidget* ItemWidget;
+
+	UFUNCTION()
+	void OnInventoryWidgetClosed();
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Skill")
+	UDecalComponent* SkillRangeDecal;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Skill")
+	UDecalComponent* SkillRangeDecal2;
 };

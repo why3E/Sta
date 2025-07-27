@@ -9,11 +9,17 @@ class UTextBlock;
 class UButton;
 class UImage;
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnInventoryClosed);
+
 UCLASS()
 class STATISTIC_API UMyInventoryWidget : public UUserWidget
 {
 	GENERATED_BODY()
 
+public:
+	// 닫기 델리게이트
+	UPROPERTY(BlueprintAssignable, Category = "Event")
+	FOnInventoryClosed OnInventoryClosed;
 public:
 	// 버튼 클릭 함수들
 	UFUNCTION()
@@ -36,6 +42,9 @@ public:
 
 	UFUNCTION()
 	void OnMakeButtonClicked();
+
+	UFUNCTION()
+	void OnOutButtonClicked();
 
 protected:
 	virtual void NativeConstruct() override;
@@ -81,6 +90,9 @@ protected:
 	UPROPERTY(meta = (BindWidget))
 	class UButton* Button_Make;
 
+	UPROPERTY(meta = (BindWidget))
+	class UButton* OutButton;
+
 	// 제작 관련 텍스트
 	UPROPERTY(meta = (BindWidget))
 	class UTextBlock* ResultItem_Text;
@@ -102,10 +114,14 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void SetInventoryData(const FItemInventory& NewInventory);
 
+	void UpdateInventory();
+
 protected:
 	// 전달된 인벤토리 정보
 	UPROPERTY()
 	FItemInventory InventoryData;
+
+	void SetNeedFlowerInfo(UTexture2D* FlowerTexture, EItemWorldType FlowerType, int32 DivideAmount, UTexture2D* ResultTexture, const FString& ResultText);
 
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory|Textures")
@@ -134,4 +150,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Inventory|Textures")
 	TObjectPtr<UTexture2D> Texture_STFlower;
+protected:
+	// 현재 선택된 결과 아이템 정보
+	EItemDropType CurrentResultItem = EItemDropType::Bottle;
+	EItemWorldType CurrentFlowerType = EItemWorldType::HP_Flower;
+	int32 CurrentFlowerDivideAmount = 1;
 };

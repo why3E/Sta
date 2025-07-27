@@ -394,4 +394,10 @@ public:
 
 	UFUNCTION()
 	void OnInventoryWidgetClosed();
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Skill")
+	UDecalComponent* SkillRangeDecal;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Skill")
+	UDecalComponent* SkillRangeDecal2;
 };

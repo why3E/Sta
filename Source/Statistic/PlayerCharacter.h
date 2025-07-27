@@ -239,6 +239,7 @@ protected:
 	void GetFireTargetLocation();
 
 private:
+	FTimerHandle SectorUpdateTimerHandle;
 	FTimerHandle SkillCastDelayTimerHandle;
 
 	char m_id;
@@ -250,6 +251,9 @@ private:
 	unsigned short m_skill_id;
 
 	bool m_is_player;
+
+	int m_last_sx;
+	int m_last_sy;
 
 	bool m_was_moving;
 
@@ -290,6 +294,7 @@ public:
 	void rotate(float yaw);
 
 	void Overlap(char skill_type, bool collision_start);
+	void UpdateSector();
 
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite ,Category = "Status")

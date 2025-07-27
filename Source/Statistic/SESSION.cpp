@@ -24,6 +24,9 @@ std::unordered_map<unsigned short, AActor*> g_c_objects;
 std::unordered_map<unsigned short, std::queue<char>> g_c_skill_collisions;
 std::unordered_map<unsigned short, std::queue<unsigned short>> g_c_object_collisions;
 
+std::mutex g_mutex[SECTOR_ROWS][SECTOR_COLS];
+std::vector<int> g_sector[SECTOR_ROWS][SECTOR_COLS];
+
 std::mutex g_s_monster_events_l;
 std::queue<MonsterEvent> g_s_monster_events;
 

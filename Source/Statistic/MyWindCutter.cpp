@@ -161,14 +161,13 @@ void AMyWindCutter::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* 
     } else if (OtherActor->IsA(AMyBombActor::StaticClass())) {
         // Skill - Object Collision
         bIsHit = true;
-        UE_LOG(LogTemp, Warning, TEXT("FireBall overlapped with Actor: %s"), *OtherActor->GetName());
 
         {
             CollisionEvent collision_event = SkillObjectEvent(m_id);
             std::lock_guard<std::mutex> lock(g_s_collision_events_l);
             g_s_collision_events.push(collision_event);
         }
-    }
+    } 
 }
 
 void AMyWindCutter::Overlap(char skill_type) {

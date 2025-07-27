@@ -4,7 +4,9 @@
 
 #include "SESSION.h"
 #include "CoreMinimal.h"
+#include "AIController.h"
 #include "GameFramework/Character.h"
+#include "BehaviorTree/BehaviorTree.h"
 #include "MyEnemyBase.generated.h"
 
 UCLASS()
@@ -18,6 +20,7 @@ public:
 	// ID
 	unsigned short m_id;
 	MonsterType m_type;
+	std::atomic<bool> m_is_active = true;
 
 	FVector m_target_location;
 
@@ -46,6 +49,35 @@ public:
 
 	virtual void start_attack(AttackType attack_type);
 	virtual void start_attack(AttackType attack_type, FVector attack_location);
+
+	void sleep() { 
+		bool expected = true;
+
+		if (std::atomic_compare_exchange_strong(&m_is_active, &expected, false)) {
+			AAIController* AICon = Cast<AAIController>(GetController());
+
+			if (AICon) {
+				AICon->StopMovement();
+
+				if (AICon->BrainComponent) {
+					AICon->BrainComponent->StopLogic(TEXT(""));
+					UE_LOG(LogTemp, Error, TEXT("Monster %d is Now Sleeping"), m_id);
+				}
+			}
+		}
+	}
+
+	void wake_up() { 
+		bool expected = false;
+
+		if (std::atomic_compare_exchange_strong(&m_is_active, &expected, true)) {
+			AAIController* AICon = Cast<AAIController>(GetController());
+			UBehaviorTree* BTAsset = LoadObject<UBehaviorTree>(nullptr, TEXT("/Game/Monster/Slime/AI/BT_EnemyAI.BT_EnemyAI"));
+
+			AICon->RunBehaviorTree(BTAsset);
+			UE_LOG(LogTemp, Error, TEXT("Monster %d is Now Active"), m_id);
+		}
+	}
 
 	// HP
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats", Meta = (AllowPrivateAccess = "true"))

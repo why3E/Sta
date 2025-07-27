@@ -20,6 +20,7 @@
 #include "MyStoneWeapon.h"
 #include "MyIceWeapon.h"
 #include "MyWorldMapWidget.h"
+#include "MyEnemyBase.h"
 #include "Kismet/GameplayStatics.h"
 
 APlayerCharacter::APlayerCharacter() {
@@ -140,7 +141,6 @@ APlayerCharacter::APlayerCharacter() {
 		{
 			IA_TapMap = IA_TapMapRef.Object;
 		}
-	
 	}
 
 	// Setting (기본적으로 원하는 기본 이동을 위한 캐릭터 설정)
@@ -216,6 +216,13 @@ APlayerCharacter::APlayerCharacter() {
 	minimapCapture->SetVisibility(false, true);
 	minimapCapture->SetComponentTickEnabled(false);
 
+	// Update Sector
+	if (g_is_host) {
+		m_last_sx = (37'975 + 50'000) / SECTOR_WIDTH;
+		m_last_sy = (40'000 + 50'000) / SECTOR_HEIGHT;
+
+		GetWorld()->GetTimerManager().SetTimer(SectorUpdateTimerHandle, this, &APlayerCharacter::UpdateSector, 1.0f, true);
+	}
 }
 
 void APlayerCharacter::BeginPlay() {
@@ -1469,6 +1476,32 @@ void APlayerCharacter::rotate(float yaw) {
 
 void APlayerCharacter::Overlap(char skill_type, bool collision_start) {
 	playerCurrentHp -= 10;
+}
+
+void APlayerCharacter::UpdateSector() {
+	int sx = (GetActorLocation().X + 50'000) / SECTOR_WIDTH;
+	int sy = (GetActorLocation().Y + 50'000) / SECTOR_HEIGHT;
+
+	if ((sx != m_last_sx) ||
+		(sy != m_last_sy)) {
+		m_last_sx = sx;
+		m_last_sy = sy;
+
+		for (int dy = -1; dy <= 1; ++dy) {
+			for (int dx = -1; dx <= 1; ++dx) {
+				int nx = m_last_sx + dx;
+				int ny = m_last_sy + dy;
+
+				if (nx < 0 || ny < 0 || nx >= SECTOR_COLS || ny >= SECTOR_ROWS) { continue; }
+
+				for (auto id : g_sector[ny][nx]) {
+					if (g_c_monsters[id]) {
+						g_c_monsters[id]->wake_up();
+					}
+				}
+			}
+		}
+	}
 }
 
 void APlayerCharacter::do_send(void* buff) {

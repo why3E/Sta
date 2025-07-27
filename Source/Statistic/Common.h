@@ -81,6 +81,10 @@ constexpr char C2H_SKILL_ROTATOR_PACKET = 50;
 constexpr char C2H_GIMMICK_START_PACKET = 51;
 constexpr char C2H_GIMMICK_END_PACKET = 52;
 
+constexpr int SECTOR_WIDTH = 10000;
+constexpr int SECTOR_HEIGHT = 10000;
+constexpr int SECTOR_ROWS = 100'000 / SECTOR_WIDTH;
+constexpr int SECTOR_COLS = 100'000 / SECTOR_HEIGHT;
 
 
 

@@ -30,6 +30,31 @@ void UBTService_PlayerLocationSeen::TickNode(UBehaviorTreeComponent& OwnerComp, 
 
     if (!monster) { return; }
 
+    // Sector
+    bool is_player_nearby = false;
+
+    int mx = (monster->GetActorLocation().X + 50'000) / SECTOR_WIDTH;
+    int my = (monster->GetActorLocation().Y + 50'000) / SECTOR_HEIGHT;
+
+    for (int i = 0; i < 4; ++i) {
+        if (g_c_players[i]) {
+            int px = (g_c_players[i]->GetActorLocation().X + 50'000) / SECTOR_WIDTH;
+            int py = (g_c_players[i]->GetActorLocation().Y + 50'000) / SECTOR_HEIGHT;
+
+            if ((abs(mx - px) <= 1) &&
+                (abs(my - py) <= 1)) {
+                is_player_nearby = true;
+                break;
+            }
+        }
+    }
+
+    if (!is_player_nearby) {
+        monster->sleep();
+        return;
+    }
+
+    // Search
     FVector monster_location = monster->GetActorLocation();
 
     float min_dist = monster->m_view_radius;

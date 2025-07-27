@@ -33,6 +33,9 @@ extern std::unordered_map<unsigned short, AActor*> g_c_objects;
 extern std::unordered_map<unsigned short, std::queue<char>> g_c_skill_collisions;
 extern std::unordered_map<unsigned short, std::queue<unsigned short>> g_c_object_collisions;
 
+extern std::mutex g_mutex[SECTOR_ROWS][SECTOR_COLS];
+extern std::vector<int> g_sector[SECTOR_ROWS][SECTOR_COLS];
+
 extern std::mutex g_s_monster_events_l;
 extern std::queue<MonsterEvent> g_s_monster_events;
 

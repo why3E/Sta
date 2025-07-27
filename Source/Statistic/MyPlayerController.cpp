@@ -329,7 +329,15 @@ void spawn_monster(MonsterType type, FVector Location) {
 
 		g_c_monsters[NewMonster->get_id()] = NewMonster;
 
-		UE_LOG(LogTemp, Warning, TEXT("[Client] Spawned Monster %d and Stored in g_s_monsters"), NewMonster->get_id());
+		// Add Monster Into Sector
+		int sx = (NewMonster->GetActorLocation().X + 50000) / SECTOR_WIDTH;
+		int sy = (NewMonster->GetActorLocation().Y + 50000) / SECTOR_HEIGHT;
+
+		{
+			std::lock_guard<std::mutex> lock(g_mutex[sy][sx]);
+			g_sector[sy][sx].emplace_back(NewMonster->get_id());
+			UE_LOG(LogTemp, Warning, TEXT("[Client] Spawned Monster %d and Stored in Sector [%d][%d]"), NewMonster->get_id(), sx, sy);
+		}
 	});
 }
 

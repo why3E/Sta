@@ -5,11 +5,13 @@
 #include "CoreMinimal.h"
 #include "Components/Image.h"
 #include "Blueprint/UserWidget.h"
+#include "Components/Border.h"
 #include "PlayerWidget.generated.h"
 
-/**
- * 
- */
+class UProgressBar;
+class UTextBlock;
+class UBorder;
+
 UCLASS()
 class STATISTIC_API UPlayerWidget : public UUserWidget
 {
@@ -93,4 +95,98 @@ public:
     UTexture2D* StoneSkillIcon;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="SkillIcon")
     UTexture2D* StoneAttackIcon;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<class UProgressBar> ProgressBar_Hp_P2;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<class UProgressBar> ProgressBar_Mp_P2;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<class UProgressBar> ProgressBar_Hp_P3;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<class UProgressBar> ProgressBar_Mp_P3;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<class UProgressBar> ProgressBar_Hp_P4;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<class UProgressBar> ProgressBar_Mp_P4;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UImage> Image_P2Back;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UImage> Image_P3Back;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UImage> Image_P4Back;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UImage> Image_P2;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UImage> Image_P3;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UImage> Image_P4;
+
+	// 플레이어 텍스트
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UTextBlock> MainPlayer1;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UTextBlock> MainPlayer2;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UTextBlock> MainPlayer3;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UTextBlock> MainPlayer4;
+
+	// MP 이미지
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UImage> Image_P4Mp;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UImage> Image_P3Mp;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UImage> Image_P2Mp;
+
+	// HP 이미지
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UImage> Image_P4Hp;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UImage> Image_P3Hp;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UImage> Image_P2Hp;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UBorder> Border_P2HP;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UBorder> Border_P2MP;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UBorder> Border_P3HP;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UBorder> Border_P3MP;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UBorder> Border_P4HP;
+
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UBorder> Border_P4MP;
+public:
+	UFUNCTION()
+	void ShowPlayers(int32 PlayerCount);
+	UFUNCTION()
+	void UpdateHpMpBar(float CurrentHp, float CurrentMp, int32 BarIndex, float MaxHp = 100.0f, float MaxMp = 100.0f);
+
+
 };

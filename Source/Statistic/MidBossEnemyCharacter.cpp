@@ -26,6 +26,9 @@
 #include "Enums.h"
 #include "DamagePopupActor.h"
 #include "UObject/ConstructorHelpers.h"
+#include "NiagaraComponent.h"
+#include "TimerManager.h"
+#include "DrawDebugHelpers.h"
 #include "NiagaraFunctionLibrary.h"
 
 AMidBossEnemyCharacter::AMidBossEnemyCharacter()
@@ -110,6 +113,13 @@ AMidBossEnemyCharacter::AMidBossEnemyCharacter()
 	static ConstructorHelpers::FClassFinder<AActor> WindLaserRef(TEXT("/Game/Weapon/MyWindLaser.MyWindLaser_C"));
 	if (WindLaserRef.Succeeded()) WindLaserClass = WindLaserRef.Class;
 
+    static ConstructorHelpers::FClassFinder<AActor> IceArrowRef(TEXT("/Game/Weapon/MyIceArrow.MyIceArrow_C"));
+	if (IceArrowRef.Succeeded()) IceArrowClass = IceArrowRef.Class;
+    static ConstructorHelpers::FClassFinder<AActor> IceSkillRef(TEXT("/Game/Weapon/MyIceSkill.MyIceSkill_C"));
+	if (IceSkillRef.Succeeded()) IceSkillClass = IceSkillRef.Class;
+    static ConstructorHelpers::FClassFinder<AActor> FireBallRef(TEXT("/Game/Weapon/MyFireBall.MyFireBall_C"));
+	if (FireBallRef.Succeeded()) FireBallClass = FireBallRef.Class;
+
     hpFloatingWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("floatingWidget"));
     hpFloatingWidget->SetupAttachment(RootComponent);
     hpFloatingWidget->SetRelativeLocation(FVector(0, 0, 125));
@@ -127,34 +137,50 @@ void AMidBossEnemyCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
+    if (bIsEndBoss)
+    {
+        GetMesh()->SetSkeletalMesh(IceGiantMesh);
+    }
+
+    // 위젯 연결
     MonsterHpBarWidget = Cast<UMonsterHPBarWidget>(hpFloatingWidget->GetUserWidgetObject());
 
+    // 상체 및 팔, 머리 충돌
     HeadCollision->OnComponentBeginOverlap.AddDynamic(this, &AMidBossEnemyCharacter::OnHitCollisionOverlap);
     ChestCollision->OnComponentBeginOverlap.AddDynamic(this, &AMidBossEnemyCharacter::OnHitCollisionOverlap);
     HipCollision->OnComponentBeginOverlap.AddDynamic(this, &AMidBossEnemyCharacter::OnHitCollisionOverlap);
-
     LeftArmUpperCollision->OnComponentBeginOverlap.AddDynamic(this, &AMidBossEnemyCharacter::OnHitCollisionOverlap);
     LeftArmLowerCollision->OnComponentBeginOverlap.AddDynamic(this, &AMidBossEnemyCharacter::OnHitCollisionOverlap);
-
     RightArmUpperCollision->OnComponentBeginOverlap.AddDynamic(this, &AMidBossEnemyCharacter::OnHitCollisionOverlap);
     RightArmLowerCollision->OnComponentBeginOverlap.AddDynamic(this, &AMidBossEnemyCharacter::OnHitCollisionOverlap);
 
-    LeftLegUpperCollision->OnComponentBeginOverlap.AddDynamic(this, &AMidBossEnemyCharacter::OnHitCollisionOverlap);
-    LeftLegLowerCollision->OnComponentBeginOverlap.AddDynamic(this, &AMidBossEnemyCharacter::OnHitCollisionOverlap);
-
-    RightLegUpperCollision->OnComponentBeginOverlap.AddDynamic(this, &AMidBossEnemyCharacter::OnHitCollisionOverlap);
-    RightLegLowerCollision->OnComponentBeginOverlap.AddDynamic(this, &AMidBossEnemyCharacter::OnHitCollisionOverlap);
+    // 하체 충돌은 타입에 따라 분기
+    if (!bIsEndBoss)
+    {
+        LeftLegUpperCollision->OnComponentBeginOverlap.AddDynamic(this, &AMidBossEnemyCharacter::OnHitCollisionOverlap);
+        LeftLegLowerCollision->OnComponentBeginOverlap.AddDynamic(this, &AMidBossEnemyCharacter::OnHitCollisionOverlap);
+        RightLegUpperCollision->OnComponentBeginOverlap.AddDynamic(this, &AMidBossEnemyCharacter::OnHitCollisionOverlap);
+        RightLegLowerCollision->OnComponentBeginOverlap.AddDynamic(this, &AMidBossEnemyCharacter::OnHitCollisionOverlap);
+    }
+    else if (bIsEndBoss)
+    {
+        // IceGiant일 경우 하체 충돌 비활성화
+        LeftLegUpperCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+        LeftLegLowerCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+        RightLegUpperCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+        RightLegLowerCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+    }
 
 	MontageToHitCapsuleMap.Add(TEXT("WindLaser"), RightArmLowerCollision);
 	MontageToHitCapsuleMap.Add(TEXT("WindCutter"), LeftArmLowerCollision);
 	MontageToHitCapsuleMap.Add(TEXT("StoneWave"), ChestCollision);
 	MontageToHitCapsuleMap.Add(TEXT("StoneThrow"), HipCollision);
 	MontageToHitCapsuleMap.Add(TEXT("WindTonado"), HipCollision);
+    MontageToHitCapsuleMap.Add(TEXT("IceArrow"), RightArmLowerCollision);
+    MontageToHitCapsuleMap.Add(TEXT("FireBall"), LeftArmLowerCollision);
 
     //Die();
-    
-    
-
+    //WindBoomEffect();
 }
 
 void AMidBossEnemyCharacter::Tick(float DeltaTime)
@@ -234,49 +260,100 @@ void AMidBossEnemyCharacter::start_attack(AttackType attack_type, FVector attack
 
 void AMidBossEnemyCharacter::Attack(AttackType attack_type)
 {
-    switch (attack_type) {
-    case AttackType::WindCutter:
-    case AttackType::WindLaser:
-    case AttackType::StoneWave:
-        if (AttackMontage) {
-            UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+    if(!bIsEndBoss)
+    {
+        switch (attack_type) {
+        case AttackType::WindCutter:
+        case AttackType::WindLaser:
+        case AttackType::StoneWave:
+            if (AttackMontage) {
+                UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 
-            if (AnimInstance) {
-                AnimInstance->OnMontageEnded.RemoveDynamic(this, &AMidBossEnemyCharacter::OnAttackMontageEnded);
-                AnimInstance->OnMontageEnded.AddDynamic(this, &AMidBossEnemyCharacter::OnAttackMontageEnded);
+                if (AnimInstance) {
+                    AnimInstance->OnMontageEnded.RemoveDynamic(this, &AMidBossEnemyCharacter::OnAttackMontageEnded);
+                    AnimInstance->OnMontageEnded.AddDynamic(this, &AMidBossEnemyCharacter::OnAttackMontageEnded);
 
-                int32 SectionIndex = static_cast<int32>(attack_type) - 1;
-                FName SelectedSection = Sections[SectionIndex];
+                    int32 SectionIndex = static_cast<int32>(attack_type) - 1;
+                    FName SelectedSection = Sections[SectionIndex];
 
-                float PlayRate = (SelectedSection == TEXT("WindLaser")) ? 0.5f : 1.0f;
+                    float PlayRate = (SelectedSection == TEXT("WindLaser")) ? 0.5f : 1.0f;
 
-                bIsPlayingMontageSection = true; 
-                AnimInstance->Montage_Play(AttackMontage, PlayRate);
-                AnimInstance->Montage_JumpToSection(SelectedSection, AttackMontage);
-                SpawnWeakPointEffectForCurrentSection(SelectedSection);
+                    bIsPlayingMontageSection = true; 
+                    AnimInstance->Montage_Play(AttackMontage, PlayRate);
+                    AnimInstance->Montage_JumpToSection(SelectedSection, AttackMontage);
+                    SpawnWeakPointEffectForCurrentSection(SelectedSection);
+                }
             }
-        }
-        break;
+            break;
 
-    case AttackType::WindTornado:
-    case AttackType::StoneSkill:
-        if (AttackMontage) {
-            UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+        case AttackType::WindTornado:
+        case AttackType::StoneSkill:
+            if (AttackMontage) {
+                UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 
-            if (AnimInstance) {
-                AnimInstance->OnMontageEnded.RemoveDynamic(this, &AMidBossEnemyCharacter::OnAttackMontageEnded);
-                AnimInstance->OnMontageEnded.AddDynamic(this, &AMidBossEnemyCharacter::OnAttackMontageEnded);
+                if (AnimInstance) {
+                    AnimInstance->OnMontageEnded.RemoveDynamic(this, &AMidBossEnemyCharacter::OnAttackMontageEnded);
+                    AnimInstance->OnMontageEnded.AddDynamic(this, &AMidBossEnemyCharacter::OnAttackMontageEnded);
 
-                int32 SectionIndex = static_cast<int32>(attack_type) - 1;
-                FName SelectedSection = Sections[SectionIndex];
+                    int32 SectionIndex = static_cast<int32>(attack_type) - 1;
+                    FName SelectedSection = Sections[SectionIndex];
 
-                bIsPlayingMontageSection = true; 
-                AnimInstance->Montage_Play(AttackMontage, 0.5f);
-                AnimInstance->Montage_JumpToSection(SelectedSection, AttackMontage);
-                SpawnWeakPointEffectForCurrentSection(SelectedSection);
+                    bIsPlayingMontageSection = true; 
+                    AnimInstance->Montage_Play(AttackMontage, 0.5f);
+                    AnimInstance->Montage_JumpToSection(SelectedSection, AttackMontage);
+                    SpawnWeakPointEffectForCurrentSection(SelectedSection);
+                }
             }
+            break;
         }
-        break;
+    }
+    else
+    {
+        switch (attack_type) {
+        case AttackType::WindCutter:
+        case AttackType::WindLaser:
+        case AttackType::IceArrow:
+        case AttackType::FireBall:
+            if (AttackMontage) {
+                UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+
+                if (AnimInstance) {
+                    AnimInstance->OnMontageEnded.RemoveDynamic(this, &AMidBossEnemyCharacter::OnAttackMontageEnded);
+                    AnimInstance->OnMontageEnded.AddDynamic(this, &AMidBossEnemyCharacter::OnAttackMontageEnded);
+
+                    int32 SectionIndex = static_cast<int32>(attack_type) - 1;
+                    FName SelectedSection = Sections[SectionIndex];
+
+                    float PlayRate = (SelectedSection == TEXT("WindLaser")) ? 0.5f : 1.0f;
+
+                    bIsPlayingMontageSection = true; 
+                    AnimInstance->Montage_Play(AttackMontage, PlayRate);
+                    AnimInstance->Montage_JumpToSection(SelectedSection, AttackMontage);
+                    SpawnWeakPointEffectForCurrentSection(SelectedSection);
+                }
+            }
+            break;
+
+        case AttackType::WindTornado:
+        //case AttackType::IceWall:
+            if (AttackMontage) {
+                UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+
+                if (AnimInstance) {
+                    AnimInstance->OnMontageEnded.RemoveDynamic(this, &AMidBossEnemyCharacter::OnAttackMontageEnded);
+                    AnimInstance->OnMontageEnded.AddDynamic(this, &AMidBossEnemyCharacter::OnAttackMontageEnded);
+
+                    int32 SectionIndex = static_cast<int32>(attack_type) - 1;
+                    FName SelectedSection = Sections[SectionIndex];
+
+                    bIsPlayingMontageSection = true; 
+                    AnimInstance->Montage_Play(AttackMontage, 0.5f);
+                    AnimInstance->Montage_JumpToSection(SelectedSection, AttackMontage);
+                    SpawnWeakPointEffectForCurrentSection(SelectedSection);
+                }
+            }
+            break;
+        }
     }
 }
 
@@ -699,6 +776,11 @@ void AMidBossEnemyCharacter::SliceMeshAtBone(FVector SliceNormal, bool bCreateOt
     }
 
     CapMaterial = LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/Monster/Slime/M_CutFace1.M_CutFace1"));
+    if (!CapMaterial)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("SliceMeshAtBone: Failed to load CapMaterial."));
+        return;
+    }
     OtherHalfMesh = nullptr;
 
     UKismetProceduralMeshLibrary::SliceProceduralMesh(
@@ -844,4 +926,64 @@ void AMidBossEnemyCharacter::ReceiveSkillHit(const FSkillInfo& Info, AActor* Cau
             g_s_monster_events.push(monster_event);
         }
     }
+}
+void AMidBossEnemyCharacter::WindBoomEffect()
+{
+	if (!WindBoomNiagaraEffect) return;
+
+	UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+		GetWorld(),
+		WindBoomNiagaraEffect,
+		GetActorLocation(),     // 현재 위치에 소환
+		GetActorRotation(),     // 현재 회전
+		FVector(3.0f),          // 스케일
+		true,                   // 자동 소멸
+		true                    // 자동 활성화
+	);
+    //ApplyWindBoomDamage();
+}
+
+void AMidBossEnemyCharacter::ApplyWindBoomDamage()
+{
+	const float DamageRadius = 400.0f; // 4.0 scale 기준 거리 (원하는 값으로 조정)
+	const FVector MyLoc = GetActorLocation();
+
+	TArray<AActor*> FoundPlayers;
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ACharacter::StaticClass(), FoundPlayers);
+
+	for (AActor* Player : FoundPlayers)
+	{
+		if (Player == this) continue;
+
+		const FVector PlayerLoc = Player->GetActorLocation();
+		const float Dist = FVector::Dist(PlayerLoc, MyLoc);
+		if (Dist > DamageRadius) continue;
+
+		// 얼음벽 판정
+		FHitResult Hit;
+		FCollisionQueryParams Params;
+		Params.AddIgnoredActor(this);
+		Params.AddIgnoredActor(Player);
+
+		bool bBlocked = GetWorld()->LineTraceSingleByChannel(
+			Hit,
+			MyLoc,
+			PlayerLoc,
+			ECC_Visibility,
+			Params
+		);
+
+    #if WITH_EDITOR
+    DrawDebugLine(GetWorld(), MyLoc, PlayerLoc, FColor::Red, false, 1.0f, 0, 2.0f);
+    #endif
+
+		if (bBlocked && Hit.GetActor() && Hit.GetActor()->ActorHasTag(TEXT("IceWall")))
+		{
+			UE_LOG(LogTemp, Log, TEXT("Player [%s] is blocked by IceWall."), *Player->GetName());
+			continue;
+		}
+
+		// 데미지 적용
+		//UGameplayStatics::ApplyDamage(Player, 20.0f, GetController(), this, nullptr);
+	}
 }

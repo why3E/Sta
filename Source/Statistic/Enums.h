@@ -55,6 +55,12 @@ enum class EItemWorldType : uint8
     Branch,
 };
 
+UENUM(BlueprintType)
+enum class BossTypes : uint8 {
+	IceGiant,
+	WoodGiant
+};
+
 USTRUCT(BlueprintType)
 struct FItemInventory
 {

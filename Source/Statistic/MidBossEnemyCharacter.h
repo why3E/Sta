@@ -13,15 +13,11 @@
 #include "NiagaraSystem.h"
 #include "ProceduralMeshComponent.h"
 #include "MonsterHPBarWidget.h"
+#include "Enums.h"
 #include "Components/WidgetComponent.h" 
 #include "MidBossEnemyCharacter.generated.h"
 
 class UCapsuleComponent;
-
-enum class BossType : uint8 {
-	IceGiant,
-	WoodGiant
-};
 
 UCLASS()
 class STATISTIC_API AMidBossEnemyCharacter : public AMyEnemyBase, public IImpactPointInterface, public IReceiveDamageInterface{
@@ -30,7 +26,8 @@ class STATISTIC_API AMidBossEnemyCharacter : public AMyEnemyBase, public IImpact
 public:
 	AMidBossEnemyCharacter();
 
-	BossType BossType = BossType::WoodGiant;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Boss")
+	bool bIsEndBoss = false;
 
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaTime) override;
@@ -157,6 +154,21 @@ public:
 	UPROPERTY(VisibleAnywhere, Category = "Quiver", meta = (AllowPrivateAccess = "true"))
 	TSubclassOf<AActor> WindLaserClass;
 
+	UPROPERTY(VisibleAnywhere, Category = "Quiver", meta = (AllowPrivateAccess = "true"))
+	TSubclassOf<AActor> IceArrowClass;
+
+	UPROPERTY(VisibleAnywhere, Category = "Quiver", meta = (AllowPrivateAccess = "true"))
+	TSubclassOf<AActor> IceSkillClass;
+
+	UPROPERTY(VisibleAnywhere, Category = "Quiver", meta = (AllowPrivateAccess = "true"))
+	TSubclassOf<AActor> FireBallClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Effect")
+	TObjectPtr<UNiagaraSystem> WindBoomNiagaraEffect;
+
+	void WindBoomEffect();
+	void ApplyWindBoomDamage();
+	
 	UPROPERTY()
 	AMyWindLaser* CurrentWindLaser = nullptr;
 
@@ -168,6 +180,10 @@ public:
 	TSubclassOf<AActor> GetWindCutterClass() const { return WindCutterClass; }
 	TSubclassOf<AActor> GetWindSkillClass() const { return WindSkillClass; }
 	TSubclassOf<AActor> GetWindLaserClass() const { return WindLaserClass; }
+
+	TSubclassOf<AActor> GetIceArrowClass() const { return IceArrowClass; }
+	TSubclassOf<AActor> GetIceSkillClass() const { return IceSkillClass; }
+	TSubclassOf<AActor> GetFireBallClass() const { return FireBallClass; }
 
 public:
 	// Die

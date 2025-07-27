@@ -1,6 +1,6 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-
+#include "SESSION.h"
 #include "MyWorldMapWidget.h"
 #include "Components/Image.h"
 #include "Components/CanvasPanelSlot.h"
@@ -24,18 +24,43 @@ void UMyWorldMapWidget::NativeConstruct()
     if (Button_5) Button_5->OnClicked.AddDynamic(this, &UMyWorldMapWidget::OnButton5Clicked);
     if (Button_6) Button_6->OnClicked.AddDynamic(this, &UMyWorldMapWidget::OnButton6Clicked);
     if (Button_7) Button_7->OnClicked.AddDynamic(this, &UMyWorldMapWidget::OnButton7Clicked);
+
     if (OutButton)
     {
         OutButton->OnClicked.AddDynamic(this, &UMyWorldMapWidget::OutButtonClicked);
     }
+
     if (Number1)
 	{
 		// 초기 위치 조정 (선택사항)
 		Number1->SetRenderTranslation(FVector2D::ZeroVector);
 	}
+
     if (UWorld* World = GetWorld())
     {
         InitializeStatues(World);
+    }
+
+    for (int i = 0; i < 4; ++i) {
+        if (nullptr == g_c_players[i]) {
+            switch (i) {
+            case 0:
+                Number1->SetVisibility(ESlateVisibility::Hidden);
+                break;
+
+            case 1:
+                Number2->SetVisibility(ESlateVisibility::Hidden);
+                break;
+
+            case 2:
+                Number3->SetVisibility(ESlateVisibility::Hidden);
+                break;
+
+            case 3:
+                Number4->SetVisibility(ESlateVisibility::Hidden);
+                break;
+            }
+        }
     }
 }
 
@@ -80,10 +105,8 @@ void UMyWorldMapWidget::OnButton5Clicked() { TeleportToStatueByIndex(5); }
 void UMyWorldMapWidget::OnButton6Clicked() { TeleportToStatueByIndex(6); }
 void UMyWorldMapWidget::OnButton7Clicked() { TeleportToStatueByIndex(7); }
 
-void UMyWorldMapWidget::UpdateNumber1Position(const FVector2D& WorldPos)
+void UMyWorldMapWidget::UpdateNumberPosition(char index, const FVector2D& WorldPos)
 {
-	if (!Number1) return;
-
 	// X,Y 축이 반전됨에 주의
 	float XRatio = (50400.f - WorldPos.X) / 100800.f;
 	float YRatio = (WorldPos.Y + 50400.f) / 100800.f;
@@ -91,10 +114,39 @@ void UMyWorldMapWidget::UpdateNumber1Position(const FVector2D& WorldPos)
 	float ImageX = (XRatio - 0.5f) * 660.f;
 	float ImageY = (YRatio - 0.5f) * 690.f;
 
-	if (UCanvasPanelSlot* CanvasSlot = Cast<UCanvasPanelSlot>(Number1->Slot))
-	{
-		CanvasSlot->SetPosition(FVector2D(ImageX, ImageY));
-	}
+    switch (index) {
+    case 0:
+        if (!Number1) return;
+
+        if (UCanvasPanelSlot* CanvasSlot = Cast<UCanvasPanelSlot>(Number1->Slot)) {
+            CanvasSlot->SetPosition(FVector2D(ImageY, ImageX));
+        }
+        break;
+
+    case 1:
+        if (!Number2) return;
+
+        if (UCanvasPanelSlot* CanvasSlot = Cast<UCanvasPanelSlot>(Number2->Slot)) {
+            CanvasSlot->SetPosition(FVector2D(ImageY, ImageX));
+        }
+        break;
+
+    case 2:
+        if (!Number3) return;
+
+        if (UCanvasPanelSlot* CanvasSlot = Cast<UCanvasPanelSlot>(Number3->Slot)) {
+            CanvasSlot->SetPosition(FVector2D(ImageY, ImageX));
+        }
+        break;
+
+    case 3:
+        if (!Number4) return;
+
+        if (UCanvasPanelSlot* CanvasSlot = Cast<UCanvasPanelSlot>(Number4->Slot)) {
+            CanvasSlot->SetPosition(FVector2D(ImageY, ImageX));
+        }
+        break;
+    }
 }
 
 void UMyWorldMapWidget::OutButtonClicked()

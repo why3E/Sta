@@ -241,12 +241,22 @@ public:
 			}
 		}
 
-		if (false == m_is_game_started) {
-			sc_start_game_packet p;
-			p.packet_size = sizeof(sc_start_game_packet);
-			p.packet_type = S2C_START_GAME_PAKCET;
-			p.num_of_players = num_of_players;
+		sc_start_game_packet p;
+		p.packet_size = sizeof(sc_start_game_packet);
+		p.packet_type = S2C_START_GAME_PAKCET;
+		p.num_of_players = num_of_players;
+		
+		struct sockaddr_in clientAddr;
+		int addrLen = sizeof(clientAddr);
 
+		std::shared_ptr<SESSION> host = g_clients.at(m_players[0]->m_id);
+		if (nullptr == host) { return; }
+
+		if (getpeername(host->m_c_socket, (struct sockaddr*)&clientAddr, &addrLen) == 0) {
+			inet_ntop(AF_INET, &clientAddr.sin_addr, p.ip_address, sizeof(p.ip_address));
+		}
+
+		if (false == m_is_game_started) {
 			std::shared_ptr<SESSION> client = g_clients.at(m_players[0]->m_id);
 			if (nullptr == client) { return; }
 
@@ -255,11 +265,6 @@ public:
 			m_is_game_started = true;
 		} else {
 			Sleep(2500);
-
-			sc_start_game_packet p;
-			p.packet_size = sizeof(sc_start_game_packet);
-			p.packet_type = S2C_START_GAME_PAKCET;
-			p.num_of_players = num_of_players;
 
 			for (int i = 1; i < 4; ++i) {
 				if (nullptr != m_players[i]) {

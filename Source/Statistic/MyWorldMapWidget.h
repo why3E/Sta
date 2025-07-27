@@ -94,7 +94,7 @@ public:
     void OnButton7Clicked();
 
 	// 월드 좌표를 받아 이미지 위치로 변환 후 아이콘 이동
-	void UpdateNumber1Position(const FVector2D& WorldPos);
+	void UpdateNumberPosition(char index, const FVector2D& WorldPos);
 
 	void InitializeStatues(UWorld* World);
 

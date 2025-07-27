@@ -480,6 +480,7 @@ struct sc_start_game_packet {
 	unsigned char packet_size;
 	char packet_type;
 	char num_of_players;
+	char ip_address[16];
 };
 
 struct cs_init_lobby_packet {

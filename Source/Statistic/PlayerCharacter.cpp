@@ -1561,6 +1561,7 @@ void APlayerCharacter::MapClick()
         if (WorldMapWidgetClass)
         {
             WorldMapWidget = CreateWidget<UMyWorldMapWidget>(GetWorld(), WorldMapWidgetClass);
+
             if (WorldMapWidget)
             {
                 WorldMapWidget->AddToViewport();
@@ -1580,7 +1581,21 @@ void APlayerCharacter::MapClick()
                     PC->bShowMouseCursor = true;
                 }
 
-                WorldMapWidget->UpdateNumber1Position(FVector2D((float)XInt, (float)YInt));
+				WorldMapWidget->UpdateNumberPosition(0, FVector2D((float)XInt, (float)YInt));
+
+				for (int i = 0; i < 4; ++i) {
+					if (g_c_players[i]) {
+						if (i == m_id) { continue; }
+
+						int idx = i;
+						if (i < m_id) { ++idx; }
+
+						XInt = FMath::RoundToInt(g_c_players[i]->GetActorLocation().X);
+						YInt = FMath::RoundToInt(g_c_players[i]->GetActorLocation().Y);
+
+						WorldMapWidget->UpdateNumberPosition(idx, FVector2D((float)XInt, (float)YInt));
+					}
+				}
             }
         }
 

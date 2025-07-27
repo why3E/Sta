@@ -4,7 +4,6 @@
 #include "MyLobbyReadyWidget.h"
 #include "Blueprint/UserWidget.h"
 
-constexpr const char* SERVER_ADDRESS = "192.168.75.104";
 constexpr short SERVER_PORT = 5000;
 
 void AMyLobbyGameModeBase::BeginPlay()
@@ -22,18 +21,7 @@ void AMyLobbyGameModeBase::BeginPlay()
         g_elements[i] = (0 == i % 2) ? 0 : 1;
     }
 
-    SOCKADDR_IN addr;
-    addr.sin_family = AF_INET;
-    addr.sin_port = htons(SERVER_PORT);
-    inet_pton(AF_INET, SERVER_ADDRESS, &addr.sin_addr);
-
-    ret = WSAConnect(g_l_socket, reinterpret_cast<const sockaddr*>(&addr), sizeof(SOCKADDR_IN), NULL, NULL, NULL, NULL);
-
-    DWORD recv_bytes;
-    DWORD recv_flag = 0;
-    ret = WSARecv(g_l_socket, g_recv_over.m_wsabuf, 1, &recv_bytes, &recv_flag, &g_recv_over.m_over, g_recv_callback);
-
-	if (LobbyUIClass)
+    if (LobbyUIClass)
 	{
 		LobbyUI = CreateWidget<UMyLobbyWidget>(GetWorld(), LobbyUIClass);
 
@@ -55,10 +43,22 @@ void AMyLobbyGameModeBase::BeginPlay()
 
 void AMyLobbyGameModeBase::HandleStartPressed(const FString& IP)
 {
-    HOST_ADDRESS = EnteredIP = IP;
+    EnteredIP = IP;
     UE_LOG(LogTemp, Warning, TEXT("GameMode에서 받은 IP: %s"), *EnteredIP);
 
     const char* ipCStr = TCHAR_TO_UTF8(*EnteredIP);
+
+    SOCKADDR_IN addr;
+    addr.sin_family = AF_INET;
+    addr.sin_port = htons(SERVER_PORT);
+    inet_pton(AF_INET, ipCStr, &addr.sin_addr);
+
+    auto ret = WSAConnect(g_l_socket, reinterpret_cast<const sockaddr*>(&addr), sizeof(SOCKADDR_IN), NULL, NULL, NULL, NULL);
+
+    DWORD recv_bytes;
+    DWORD recv_flag = 0;
+    ret = WSARecv(g_l_socket, g_recv_over.m_wsabuf, 1, &recv_bytes, &recv_flag, &g_recv_over.m_over, g_recv_callback);
+
 
     cs_init_lobby_packet p;
     p.packet_size = sizeof(cs_init_lobby_packet);

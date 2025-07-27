@@ -25,7 +25,7 @@ EBTNodeResult::Type UBTTask_MidBossAttack::ExecuteTask(UBehaviorTreeComponent& O
     MidBossEnemyCharacter->FindPlayerCharacter();
 
     if (MidBossEnemyCharacter->CachedPlayerCharacter) {
-        AttackType skill_type = static_cast<AttackType>((uid(dre) % 5) + 1);
+        AttackType skill_type = static_cast<AttackType>((uid(dre) % 5) + 2);
         FVector skill_location = MidBossEnemyCharacter->CachedPlayerCharacter->GetActorLocation();
 
         {

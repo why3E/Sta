@@ -386,6 +386,7 @@ inline void g_process_packet(char* packet) {
         {
             sc_start_game_packet* p = reinterpret_cast<sc_start_game_packet*>(packet);
             g_num_of_players = p->num_of_players;
+            HOST_ADDRESS = FString(UTF8_TO_TCHAR(p->ip_address));
         }
 
         APlayerController* PC = MyLobbyReadyWidget->GetWorld()->GetFirstPlayerController();

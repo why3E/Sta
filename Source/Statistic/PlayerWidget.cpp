@@ -1,6 +1,8 @@
 #include "PlayerWidget.h"
 #include "Components/ProgressBar.h"
 #include "Components/TextBlock.h"
+#include "Components/Image.h"
+#include "Components/Border.h"
 #include "TimerManager.h"
 #include "Enums.h"
 #include "Engine/World.h"
@@ -10,6 +12,34 @@ void UPlayerWidget::NativeConstruct()
     Super::NativeConstruct();
     TextBlock_SkillQ->SetVisibility(ESlateVisibility::Hidden);
     TextBlock_SkillE->SetVisibility(ESlateVisibility::Hidden);
+
+    if (Border_P2HP) Border_P2HP->SetRenderOpacity(0.f);
+    if (Border_P2MP) Border_P2MP->SetRenderOpacity(0.f);
+    if (Border_P3HP) Border_P3HP->SetRenderOpacity(0.f);
+    if (Border_P3MP) Border_P3MP->SetRenderOpacity(0.f);
+    if (Border_P4HP) Border_P4HP->SetRenderOpacity(0.f);
+    if (Border_P4MP) Border_P4MP->SetRenderOpacity(0.f);
+
+    if (MainPlayer2) MainPlayer2->SetRenderOpacity(0.f);
+    if (MainPlayer3) MainPlayer3->SetRenderOpacity(0.f);
+    if (MainPlayer4) MainPlayer4->SetRenderOpacity(0.f);
+
+    if (Image_P2Back) Image_P2Back->SetRenderOpacity(0.f);
+    if (Image_P3Back) Image_P3Back->SetRenderOpacity(0.f);
+    if (Image_P4Back) Image_P4Back->SetRenderOpacity(0.f);
+
+    if (Image_P2Hp) Image_P2Hp->SetRenderOpacity(0.f);
+    if (Image_P3Hp) Image_P3Hp->SetRenderOpacity(0.f);
+    if (Image_P4Hp) Image_P4Hp->SetRenderOpacity(0.f);
+
+    if (Image_P2Mp) Image_P2Mp->SetRenderOpacity(0.f);
+    if (Image_P3Mp) Image_P3Mp->SetRenderOpacity(0.f);
+    if (Image_P4Mp) Image_P4Mp->SetRenderOpacity(0.f);
+
+    if (Image_P2) Image_P2->SetRenderOpacity(0.f);
+    if (Image_P3) Image_P3->SetRenderOpacity(0.f);
+    if (Image_P4) Image_P4->SetRenderOpacity(0.f);
+
 }
 
 void UPlayerWidget::UpdateHpBar(float CurrentHp, float MaxHp)
@@ -173,5 +203,83 @@ void UPlayerWidget::SetSkillIconInternal(UImage* Image, UImage* Image2, EClassTy
     if (AttackTexture)
     {
         Image2->SetBrushFromTexture(AttackTexture);
+    }
+}
+
+void UPlayerWidget::ShowPlayers(int32 PlayerCount)
+{
+	// Player 2
+	if (PlayerCount >= 2)
+	{
+		if (Image_P2Back) Image_P2Back->SetRenderOpacity(0.5f);
+		if (Image_P2)      Image_P2->SetRenderOpacity(1.f);
+		if (Image_P2Hp)    Image_P2Hp->SetRenderOpacity(1.f);
+		if (Image_P2Mp)    Image_P2Mp->SetRenderOpacity(1.f);
+		if (ProgressBar_Hp_P2) ProgressBar_Hp_P2->SetRenderOpacity(1.f);
+		if (ProgressBar_Mp_P2) ProgressBar_Mp_P2->SetRenderOpacity(1.f);
+		if (Border_P2HP)   Border_P2HP->SetRenderOpacity(1.f);
+		if (Border_P2MP)   Border_P2MP->SetRenderOpacity(1.f);
+		if (MainPlayer2)   MainPlayer2->SetRenderOpacity(1.f);
+	}
+
+	// Player 3
+	if (PlayerCount >= 3)
+	{
+		if (Image_P3Back) Image_P3Back->SetRenderOpacity(0.5f);
+		if (Image_P3)      Image_P3->SetRenderOpacity(1.f);
+		if (Image_P3Hp)    Image_P3Hp->SetRenderOpacity(1.f);
+		if (Image_P3Mp)    Image_P3Mp->SetRenderOpacity(1.f);
+		if (ProgressBar_Hp_P3) ProgressBar_Hp_P3->SetRenderOpacity(1.f);
+		if (ProgressBar_Mp_P3) ProgressBar_Mp_P3->SetRenderOpacity(1.f);
+		if (Border_P3HP)   Border_P3HP->SetRenderOpacity(1.f);
+		if (Border_P3MP)   Border_P3MP->SetRenderOpacity(1.f);
+		if (MainPlayer3)   MainPlayer3->SetRenderOpacity(1.f);
+	}
+
+	// Player 4
+	if (PlayerCount >= 4)
+	{
+		if (Image_P4Back) Image_P4Back->SetRenderOpacity(0.5f);
+		if (Image_P4)      Image_P4->SetRenderOpacity(1.f);
+		if (Image_P4Hp)    Image_P4Hp->SetRenderOpacity(1.f);
+		if (Image_P4Mp)    Image_P4Mp->SetRenderOpacity(1.f);
+		if (ProgressBar_Hp_P4) ProgressBar_Hp_P4->SetRenderOpacity(1.f);
+		if (ProgressBar_Mp_P4) ProgressBar_Mp_P4->SetRenderOpacity(1.f);
+		if (Border_P4HP)   Border_P4HP->SetRenderOpacity(1.f);
+		if (Border_P4MP)   Border_P4MP->SetRenderOpacity(1.f);
+		if (MainPlayer4)   MainPlayer4->SetRenderOpacity(1.f);
+	}
+}
+
+void UPlayerWidget::UpdateHpMpBar(float CurrentHp, float CurrentMp, int32 BarIndex, float MaxHp, float MaxMp)
+{
+    float HpPercent = FMath::Clamp(CurrentHp / MaxHp, 0.0f, 1.0f);
+    float MpPercent = FMath::Clamp(CurrentMp / MaxMp, 0.0f, 1.0f);
+
+    switch (BarIndex)
+    {
+    case 2:
+        if (ProgressBar_Hp_P2)
+            ProgressBar_Hp_P2->SetPercent(HpPercent);
+        if (ProgressBar_Mp_P2)
+            ProgressBar_Mp_P2->SetPercent(MpPercent);
+        break;
+
+    case 3:
+        if (ProgressBar_Hp_P3)
+            ProgressBar_Hp_P3->SetPercent(HpPercent);
+        if (ProgressBar_Mp_P3)
+            ProgressBar_Mp_P3->SetPercent(MpPercent);
+        break;
+
+    case 4:
+        if (ProgressBar_Hp_P4)
+            ProgressBar_Hp_P4->SetPercent(HpPercent);
+        if (ProgressBar_Mp_P4)
+            ProgressBar_Mp_P4->SetPercent(MpPercent);
+        break;
+
+    default:
+        break;
     }
 }

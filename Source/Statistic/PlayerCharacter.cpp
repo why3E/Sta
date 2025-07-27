@@ -240,6 +240,7 @@ void APlayerCharacter::BeginPlay() {
         if (CharacterWidget)
         {
             CharacterWidget->AddToViewport();
+			CharacterWidget->ShowPlayers(4); // 초기 플레이어 수 설정
             UpdateUI();
         }
     }
@@ -1007,6 +1008,17 @@ void APlayerCharacter::Tick(float DeltaTime) {
 		}
 	}
 
+	playerCurrentMp -= DeltaTime;
+	
+	if (CharacterWidget) {
+		/* 
+		// 임시 테스트용 - 아군 플레이어 체력바 업데이트
+		CharacterWidget->UpdateHpMpBar(playerCurrentMp, playerCurrentMp, 2);
+		CharacterWidget->UpdateHpMpBar(playerCurrentMp, playerCurrentMp, 3);
+		CharacterWidget->UpdateHpMpBar(playerCurrentMp, playerCurrentMp, 4);
+		*/
+	}
+	
 	UpdateUI();
 
 	if (m_is_player) {

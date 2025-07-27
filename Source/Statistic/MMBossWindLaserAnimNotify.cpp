@@ -41,6 +41,7 @@ void UMMBossWindLaserAnimNotify::Notify(USkeletalMeshComponent* MeshComp, UAnimS
             unsigned short skill_id = Cast<AMidBossEnemyCharacter>(OwnerActor)->get_skill_id();
 
             WindLaser->SetID(skill_id);
+            WindLaser->SetOwner(OwnerActor);
 
             g_c_skills.emplace(skill_id, WindLaser);
 

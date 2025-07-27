@@ -74,7 +74,7 @@ public:
 
 	FTimerHandle AttackTimerHandle;
 	
-	TArray<FName> Sections = { TEXT("WindCutter"), TEXT("WindLaser"), TEXT("StoneWave"), TEXT("WindTonado"), TEXT("StoneThrow") };
+	TArray<FName> Sections = { TEXT("WindCutter"), TEXT("WindLaser"), TEXT("StoneWave"), TEXT("WindTonado"), TEXT("StoneThrow"), TEXT("IceArrow"), TEXT("IceWall"), TEXT("FireBall") };
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
 	UAnimMontage* AttackMontage;
@@ -93,6 +93,7 @@ public:
 	FVector m_skill_location;
 
 	bool m_is_rotating = false;
+	bool m_used_ultimate = false;
 
 	void set_skill_location(FVector skill_location) { m_skill_location = skill_location; }
 

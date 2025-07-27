@@ -1495,7 +1495,15 @@ void APlayerCharacter::rotate(float yaw) {
 }
 
 void APlayerCharacter::Overlap(char skill_type, bool collision_start) {
-	playerCurrentHp -= 10;
+	switch (skill_type) {
+	case SKILL_WIND_BOOM:
+		playerCurrentHp -= 20;
+		break;
+
+	default:
+		playerCurrentHp -= 10;
+		break;
+	}
 }
 
 void APlayerCharacter::UpdateSector() {

@@ -107,6 +107,7 @@ constexpr char SKILL_STONE_WAVE = 21;
 constexpr char SKILL_STONE_SKILL = 22;
 constexpr char SKILL_ICE_ARROW = 31;
 constexpr char SKILL_ICE_WALL = 32;
+constexpr char SKILL_WIND_BOOM = 33;
 
 constexpr char MAX_CLIENTS = 4;
 constexpr unsigned short MAX_MONSTERS_PER_PACKET = 5;
@@ -144,8 +145,10 @@ enum class AttackType {
 	StoneWave,
 	WindTornado,
 	StoneSkill,
+	IceArrow,
+	IceWall,
 	FireBall,
-	IceArrow
+	WindBoom
 };
 
 struct monster_init_info {

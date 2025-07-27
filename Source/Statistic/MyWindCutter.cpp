@@ -105,7 +105,7 @@ void AMyWindCutter::Fire(FVector TargetLocation)
 void AMyWindCutter::OnBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
     if (!g_is_host || bIsHit || (Owner == OtherActor)) { return; }
-    
+
     if (OtherActor->IsA(AMySkillBase::StaticClass())) {
         // Skill - Skill Collision
         AMySkillBase* ptr = Cast<AMySkillBase>(OtherActor);

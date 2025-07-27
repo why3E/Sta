@@ -43,6 +43,7 @@ void UMMBossStoneAttackAnimNotify::Notify(USkeletalMeshComponent* MeshComp, UAni
             unsigned short skill_id = Cast<AMidBossEnemyCharacter>(OwnerActor)->get_skill_id();
 
             StoneWave->SetID(skill_id);
+            StoneWave->SetOwner(OwnerActor);
 
             g_c_skills.emplace(skill_id, StoneWave);
 

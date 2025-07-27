@@ -37,6 +37,7 @@ void UMMBossTonadoAnimNotify::Notify(USkeletalMeshComponent* MeshComp, UAnimSequ
             if (WindSkill)
             {
                 WindSkill->SetID(skill_id);
+                WindSkill->SetOwner(OwnerActor);
 
                 g_c_skills.emplace(skill_id, WindSkill);
 

@@ -18,21 +18,22 @@ void UMMBossIceWallAnimNotify::Notify(USkeletalMeshComponent* MeshComp, UAnimSeq
 
     if (BossCharacter && BossCharacter->GetIceSkillClass())
     {
-        FVector SpawnLoc = BossCharacter->GetMesh()->GetSocketLocation(BossCharacter->BaseAttackSocketName);
+        FVector SpawnLoc = BossCharacter->m_skill_location;
+        SpawnLoc.Z -= 100.0f;
 
         unsigned short skill_id = Cast<AMidBossEnemyCharacter>(OwnerActor)->get_skill_id();
-
         
         FRotator SpawnRot = BossCharacter->GetCurrentImpactRot();
         FActorSpawnParameters Params;
         Params.Owner = OwnerActor;
         Params.Instigator = OwnerActor->GetInstigator();
 
-        AMyIceSkill* IceSkill = MeshComp->GetWorld()->SpawnActor<AMyIceSkill>(BossCharacter->GetWindSkillClass(), SpawnLoc, SpawnRot, Params);
+        AMyIceSkill* IceSkill = MeshComp->GetWorld()->SpawnActor<AMyIceSkill>(BossCharacter->GetIceSkillClass(), SpawnLoc, SpawnRot, Params);
 
         if (IceSkill)
         {
             IceSkill->SetID(skill_id);
+            IceSkill->SetOwner(OwnerActor);
 
             g_c_skills.emplace(skill_id, IceSkill);
 
@@ -55,9 +56,6 @@ void UMMBossIceWallAnimNotify::Notify(USkeletalMeshComponent* MeshComp, UAnimSeq
             }
 
             IceSkill->SpawnIceSkill(SpawnLoc,SpawnRot);
-
-            ++skill_id;
         }
-        
     }
 }

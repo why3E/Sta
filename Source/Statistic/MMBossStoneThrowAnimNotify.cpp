@@ -41,6 +41,7 @@ void UMMBossStoneThrowAnimNotify::Notify(USkeletalMeshComponent* MeshComp, UAnim
             unsigned short skill_id = Cast<AMidBossEnemyCharacter>(OwnerActor)->get_skill_id();
 
             StoneSkill->SetID(skill_id);
+            StoneSkill->SetOwner(OwnerActor);
 
             g_c_skills.emplace(skill_id, StoneSkill);
 

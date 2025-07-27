@@ -925,21 +925,15 @@ void AMidBossEnemyCharacter::ApplyWindBoomDamage()
     DrawDebugLine(GetWorld(), MyLoc, PlayerLoc, FColor::Red, false, 1.0f, 0, 2.0f);
     #endif
 
-        if (bBlocked) {
-            UE_LOG(LogTemp, Log, TEXT("Player [%s] blocked."), *Player->GetName());
-        }
-
 		if (bBlocked && Hit.GetActor() && Hit.GetActor()->ActorHasTag(TEXT("IceWall")))
 		{
 			UE_LOG(LogTemp, Log, TEXT("Player [%s] is blocked by IceWall."), *Player->GetName());
 			continue;
         } 
 
+        // If Not Blocked By Ice Wall, Received Damage
         CollisionEvent collision_event = PlayerSkillEvent(Cast<APlayerCharacter>(Player)->get_id(), SKILL_WIND_BOOM);
         std::lock_guard<std::mutex> lock(g_s_collision_events_l);
         g_s_collision_events.push(collision_event);
-
-		// 데미지 적용
-		//UGameplayStatics::ApplyDamage(Player, 20.0f, GetController(), this, nullptr);
 	}
 }

@@ -180,7 +180,7 @@ void AMidBossEnemyCharacter::BeginPlay()
     MontageToHitCapsuleMap.Add(TEXT("IceArrow"), RightArmLowerCollision);
     MontageToHitCapsuleMap.Add(TEXT("FireBall"), LeftArmLowerCollision);
 
-    //Die();
+    Die();
     //WindBoomEffect();
 }
 
@@ -860,7 +860,7 @@ void AMidBossEnemyCharacter::ReceiveSkillHit(const FSkillInfo& Info, AActor* Cau
     HP -= Info.Damage;
 
     ShowHud(Info.Damage, Info.Element);
-
+    
     if (g_is_host) {
         if (HP <= 0.0f) {
             MonsterEvent monster_event = DieEvent(m_id);

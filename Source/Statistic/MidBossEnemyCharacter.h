@@ -241,7 +241,7 @@ public:
     // TargetBoneName 에 따라 소켓/회전값 세팅
     UFUNCTION(BlueprintCallable, Category="Slice")
     void SetupSliceSettingsByBone();
-	
+
 private:
 	UPROPERTY(EditAnywhere)
 	float CreateProceduralMeshDistance = 80.0f;
@@ -249,10 +249,6 @@ private:
 
 	UPROPERTY(EditAnywhere, Category = "Slice")
 	UProceduralMeshComponent* CachedOtherHalfMesh = nullptr;
-
-
-	UPROPERTY()
-	UMaterialInterface* CapMaterial;
 
 	int32 NumVertices;
 private:
@@ -284,4 +280,7 @@ public:
 
 	UPROPERTY()
 	UProceduralMeshComponent* OtherHalfMesh = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Slicing")
+	UMaterialInterface* CapMaterial;
 };

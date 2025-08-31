@@ -718,10 +718,9 @@ void AMidBossEnemyCharacter::SliceMeshAtBone(FVector SliceNormal, bool bCreateOt
         return;
     }
 
-    CapMaterial = LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/Monster/Slime/M_CutFace1.M_CutFace1"));
     if (!CapMaterial)
     {
-        UE_LOG(LogTemp, Warning, TEXT("SliceMeshAtBone: Failed to load CapMaterial."));
+        UE_LOG(LogTemp, Warning, TEXT("SliceMeshAtBone: CapMaterial is not set in editor."));
         return;
     }
     OtherHalfMesh = nullptr;

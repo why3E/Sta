@@ -231,9 +231,20 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Slice", meta = (ToolTip = "절단된 OtherHalf 메쉬가 붙을 하단 소켓 이름"))
 	FName OtherHalfMeshAttachSocketName = TEXT("SliceSocket_Lower");
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FRotator ProcMeshRotation;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FRotator OtherHalfRotation;
+
+public:
+    // TargetBoneName 에 따라 소켓/회전값 세팅
+    UFUNCTION(BlueprintCallable, Category="Slice")
+    void SetupSliceSettingsByBone();
+	
 private:
 	UPROPERTY(EditAnywhere)
-	float CreateProceduralMeshDistance = 30.0f;
+	float CreateProceduralMeshDistance = 80.0f;
 	
 
 	UPROPERTY(EditAnywhere, Category = "Slice")

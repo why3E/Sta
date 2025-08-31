@@ -180,7 +180,7 @@ void AMidBossEnemyCharacter::BeginPlay()
     MontageToHitCapsuleMap.Add(TEXT("IceArrow"), RightArmLowerCollision);
     MontageToHitCapsuleMap.Add(TEXT("FireBall"), LeftArmLowerCollision);
 
-    Die();
+    //Die();
     //WindBoomEffect();
 }
 
@@ -760,9 +760,11 @@ void AMidBossEnemyCharacter::SliceMeshAtBone(FVector SliceNormal, bool bCreateOt
     FRotator ProcSocketRot = GetMesh()->GetSocketTransform(ProceduralMeshAttachSocketName, RTS_Component).Rotator();
     FRotator OtherSocketRot = GetMesh()->GetSocketTransform(OtherHalfMeshAttachSocketName, RTS_Component).Rotator();
 
-    ProcMeshComponent->AddLocalRotation(FRotator(270.f, 0.f, 0.f));
-    OtherHalfMesh->AddLocalRotation(FRotator(270.f, 0.f, 0.f));
+    SetupSliceSettingsByBone();
 
+    ProcMeshComponent->AddLocalRotation(ProcMeshRotation);
+    OtherHalfMesh->AddLocalRotation(OtherHalfRotation);
+    
     // 위치 오프셋 보정 (중심 → 소켓)
     FVector Center = GetAverageVertexPosition(FilteredVerticesArray);
     FVector ProcWorldCenter = ProcMeshComponent->GetComponentTransform().TransformPosition(Center);
@@ -934,4 +936,59 @@ void AMidBossEnemyCharacter::ApplyWindBoomDamage()
         std::lock_guard<std::mutex> lock(g_s_collision_events_l);
         g_s_collision_events.push(collision_event);
 	}
+}
+
+void AMidBossEnemyCharacter::SetupSliceSettingsByBone()
+{
+    if (TargetBoneName.IsNone())
+    {
+        return;
+    }
+
+    // 기본값
+    ProceduralMeshAttachSocketName = TEXT("SliceSocket_Upper");
+    OtherHalfMeshAttachSocketName  = TEXT("SliceSocket_Lower");
+    ProcMeshRotation   = FRotator::ZeroRotator;
+    OtherHalfRotation  = FRotator::ZeroRotator;
+
+    if (TargetBoneName == TEXT("spine_04"))
+    {
+        ProceduralMeshAttachSocketName = TEXT("SliceSocket_Upper");
+        OtherHalfMeshAttachSocketName  = TEXT("SliceSocket_Lower");
+        ProcMeshRotation   = FRotator(270.f, 0.f, 0.f);
+        OtherHalfRotation  = FRotator(270.f, -10.f, 0.f);
+        CreateProceduralMeshDistance = 180.f; // 상체는 좀 더 넓게
+    }
+    else if (TargetBoneName == TEXT("lowerarm_l"))
+    {
+        ProceduralMeshAttachSocketName = TEXT("SliceSocket_Upper3");
+        OtherHalfMeshAttachSocketName  = TEXT("SliceSocket_Lower3");
+        ProcMeshRotation   = FRotator(45.f, 0.f, 0.f);
+        OtherHalfRotation  = FRotator(45.f, -30.f, 0.f);
+        CreateProceduralMeshDistance = 130.f;
+    }
+    else if (TargetBoneName == TEXT("lowerarm_r"))
+    {
+        ProceduralMeshAttachSocketName = TEXT("SliceSocket_Upper2");
+        OtherHalfMeshAttachSocketName  = TEXT("SliceSocket_Lower2");
+        ProcMeshRotation   = FRotator(135.f, 0.f, 0.f);
+        OtherHalfRotation  = FRotator(120.f, -30.f, 10.f);
+        CreateProceduralMeshDistance = 130.f;
+    }
+    else if (TargetBoneName == TEXT("calf_r"))
+    {
+        ProceduralMeshAttachSocketName = TEXT("SliceSocket_Upper4");
+        OtherHalfMeshAttachSocketName  = TEXT("SliceSocket_Lower4");
+        ProcMeshRotation   = FRotator(270.f, 0.f, 0.f);
+        OtherHalfRotation  = FRotator(270.f, 0.f, 0.f);
+        CreateProceduralMeshDistance = 130.f;
+    }
+    else if (TargetBoneName == TEXT("calf_l"))
+    {
+        ProceduralMeshAttachSocketName = TEXT("SliceSocket_Upper5");
+        OtherHalfMeshAttachSocketName  = TEXT("SliceSocket_Lower5");
+        ProcMeshRotation   = FRotator(270.f, 0.f, 0.f);
+        OtherHalfRotation  = FRotator(270.f, 0.f, -15.f);
+        CreateProceduralMeshDistance = 130.f;
+    }
 }

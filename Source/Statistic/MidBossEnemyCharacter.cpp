@@ -180,7 +180,9 @@ void AMidBossEnemyCharacter::BeginPlay()
     MontageToHitCapsuleMap.Add(TEXT("IceArrow"), RightArmLowerCollision);
     MontageToHitCapsuleMap.Add(TEXT("FireBall"), LeftArmLowerCollision);
 
-    //Die();
+    if (!bIsDieMode) {
+        SpawnDieMode();
+    }
     //WindBoomEffect();
 }
 
@@ -867,6 +869,9 @@ void AMidBossEnemyCharacter::ReceiveSkillHit(const FSkillInfo& Info, AActor* Cau
             MonsterEvent monster_event = DieEvent(m_id);
             std::lock_guard<std::mutex> lock(g_s_monster_events_l);
             g_s_monster_events.push(monster_event);
+            if (!bIsDieMode) {
+                SpawnDieMode();
+            }
         }
     }
 }
@@ -990,4 +995,31 @@ void AMidBossEnemyCharacter::SetupSliceSettingsByBone()
         OtherHalfRotation  = FRotator(270.f, 0.f, -15.f);
         CreateProceduralMeshDistance = 130.f;
     }
+}
+
+void AMidBossEnemyCharacter::SpawnDieMode()
+{
+    SetActorHiddenInGame(true);
+    SetActorEnableCollision(false);
+    SetActorTickEnabled(false);
+    if (DieModeClass)
+    {
+        FVector SpawnLocation = GetActorLocation();
+        FRotator SpawnRotation = GetActorRotation();
+
+        // AMidBossEnemyCharacter 타입으로 스폰
+        AMidBossEnemyCharacter* Spawned = GetWorld()->SpawnActor<AMidBossEnemyCharacter>(
+            DieModeClass,
+            SpawnLocation,
+            SpawnRotation
+        );
+
+        if (Spawned)
+        {
+            Spawned->bIsDieMode = true;
+            Spawned->Die(); // BP_DieMode가 오버라이드한 Die() 실행
+        }
+    }
+
+    
 }

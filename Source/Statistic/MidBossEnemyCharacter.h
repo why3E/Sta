@@ -68,6 +68,14 @@ public:
 	UCapsuleComponent* RightLegLowerCollision;
 
 public:
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="DieMode")
+    TSubclassOf<AActor> DieModeClass;
+
+    // BP_DieMode 소환하는 함수
+    UFUNCTION(BlueprintCallable, Category="DieMode")
+    void SpawnDieMode();
+
 	// Combat
 	FName BaseAttackSocketName;
 	FName LaserAttackSocketName;
@@ -283,4 +291,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Slicing")
 	UMaterialInterface* CapMaterial;
+
+public:
+    // 원본인지, DieMode인지 구분
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="DieMode")
+    bool bIsDieMode = false;
 };

@@ -180,16 +180,26 @@ void AMidBossEnemyCharacter::BeginPlay()
     MontageToHitCapsuleMap.Add(TEXT("IceArrow"), RightArmLowerCollision);
     MontageToHitCapsuleMap.Add(TEXT("FireBall"), LeftArmLowerCollision);
 
-    if (!bIsDieMode) {
-        SpawnDieMode();
-    }
+    static const TArray<FName> PossibleBones = {
+        TEXT("spine_04"),
+        TEXT("lowerarm_l"),
+        TEXT("lowerarm_r"),
+        TEXT("calf_r"),
+        TEXT("calf_l")
+    };
+
+    // 🔥 2) 무조건 랜덤으로 TargetBoneName 선택
+    int32 RandomIndex = FMath::RandRange(0, PossibleBones.Num() - 1);
+    TargetBoneName = PossibleBones[RandomIndex];
+
+    UE_LOG(LogTemp, Warning, TEXT("Random Slice TargetBone Selected = %s"), *TargetBoneName.ToString());
+    //Die();
     //WindBoomEffect();
 }
 
 void AMidBossEnemyCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
     if (m_is_rotating) {
         rotate_to_target(DeltaTime);
     }
@@ -221,6 +231,9 @@ void AMidBossEnemyCharacter::Tick(float DeltaTime)
         } else {
             hpFloatingWidget->SetVisibility(false);
         }
+    }
+    if (HP <= 0.0f) {
+        SpawnDieMode();
     }
 }
 
@@ -518,6 +531,8 @@ void AMidBossEnemyCharacter::PlayStunMontage() {
 
 void AMidBossEnemyCharacter::Die()
 {
+    SetupSliceSettingsByBone();
+
     UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
     if (AnimInstance && AnimInstance->Montage_IsPlaying(AttackMontage))
     {
@@ -760,8 +775,6 @@ void AMidBossEnemyCharacter::SliceMeshAtBone(FVector SliceNormal, bool bCreateOt
     // 보정 회전 적용
     FRotator ProcSocketRot = GetMesh()->GetSocketTransform(ProceduralMeshAttachSocketName, RTS_Component).Rotator();
     FRotator OtherSocketRot = GetMesh()->GetSocketTransform(OtherHalfMeshAttachSocketName, RTS_Component).Rotator();
-
-    SetupSliceSettingsByBone();
 
     ProcMeshComponent->AddLocalRotation(ProcMeshRotation);
     OtherHalfMesh->AddLocalRotation(OtherHalfRotation);
@@ -1019,7 +1032,5 @@ void AMidBossEnemyCharacter::SpawnDieMode()
             Spawned->bIsDieMode = true;
             Spawned->Die(); // BP_DieMode가 오버라이드한 Die() 실행
         }
-    }
-
-    
+    } 
 }

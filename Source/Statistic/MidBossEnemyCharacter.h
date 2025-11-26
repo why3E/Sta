@@ -291,7 +291,7 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Slicing")
 	UMaterialInterface* CapMaterial;
-
+	FTimerHandle TestDieHandle;
 public:
     // 원본인지, DieMode인지 구분
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="DieMode")

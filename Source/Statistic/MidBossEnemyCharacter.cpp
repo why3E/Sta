@@ -180,8 +180,9 @@ void AMidBossEnemyCharacter::BeginPlay()
     MontageToHitCapsuleMap.Add(TEXT("IceArrow"), RightArmLowerCollision);
     MontageToHitCapsuleMap.Add(TEXT("FireBall"), LeftArmLowerCollision);
 
-    if (!bIsDieMode) {
-        SpawnDieMode();
+    if (HP <= 0.0f) {
+            SpawnDieMode();
+        
     }
     //WindBoomEffect();
 }
@@ -869,9 +870,12 @@ void AMidBossEnemyCharacter::ReceiveSkillHit(const FSkillInfo& Info, AActor* Cau
             MonsterEvent monster_event = DieEvent(m_id);
             std::lock_guard<std::mutex> lock(g_s_monster_events_l);
             g_s_monster_events.push(monster_event);
-            if (!bIsDieMode) {
-                SpawnDieMode();
-            }
+        }
+    }
+
+    if (HP <= 0.0f) {
+        if (!bIsDieMode) {
+            SpawnDieMode();
         }
     }
 }
@@ -1017,6 +1021,13 @@ void AMidBossEnemyCharacter::SpawnDieMode()
         if (Spawned)
         {
             Spawned->bIsDieMode = true;
+            Spawned->TargetBoneName = TargetBoneName;
+            
+            Spawned->ProceduralMeshAttachSocketName = ProceduralMeshAttachSocketName;
+            Spawned->OtherHalfMeshAttachSocketName = OtherHalfMeshAttachSocketName;
+            Spawned->ProcMeshRotation = ProcMeshRotation;
+            Spawned->OtherHalfRotation = OtherHalfRotation;
+            Spawned->CreateProceduralMeshDistance = CreateProceduralMeshDistance;
             Spawned->Die(); // BP_DieMode가 오버라이드한 Die() 실행
         }
     }

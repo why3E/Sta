@@ -1,5 +1,5 @@
 /FI "C:\Program Files\Epic Games\UE_5.5\Engine\Plugins\Runtime\ArchVisCharacter\Intermediate\Build\Win64\x64\UnrealEditor\Development\ArchVisCharacter\Definitions.ArchVisCharacter.h" 
-/FI "C:\Users\jkkks\Desktop\sta\Sta\Intermediate\Build\Win64\x64\StatisticEditor\Development\UnrealEd\SharedPCH.UnrealEd.Cpp20.h" 
+/FI "C:\Users\jkkks\Desktop\Sta\Intermediate\Build\Win64\x64\StatisticEditor\Development\UnrealEd\SharedPCH.UnrealEd.Cpp20.h" 
 /I "C:\Program Files\Epic Games\UE_5.5\Engine\Source" 
 /I "C:\Program Files\Epic Games\UE_5.5\Engine\Plugins\Runtime\ArchVisCharacter\Source\ArchVisCharacter\Private" 
 /I "C:\Program Files\Epic Games\UE_5.5\Engine\Plugins\Runtime\ArchVisCharacter\Intermediate\Build\Win64\UnrealEditor\Inc\ArchVisCharacter\UHT" 
